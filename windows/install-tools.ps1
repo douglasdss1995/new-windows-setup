@@ -135,13 +135,13 @@ function Update-PowerShell {
     $psId = "Microsoft.PowerShell"
 
     if ($DryRun) {
-        Write-Host "  [DRY] winget install/upgrade $psId (latest estavel)" -ForegroundColor DarkYellow
+        Write-Host "  [DRY] winget install/upgrade $psId -> versao estavel mais recente" -ForegroundColor DarkYellow
         return
     }
 
-    # --- Versão instalada (via winget list) -----------------------------------
+    # --- Versão instalada (via winget list, regex ancorado ao nome do pacote) -
     $installedRaw   = winget list --id $psId --exact --accept-source-agreements 2>$null | Out-String
-    $installedMatch = [regex]::Match($installedRaw, '(\d+\.\d+\.\d+)')
+    $installedMatch = [regex]::Match($installedRaw, 'Microsoft\.PowerShell\s+(\d+\.\d+\.\d+)')
     $installedVer   = if ($installedMatch.Success) { [Version]$installedMatch.Groups[1].Value } else { $null }
 
     # --- Versão estável disponível (via winget show) --------------------------
@@ -154,37 +154,32 @@ function Update-PowerShell {
         return
     }
 
-    if ($null -eq $installedVer) {
-        # PowerShell 7 não encontrado — instalar pela primeira vez
-        Write-Host "  --> Instalando PowerShell $availableVer..." -ForegroundColor White
-        winget install --id $psId --exact --silent `
-            --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
-        if ($LASTEXITCODE -eq 0) {
-            Write-OK "PowerShell $availableVer instalado"
-            $script:InstalledCount++
-        } else {
-            Write-Fail "PowerShell — falha na instalacao"
-            $script:FailedList += "PowerShell"
-            $script:FailedCount++
-        }
-
-    } elseif ($installedVer -lt $availableVer) {
-        # Versão desatualizada — atualizar
-        Write-Host "  --> Atualizando PowerShell $installedVer -> $availableVer..." -ForegroundColor White
-        winget upgrade --id $psId --exact --silent `
-            --accept-package-agreements --accept-source-agreements 2>&1 | Out-Null
-        if ($LASTEXITCODE -eq 0) {
-            Write-OK "PowerShell atualizado: $installedVer -> $availableVer"
-            $script:InstalledCount++
-        } else {
-            Write-Fail "PowerShell — falha na atualizacao"
-            $script:FailedList += "PowerShell"
-            $script:FailedCount++
-        }
-
-    } else {
+    # Já na versão mais recente — nada a fazer
+    if ($null -ne $installedVer -and $installedVer -ge $availableVer) {
         Write-Skip "PowerShell $installedVer (ja esta na versao mais recente estavel)"
         $script:SkippedCount++
+        return
+    }
+
+    # Determinar ação (install = primeira vez, upgrade = atualização)
+    $action  = if ($null -eq $installedVer) { "install" } else { "upgrade" }
+    $verb    = if ($action -eq "install") { "Instalando" } else { "Atualizando" }
+    $label   = if ($null -eq $installedVer) { "PowerShell $availableVer" } `
+               else { "PowerShell $installedVer -> $availableVer" }
+
+    Write-Host "  --> $verb $label..." -ForegroundColor White
+
+    # $null = ... 2>&1 preserva $LASTEXITCODE sem risco de pipeline cmdlet resetar o valor
+    $null = & winget $action --id $psId --exact --silent `
+        --accept-package-agreements --accept-source-agreements 2>&1
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-OK $label
+        $script:InstalledCount++
+    } else {
+        Write-Fail "PowerShell — falha em winget $action (codigo $LASTEXITCODE)"
+        $script:FailedList += "PowerShell"
+        $script:FailedCount++
     }
 }
 
@@ -236,7 +231,7 @@ if (ShouldRun "PackageManagers") {
 if (ShouldRun "Terminal") {
     Write-Step "Terminal e Shell"
     Install-Winget "Windows Terminal"  "Microsoft.WindowsTerminal"
-    Install-Winget "PowerShell 7"      "Microsoft.PowerShell"
+    Update-PowerShell                  # instala ou atualiza para a ultima estavel
     Install-Winget "Git + Git Bash"    "Git.Git"
     Install-Winget "Oh My Posh"        "JanDeDobbeleer.OhMyPosh"
     Install-Winget "Starship"          "Starship.Starship"
