@@ -11,6 +11,26 @@
 # Categorias disponíveis:
 #   PackageManagers, Terminal, Editors, Git, Runtimes, Database,
 #   Docker, API, CLI, Security, Productivity, Browsers, Fonts, VSCodeExtensions
+#
+# -----------------------------------------------------------------------------
+# PRÉ-REQUISITO — Execution Policy
+# -----------------------------------------------------------------------------
+# Se ao tentar executar aparecer o erro:
+#   ".\install-tools.ps1 cannot be loaded because running scripts is disabled..."
+#
+# Execute UMA das opções abaixo (em ordem de preferência):
+#
+#   Opção A — apenas para a sessão atual (sem risco, sem efeito permanente):
+#     powershell -ExecutionPolicy Bypass -File .\install-tools.ps1
+#
+#   Opção B — para o usuário atual (permanente, sem precisar de Admin):
+#     Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+#
+#   Opção C — para a máquina inteira (requer Admin, mais permissivo):
+#     Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine
+#
+# RemoteSigned = scripts locais rodam livremente; scripts baixados da internet
+# precisam ter assinatura digital. É a política recomendada para desenvolvedores.
 # =============================================================================
 
 param(
@@ -181,6 +201,19 @@ function Update-PowerShell {
         $script:FailedList += "PowerShell"
         $script:FailedCount++
     }
+}
+
+# -----------------------------------------------------------------------------
+# Verificar Execution Policy
+# -----------------------------------------------------------------------------
+$currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
+if ($currentPolicy -eq "Restricted" -or $currentPolicy -eq "AllSigned") {
+    Write-Host ""
+    Write-Host "  [!!] Execution Policy bloqueada: $currentPolicy" -ForegroundColor Yellow
+    Write-Host "       Ajustando para RemoteSigned (escopo: CurrentUser)..." -ForegroundColor Yellow
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+    Write-Host "  [OK] Execution Policy ajustada para RemoteSigned" -ForegroundColor Green
+    Write-Host ""
 }
 
 # -----------------------------------------------------------------------------

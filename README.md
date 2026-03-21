@@ -35,6 +35,51 @@ new-windows-setup/
 
 ---
 
+## ⚠️ Execution Policy — Faça isso antes de tudo
+
+Por padrão o Windows bloqueia a execução de scripts `.ps1`. Se ao rodar qualquer script aparecer o erro:
+
+```
+.\install-tools.ps1 cannot be loaded because running scripts is disabled on this system.
+```
+
+Escolha **uma** das opções abaixo:
+
+### Opção A — Só para a sessão atual (mais seguro, sem efeito permanente)
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install-tools.ps1
+```
+> Use esta opção se não quiser alterar a política da máquina. Execute esse comando no lugar de `.\install-tools.ps1` diretamente.
+
+### Opção B — Para o usuário atual (recomendado para devs, permanente)
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+> Não precisa de Admin. Scripts locais rodam livremente; scripts baixados da internet precisam ter assinatura digital. **Recomendado.**
+
+### Opção C — Para a máquina inteira (requer Admin)
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine
+```
+> Aplica para todos os usuários da máquina.
+
+### Verificar a política atual
+```powershell
+Get-ExecutionPolicy -List
+```
+
+| Política | Descrição |
+|---|---|
+| `Restricted` | Nenhum script pode rodar (padrão do Windows) |
+| `AllSigned` | Só scripts com assinatura digital |
+| `RemoteSigned` | Scripts locais livres; baixados precisam de assinatura ✅ |
+| `Bypass` | Tudo roda sem restrição (use só em sessões isoladas) |
+| `Unrestricted` | Tudo roda, mas exibe aviso para scripts baixados |
+
+> **Nota:** O `install-tools.ps1` detecta automaticamente a política `Restricted` ou `AllSigned` e ajusta para `RemoteSigned` no escopo `CurrentUser` antes de prosseguir — mas para isso ele precisa ser chamado primeiro com a **Opção A** ou pelo PowerShell como Admin.
+
+---
+
 ## Início Rápido
 
 ### Passo 1 — Instalar ferramentas Windows
