@@ -1,0 +1,58 @@
+# =============================================================================
+# .wslconfig — Configuração global do WSL 2
+# Local: %USERPROFILE%\.wslconfig  (C:\Users\<usuario>\.wslconfig)
+# Aplicar: wsl --shutdown  (depois reabrir o terminal)
+# =============================================================================
+# Máquina de referência: 32 GB RAM, 16 cores lógicos
+
+[wsl2]
+
+# --- Recursos -----------------------------------------------------------------
+
+# Memória máxima que o WSL pode usar (50% da RAM total é um bom equilíbrio)
+memory=16GB
+
+# Número de processadores virtuais disponíveis para o WSL
+processors=8
+
+# Swap — arquivo de paginação criado automaticamente pelo WSL
+swap=4GB
+
+# Caminho do arquivo de swap (opcional — padrão: %USERPROFILE%\AppData\Local\Temp\swap.vhdx)
+# swapFile=C:\\temp\\wsl-swap.vhdx
+
+# --- Rede ---------------------------------------------------------------------
+
+# Modo de rede: "NAT" (padrão) ou "mirrored" (espelha interfaces do Windows)
+# "mirrored" permite acessar serviços WSL via localhost do Windows mais facilmente
+networkingMode=mirrored
+
+# Resolver DNS automaticamente via /etc/resolv.conf gerado pelo WSL
+# dnsTunneling=true  # habilitar se tiver problemas de DNS com mirrored
+
+# Firewall do Windows aplicado ao WSL (recomendado com networkingMode=mirrored)
+firewall=true
+
+# --- Performance --------------------------------------------------------------
+
+# Habilitar compressão de memória (reduz uso de RAM com custo mínimo de CPU)
+pageReporting=true
+
+# Permite que o kernel do WSL libere memória de volta ao Windows quando ocioso
+# Útil para evitar que o WSL consuma RAM indefinidamente
+# (disponível a partir do Windows 11 22H2)
+autoMemoryReclaim=gradual
+
+# --- Armazenamento ------------------------------------------------------------
+
+# Caminho do disco virtual principal (padrão usado pelo WSL)
+# Descomente apenas se quiser mover o VHDX para outro local
+# vhdxPath=D:\\WSL\\Ubuntu-24.04\\ext4.vhdx
+
+# Tamanho máximo do disco virtual (expande conforme uso, até este limite)
+# Aumentar se precisar de mais espaço em disco para o WSL
+# diskSizeGB=256
+
+# --- Debug (desabilitado em produção) -----------------------------------------
+# debugConsole=false
+# kernelCommandLine=

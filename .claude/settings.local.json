@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(wmic computersystem:*)",
+      "Bash(powershell.exe -Command \"\\(Get-CimInstance Win32_ComputerSystem\\).TotalPhysicalMemory / 1GB\")",
+      "Bash(powershell.exe -Command \"\\(Get-CimInstance Win32_Processor\\).NumberOfLogicalProcessors\")",
+      "Bash(gh repo:*)",
+      "Bash(gh api:*)",
+      "WebFetch(domain:raw.githubusercontent.com)"
+    ]
+  }
+}
