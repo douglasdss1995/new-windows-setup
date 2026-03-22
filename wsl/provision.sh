@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-# provision.sh — Provisionamento do ambiente WSL para dev Django + Angular
-# Uso: bash provision.sh [--skip-docker] [--skip-node] [--skip-python]
+# provision.sh — WSL environment provisioning for Django + Angular dev
+# Usage: bash provision.sh [--skip-docker] [--skip-node] [--skip-python]
 # =============================================================================
 
 set -euo pipefail
@@ -41,16 +41,16 @@ step() {
 }
 
 # -----------------------------------------------------------------------------
-# 1. Atualização do sistema
+# 1. System update
 # -----------------------------------------------------------------------------
-step "Atualizando pacotes do sistema"
+step "Updating system packages"
 sudo apt-get update -qq && sudo apt-get upgrade -y -qq
-success "Sistema atualizado"
+success "System updated"
 
 # -----------------------------------------------------------------------------
-# 2. Dependências base
+# 2. Base dependencies
 # -----------------------------------------------------------------------------
-step "Instalando dependências base"
+step "Installing base dependencies"
 sudo apt-get install -y -qq \
   build-essential \
   curl \
@@ -78,22 +78,22 @@ sudo apt-get install -y -qq \
   llvm \
   make \
   gpg
-success "Dependências base instaladas"
+success "Base dependencies installed"
 
 # -----------------------------------------------------------------------------
 # 3. Zsh + Oh My Zsh
 # -----------------------------------------------------------------------------
-step "Instalando Zsh + Oh My Zsh"
+step "Installing Zsh + Oh My Zsh"
 sudo apt-get install -y -qq zsh
 
 if [ ! -d "$HOME/.oh-my-zsh" ]; then
   RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-  success "Oh My Zsh instalado"
+  success "Oh My Zsh installed"
 else
-  warn "Oh My Zsh já instalado, pulando"
+  warn "Oh My Zsh already installed, skipping"
 fi
 
-# Plugins: zsh-autosuggestions e zsh-syntax-highlighting
+# Plugins: zsh-autosuggestions and zsh-syntax-highlighting
 ZSH_CUSTOM="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}"
 
 if [ ! -d "$ZSH_CUSTOM/plugins/zsh-autosuggestions" ]; then
@@ -108,59 +108,59 @@ if [ ! -d "$ZSH_CUSTOM/plugins/zsh-completions" ]; then
   git clone --depth=1 https://github.com/zsh-users/zsh-completions "$ZSH_CUSTOM/plugins/zsh-completions"
 fi
 
-success "Plugins Zsh instalados"
+success "Zsh plugins installed"
 
-# Definir zsh como shell padrão
+# Set zsh as the default shell
 if [ "$SHELL" != "$(which zsh)" ]; then
   sudo chsh -s "$(which zsh)" "$USER"
-  success "Zsh definido como shell padrão"
+  success "Zsh set as default shell"
 fi
 
 # -----------------------------------------------------------------------------
-# 4. mise (gerenciador universal de runtimes)
+# 4. mise (universal runtime version manager)
 # -----------------------------------------------------------------------------
-step "Instalando mise"
+step "Installing mise"
 if ! command -v mise &>/dev/null; then
   curl https://mise.run | sh
   export PATH="$HOME/.local/bin:$PATH"
-  success "mise instalado"
+  success "mise installed"
 else
-  warn "mise já instalado, atualizando"
+  warn "mise already installed, updating"
   mise self-update || true
 fi
 
-# Ativar mise no .zshrc e .bashrc
+# Activate mise in .zshrc and .bashrc
 for RC in "$HOME/.zshrc" "$HOME/.bashrc"; do
   if ! grep -q 'mise activate' "$RC" 2>/dev/null; then
     echo '' >> "$RC"
-    echo '# mise — gerenciador de runtimes' >> "$RC"
+    echo '# mise - runtime version manager' >> "$RC"
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$RC"
     echo 'eval "$(mise activate bash)"' >> "$RC"
   fi
 done
 
-# Corrigir ativação no .zshrc para zsh
+# Fix activation in .zshrc for zsh
 if grep -q 'mise activate bash' "$HOME/.zshrc"; then
   sed -i 's/mise activate bash/mise activate zsh/' "$HOME/.zshrc"
 fi
 
-success "mise configurado no shell"
+success "mise configured in shell"
 
 # -----------------------------------------------------------------------------
 # 5. Python via mise
 # -----------------------------------------------------------------------------
 if [ "$SKIP_PYTHON" = false ]; then
-  step "Instalando Python via mise"
+  step "Installing Python via mise"
   mise use --global python@latest
   eval "$(mise activate bash)"
 
-  # uv — gerenciador de pacotes ultrarrápido
+  # uv - ultra-fast package manager
   if ! command -v uv &>/dev/null; then
     curl -LsSf https://astral.sh/uv/install.sh | sh
     export PATH="$HOME/.local/bin:$PATH"
   fi
 
-  # Ferramentas Python globais via uv
+  # Global Python tools via uv
   uv tool install poetry
   uv tool install black
   uv tool install ruff
@@ -170,21 +170,21 @@ if [ "$SKIP_PYTHON" = false ]; then
   uv tool install httpie
   uv tool install pre-commit
 
-  # Garantir uv no shell
+  # Ensure uv is in shell PATH
   for RC in "$HOME/.zshrc" "$HOME/.bashrc"; do
     if ! grep -q '.local/bin' "$RC" 2>/dev/null; then
       echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$RC"
     fi
   done
 
-  success "Python e ferramentas instaladas"
+  success "Python and tools installed"
 fi
 
 # -----------------------------------------------------------------------------
 # 6. Node.js via mise
 # -----------------------------------------------------------------------------
 if [ "$SKIP_NODE" = false ]; then
-  step "Instalando Node.js via mise"
+  step "Installing Node.js via mise"
   mise use --global node@lts
   eval "$(mise activate bash)"
 
@@ -193,19 +193,19 @@ if [ "$SKIP_NODE" = false ]; then
     npm install -g pnpm
   fi
 
-  # Angular CLI e ferramentas globais
+  # Angular CLI and global tools
   pnpm add -g @angular/cli
   pnpm add -g typescript
   pnpm add -g eslint
   pnpm add -g prettier
 
-  success "Node.js e ferramentas instaladas"
+  success "Node.js and tools installed"
 fi
 
 # -----------------------------------------------------------------------------
-# 7. Ferramentas CLI modernas
+# 7. Modern CLI tools
 # -----------------------------------------------------------------------------
-step "Instalando ferramentas CLI"
+step "Installing CLI tools"
 
 # ripgrep
 if ! command -v rg &>/dev/null; then
@@ -215,7 +215,7 @@ fi
 # fd
 if ! command -v fd &>/dev/null; then
   sudo apt-get install -y -qq fd-find
-  # fd-find instala como fdfind — criar alias
+  # fd-find installs as fdfind - create symlink
   if ! command -v fd &>/dev/null; then
     mkdir -p "$HOME/.local/bin"
     ln -sf "$(which fdfind)" "$HOME/.local/bin/fd"
@@ -225,7 +225,7 @@ fi
 # bat
 if ! command -v bat &>/dev/null; then
   sudo apt-get install -y -qq bat
-  # bat pode instalar como batcat
+  # bat may install as batcat
   if ! command -v bat &>/dev/null && command -v batcat &>/dev/null; then
     mkdir -p "$HOME/.local/bin"
     ln -sf "$(which batcat)" "$HOME/.local/bin/bat"
@@ -243,7 +243,7 @@ if ! command -v zoxide &>/dev/null; then
   curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh
 fi
 
-# delta (git diff melhorado)
+# delta (improved git diff)
 if ! command -v delta &>/dev/null; then
   DELTA_VERSION=$(curl -s https://api.github.com/repos/dandavison/delta/releases/latest | grep tag_name | cut -d'"' -f4)
   curl -sLo /tmp/delta.deb "https://github.com/dandavison/delta/releases/download/${DELTA_VERSION}/git-delta_${DELTA_VERSION}_amd64.deb"
@@ -251,7 +251,7 @@ if ! command -v delta &>/dev/null; then
   rm /tmp/delta.deb
 fi
 
-# eza (ls moderno)
+# eza (modern ls)
 if ! command -v eza &>/dev/null; then
   sudo apt-get install -y -qq gpg
   wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | sudo gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
@@ -280,33 +280,33 @@ if ! command -v gh &>/dev/null; then
   sudo apt-get update -qq && sudo apt-get install -y -qq gh
 fi
 
-success "Ferramentas CLI instaladas"
+success "CLI tools installed"
 
 # -----------------------------------------------------------------------------
-# 8. Docker (daemon nativo no WSL, sem Docker Desktop)
+# 8. Docker (native daemon in WSL, no Docker Desktop)
 # -----------------------------------------------------------------------------
 if [ "$SKIP_DOCKER" = false ]; then
-  step "Instalando Docker"
+  step "Installing Docker"
   if ! command -v docker &>/dev/null; then
     curl -fsSL https://get.docker.com | sh
     sudo usermod -aG docker "$USER"
-    success "Docker instalado — faça logout/login para usar sem sudo"
+    success "Docker installed - log out/in to use without sudo"
   else
-    warn "Docker já instalado, pulando"
+    warn "Docker already installed, skipping"
   fi
 
-  # Habilitar e iniciar o serviço Docker via systemd (auto-start com o WSL)
+  # Enable and start Docker service via systemd (auto-start with WSL)
   sudo systemctl enable docker
   sudo systemctl start docker 2>/dev/null || true
-  success "Docker configurado para iniciar automaticamente via systemd"
+  success "Docker configured to start automatically via systemd"
 fi
 
 # -----------------------------------------------------------------------------
-# 9. Git — configurações globais
+# 9. Git - global configuration
 # -----------------------------------------------------------------------------
-step "Configurando Git"
+step "Configuring Git"
 
-# delta como pager do git
+# delta as git pager
 git config --global core.pager delta
 git config --global interactive.diffFilter "delta --color-only"
 git config --global delta.navigate true
@@ -316,33 +316,33 @@ git config --global delta.side-by-side false
 git config --global merge.conflictstyle diff3
 git config --global diff.colorMoved default
 
-# Configurações gerais úteis
+# General useful settings
 git config --global pull.rebase false
 git config --global init.defaultBranch main
 git config --global core.autocrlf input
 git config --global core.editor "code --wait"
 
-success "Git configurado"
+success "Git configured"
 
 # -----------------------------------------------------------------------------
-# 10. .zshrc — configurações e aliases
+# 10. .zshrc - configuration and aliases
 # -----------------------------------------------------------------------------
-step "Configurando .zshrc"
+step "Configuring .zshrc"
 
 ZSHRC="$HOME/.zshrc"
 
-# Atualizar plugins no .zshrc
+# Update plugins in .zshrc
 if grep -q '^plugins=' "$ZSHRC"; then
   sed -i 's/^plugins=.*/plugins=(git zsh-autosuggestions zsh-syntax-highlighting zsh-completions z fzf)/' "$ZSHRC"
 fi
 
-# Bloco de aliases e configurações — adiciona apenas se não existir
+# Aliases block - only add if not already present
 if ! grep -q '# === provision aliases ===' "$ZSHRC"; then
 cat >> "$ZSHRC" << 'EOF'
 
 # === provision aliases ===
 
-# Navegação
+# Navigation
 alias ..='cd ..'
 alias ...='cd ../..'
 alias ll='eza -lah --git --icons'
@@ -383,7 +383,7 @@ alias pvlogs='docker compose -f ~/providers/docker-compose.yml logs -f'
 alias pvps='docker compose -f ~/providers/docker-compose.yml ps'
 alias pvrestart='docker compose -f ~/providers/docker-compose.yml restart'
 
-# zoxide como cd
+# zoxide as cd
 eval "$(zoxide init zsh)"
 
 # fzf keybindings
@@ -394,13 +394,13 @@ export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 EOF
 fi
 
-success ".zshrc configurado"
+success ".zshrc configured"
 
 # -----------------------------------------------------------------------------
 # 11. Providers (PostgreSQL, Redis, pgAdmin, Portainer)
 # -----------------------------------------------------------------------------
 if [ "$SKIP_DOCKER" = false ]; then
-  step "Configurando Providers (PostgreSQL, Redis, pgAdmin, Portainer)"
+  step "Configuring Providers (PostgreSQL, Redis, pgAdmin, Portainer)"
 
   PROVIDERS_DIR="$HOME/providers"
   mkdir -p "$PROVIDERS_DIR/providers/postgres/init"
@@ -410,9 +410,9 @@ if [ "$SKIP_DOCKER" = false ]; then
   # docker-compose.yml
   cat > "$PROVIDERS_DIR/docker-compose.yml" << 'COMPOSE_EOF'
 # =============================================================================
-# docker-compose.yml — Providers (Serviços Compartilhados)
-# Serviços: PostgreSQL, Redis, pgAdmin, Portainer
-# Uso: docker compose up -d
+# docker-compose.yml - Providers (Shared Services)
+# Services: PostgreSQL, Redis, pgAdmin, Portainer
+# Usage: docker compose up -d
 # =============================================================================
 
 services:
@@ -507,11 +507,11 @@ volumes:
   portainer_data:
 COMPOSE_EOF
 
-  # .env — só cria se não existir (preserva customizações)
+  # .env - only create if it doesn't exist (preserve customizations)
   if [ ! -f "$PROVIDERS_DIR/.env" ]; then
     cat > "$PROVIDERS_DIR/.env" << 'ENV_EOF'
 # =============================================================================
-# .env — Providers (Serviços Compartilhados)
+# .env - Providers (Shared Services)
 # =============================================================================
 
 # PostgreSQL
@@ -523,45 +523,45 @@ POSTGRES_PORT=5432
 # Redis
 REDIS_PORT=6379
 
-# pgAdmin — http://localhost:5050
+# pgAdmin - http://localhost:5050
 PGADMIN_EMAIL=admin@admin.com
 PGADMIN_PASSWORD=admin
 PGADMIN_PORT=5050
 
-# Portainer — http://localhost:9000
+# Portainer - http://localhost:9000
 PORTAINER_HTTP_PORT=9000
 PORTAINER_HTTPS_PORT=9443
 
 # Timezone
 TZ=America/Sao_Paulo
 ENV_EOF
-    warn "Arquivo .env criado com valores padrão — edite as senhas em: $PROVIDERS_DIR/.env"
+    warn ".env file created with default values - edit passwords at: $PROVIDERS_DIR/.env"
   else
-    warn ".env já existe em $PROVIDERS_DIR/.env — mantido sem alterações"
+    warn ".env already exists at $PROVIDERS_DIR/.env - kept unchanged"
   fi
 
   # redis.conf
   cat > "$PROVIDERS_DIR/providers/redis/redis.conf" << 'REDIS_EOF'
 # ==============================================
-# Redis — Configuração
+# Redis - Configuration
 # ==============================================
 
 bind 0.0.0.0
 port 6379
 protected-mode no
 
-# Persistência
+# Persistence
 appendonly yes
 appendfsync everysec
 save 900 1
 save 300 10
 save 60 10000
 
-# Memória
+# Memory
 maxmemory 256mb
 maxmemory-policy allkeys-lru
 
-# Logs
+# Logging
 loglevel notice
 
 # Timeout
@@ -575,16 +575,16 @@ REDIS_EOF
   # postgres init
   cat > "$PROVIDERS_DIR/providers/postgres/init/01-init-db.sql" << 'SQL_EOF'
 -- =============================================================================
--- 01-init-db.sql — Inicialização do PostgreSQL
+-- 01-init-db.sql - PostgreSQL initialization
 -- =============================================================================
 
--- Extensões úteis
+-- Useful extensions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 
 DO $$
 BEGIN
-  RAISE NOTICE 'PostgreSQL inicializado com sucesso!';
+  RAISE NOTICE 'PostgreSQL initialized successfully!';
 END $$;
 SQL_EOF
 
@@ -605,7 +605,7 @@ SQL_EOF
 }
 JSON_EOF
 
-  # systemd service para auto-start dos providers com o WSL
+  # systemd service for auto-starting providers with WSL
   PROVIDERS_SERVICE="/etc/systemd/system/providers.service"
   if [ ! -f "$PROVIDERS_SERVICE" ]; then
     sudo tee "$PROVIDERS_SERVICE" > /dev/null << EOF
@@ -628,32 +628,32 @@ WantedBy=multi-user.target
 EOF
     sudo systemctl daemon-reload
     sudo systemctl enable providers.service
-    success "Serviço providers habilitado — inicia automaticamente com o WSL"
+    success "Providers service enabled - starts automatically with WSL"
   else
-    warn "Serviço providers já configurado em $PROVIDERS_SERVICE"
+    warn "Providers service already configured at $PROVIDERS_SERVICE"
   fi
 
-  success "Providers configurados em: $PROVIDERS_DIR"
-  info "pgAdmin  → http://localhost:5050  (admin@admin.com / admin)"
-  info "Portainer → http://localhost:9000"
+  success "Providers configured at: $PROVIDERS_DIR"
+  info "pgAdmin   -> http://localhost:5050  (admin@admin.com / admin)"
+  info "Portainer -> http://localhost:9000"
 fi
 
 # -----------------------------------------------------------------------------
-# Concluído
+# Done
 # -----------------------------------------------------------------------------
 echo ""
 echo -e "${GREEN}============================================${NC}"
-echo -e "${GREEN}  Provisionamento concluído!${NC}"
+echo -e "${GREEN}  Provisioning complete!${NC}"
 echo -e "${GREEN}============================================${NC}"
 echo ""
-echo "Próximos passos:"
-echo "  1. Reinicie o terminal ou execute: exec zsh"
-echo "  2. Configure o Git: git config --global user.name 'Seu Nome'"
-echo "  3. Configure o Git: git config --global user.email 'seu@email.com'"
-echo "  4. Autentique no GitHub: gh auth login"
+echo "Next steps:"
+echo "  1. Restart terminal or run: exec zsh"
+echo "  2. Configure Git: git config --global user.name 'Your Name'"
+echo "  3. Configure Git: git config --global user.email 'your@email.com'"
+echo "  4. Authenticate with GitHub: gh auth login"
 if [ "$SKIP_DOCKER" = false ]; then
-  echo "  5. Para Docker sem sudo: reinicie a sessão WSL (wsl --shutdown no PowerShell)"
-  echo "  6. Subir providers:  pvup   (ou: cd ~/providers && docker compose up -d)"
+  echo "  5. For Docker without sudo: restart WSL session (wsl --shutdown in PowerShell)"
+  echo "  6. Start providers:  pvup   (or: cd ~/providers && docker compose up -d)"
   echo "     - pgAdmin:        http://localhost:5050  (admin@admin.com / admin)"
   echo "     - Portainer:      http://localhost:9000"
   echo "     - PostgreSQL:     localhost:5432"

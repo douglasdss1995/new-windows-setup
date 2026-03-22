@@ -1,13 +1,13 @@
 # =============================================================================
-# windows.ps1 - Setup completo para Windows recem-formatado
-# Baseado em ferramentas.md - Dev Django + Angular
+# windows.ps1 - Complete setup for a freshly formatted Windows machine
+# Based on ferramentas.md - Dev Django + Angular
 #
-# Uso:
+# Usage:
 #   powershell -ExecutionPolicy Bypass -File windows.ps1
 #
-# Edite windows.config.psd1 para ativar/desativar ferramentas e configurar Git.
-# Requer execucao como Administrador.
-# Compativel com PowerShell 5.1+
+# Edit windows.config.psd1 to enable/disable tools and configure Git.
+# Requires running as Administrator.
+# Compatible with PowerShell 5.1+
 # =============================================================================
 
 Set-StrictMode -Version Latest
@@ -29,47 +29,47 @@ $script:Failed    = 0
 $script:FailList  = @()
 
 # -----------------------------------------------------------------------------
-# Carregar configuracoes
+# Load configuration
 # -----------------------------------------------------------------------------
 $ConfigFile = Join-Path $PSScriptRoot "windows.config.psd1"
 
 if (-not (Test-Path $ConfigFile)) {
-    Write-Host "[ERRO] Arquivo de configuracao nao encontrado: $ConfigFile" -ForegroundColor Red
-    Write-Host "       Crie o arquivo windows.config.psd1 na mesma pasta do script." -ForegroundColor Yellow
+    Write-Host "[ERROR] Configuration file not found: $ConfigFile" -ForegroundColor Red
+    Write-Host "        Create the windows.config.psd1 file in the same folder as this script." -ForegroundColor Yellow
     exit 1
 }
 
 $cfg = Import-PowerShellDataFile -Path $ConfigFile
 Write-Host ""
-Write-Host "  Configuracao carregada: $ConfigFile" -ForegroundColor DarkGray
+Write-Host "  Configuration loaded: $ConfigFile" -ForegroundColor DarkGray
 
 # -----------------------------------------------------------------------------
-# Verificar Execution Policy
+# Check Execution Policy
 # -----------------------------------------------------------------------------
 $pol = Get-ExecutionPolicy -Scope CurrentUser
 if ($pol -eq "Restricted" -or $pol -eq "AllSigned") {
-    Write-Warn "Execution Policy bloqueada ($pol) - ajustando para RemoteSigned..."
+    Write-Warn "Execution Policy blocked ($pol) - adjusting to RemoteSigned..."
     Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-    Write-OK "Execution Policy ajustada"
+    Write-OK "Execution Policy updated"
 }
 
 # -----------------------------------------------------------------------------
-# Verificar Administrador
+# Check Administrator
 # -----------------------------------------------------------------------------
 $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator
 )
 if (-not $isAdmin) {
     Write-Host ""
-    Write-Host "[ERRO] Execute como Administrador." -ForegroundColor Red
-    Write-Host "       Clique com botao direito no PowerShell > 'Executar como administrador'" -ForegroundColor Red
-    Write-Host "       Depois execute: powershell -ExecutionPolicy Bypass -File windows.ps1" -ForegroundColor Yellow
+    Write-Host "[ERROR] Run as Administrator." -ForegroundColor Red
+    Write-Host "        Right-click PowerShell > 'Run as administrator'" -ForegroundColor Red
+    Write-Host "        Then run: powershell -ExecutionPolicy Bypass -File windows.ps1" -ForegroundColor Yellow
     Write-Host ""
     exit 1
 }
 
 # -----------------------------------------------------------------------------
-# Funcao: instalar via winget
+# Function: install via winget
 # -----------------------------------------------------------------------------
 function Install-Pkg {
     param(
@@ -80,7 +80,7 @@ function Install-Pkg {
 
     $check = winget list --id $Id --exact --accept-source-agreements 2>&1 | Out-String
     if ($check -match [regex]::Escape($Id)) {
-        Write-Skip "$Name (ja instalado)"
+        Write-Skip "$Name (already installed)"
         $script:Skipped++
         return
     }
@@ -96,21 +96,21 @@ function Install-Pkg {
         Write-OK $Name
         $script:Installed++
     } else {
-        Write-Fail "$Name (codigo $LASTEXITCODE)"
+        Write-Fail "$Name (exit code $LASTEXITCODE)"
         $script:FailList += $Name
         $script:Failed++
     }
 }
 
 # -----------------------------------------------------------------------------
-# Funcao: instalar via Chocolatey
+# Function: install via Chocolatey
 # -----------------------------------------------------------------------------
 function Install-Choco {
     param([string]$Name, [string]$Pkg)
 
     $list = choco list --local-only $Pkg 2>&1 | Out-String
     if ($list -match $Pkg) {
-        Write-Skip "$Name (ja instalado)"
+        Write-Skip "$Name (already installed)"
         $script:Skipped++
         return
     }
@@ -129,7 +129,7 @@ function Install-Choco {
 }
 
 # -----------------------------------------------------------------------------
-# Funcao: instalar extensao VS Code
+# Function: install VS Code extension
 # -----------------------------------------------------------------------------
 function Install-VSExt {
     param([string]$Id)
@@ -154,20 +154,20 @@ function Install-VSExt {
 
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  Setup Windows - Dev Django + Angular" -ForegroundColor Cyan
+Write-Host "  Windows Setup - Dev Django + Angular" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 
 # =============================================================================
-# 1. GERENCIADORES DE PACOTES
+# 1. PACKAGE MANAGERS
 # =============================================================================
-Write-Step "Gerenciadores de Pacotes"
+Write-Step "Package Managers"
 
-Write-Info "Atualizando fontes do winget..."
+Write-Info "Updating winget sources..."
 winget source update 2>&1 | Out-Null
 
 if ($cfg.PackageManagers.Chocolatey) {
     if (Get-Command choco -ErrorAction SilentlyContinue) {
-        Write-Skip "Chocolatey (ja instalado)"
+        Write-Skip "Chocolatey (already installed)"
         $script:Skipped++
     } else {
         Write-Host "  --> Chocolatey..." -ForegroundColor White
@@ -184,57 +184,57 @@ if ($cfg.PackageManagers.Chocolatey) {
         }
     }
 } else {
-    Write-Skip "Chocolatey (desativado no config)"
+    Write-Skip "Chocolatey (disabled in config)"
     $script:Skipped++
 }
 
 # =============================================================================
-# 2. TERMINAL E SHELL
+# 2. TERMINAL AND SHELL
 # =============================================================================
-Write-Step "Terminal e Shell"
+Write-Step "Terminal and Shell"
 
-if ($cfg.Terminal.WindowsTerminal) { Install-Pkg "Windows Terminal"  "Microsoft.WindowsTerminal" } else { Write-Skip "Windows Terminal (desativado)" }
-if ($cfg.Terminal.PowerShell7)     { Install-Pkg "PowerShell 7"      "Microsoft.PowerShell"      } else { Write-Skip "PowerShell 7 (desativado)"  }
-if ($cfg.Terminal.Git)             { Install-Pkg "Git + Git Bash"    "Git.Git"                   } else { Write-Skip "Git (desativado)"           }
-if ($cfg.Terminal.OhMyPosh)        { Install-Pkg "Oh My Posh"        "JanDeDobbeleer.OhMyPosh"   } else { Write-Skip "Oh My Posh (desativado)"   }
-if ($cfg.Terminal.Starship)        { Install-Pkg "Starship"          "Starship.Starship"          } else { Write-Skip "Starship (desativado)"     }
-if ($cfg.Terminal.Zoxide)          { Install-Pkg "zoxide"            "ajeetdsouza.zoxide"         } else { Write-Skip "zoxide (desativado)"       }
-if ($cfg.Terminal.Fzf)             { Install-Pkg "fzf"               "junegunn.fzf"               } else { Write-Skip "fzf (desativado)"         }
-
-# =============================================================================
-# 3. EDITORES E IDEs
-# =============================================================================
-Write-Step "Editores e IDEs"
-
-if ($cfg.Editors.VSCode)   { Install-Pkg "VS Code"           "Microsoft.VisualStudioCode"      } else { Write-Skip "VS Code (desativado)"   }
-if ($cfg.Editors.Cursor)   { Install-Pkg "Cursor"            "Anysphere.Cursor"                 } else { Write-Skip "Cursor (desativado)"   }
-if ($cfg.Editors.PyCharm)  { Install-Pkg "PyCharm Community" "JetBrains.PyCharm.Community"     } else { Write-Skip "PyCharm (desativado)"  }
-if ($cfg.Editors.WebStorm) { Install-Pkg "WebStorm"          "JetBrains.WebStorm"              } else { Write-Skip "WebStorm (desativado)" }
+if ($cfg.Terminal.WindowsTerminal) { Install-Pkg "Windows Terminal"  "Microsoft.WindowsTerminal" } else { Write-Skip "Windows Terminal (disabled)" }
+if ($cfg.Terminal.PowerShell7)     { Install-Pkg "PowerShell 7"      "Microsoft.PowerShell"      } else { Write-Skip "PowerShell 7 (disabled)"  }
+if ($cfg.Terminal.Git)             { Install-Pkg "Git + Git Bash"    "Git.Git"                   } else { Write-Skip "Git (disabled)"           }
+if ($cfg.Terminal.OhMyPosh)        { Install-Pkg "Oh My Posh"        "JanDeDobbeleer.OhMyPosh"   } else { Write-Skip "Oh My Posh (disabled)"   }
+if ($cfg.Terminal.Starship)        { Install-Pkg "Starship"          "Starship.Starship"          } else { Write-Skip "Starship (disabled)"     }
+if ($cfg.Terminal.Zoxide)          { Install-Pkg "zoxide"            "ajeetdsouza.zoxide"         } else { Write-Skip "zoxide (disabled)"       }
+if ($cfg.Terminal.Fzf)             { Install-Pkg "fzf"               "junegunn.fzf"               } else { Write-Skip "fzf (disabled)"         }
 
 # =============================================================================
-# 4. GIT E CONTROLE DE VERSAO
+# 3. EDITORS AND IDEs
 # =============================================================================
-Write-Step "Git e Controle de Versao"
+Write-Step "Editors and IDEs"
 
-if ($cfg.GitTools.GitHubCLI)  { Install-Pkg "GitHub CLI"  "GitHub.cli"          } else { Write-Skip "GitHub CLI (desativado)"  }
-if ($cfg.GitTools.GitKraken)  { Install-Pkg "GitKraken"   "Axosoft.GitKraken"   } else { Write-Skip "GitKraken (desativado)"  }
-if ($cfg.GitTools.Delta)      { Install-Pkg "delta"        "dandavison.delta"    } else { Write-Skip "delta (desativado)"      }
+if ($cfg.Editors.VSCode)   { Install-Pkg "VS Code"           "Microsoft.VisualStudioCode"      } else { Write-Skip "VS Code (disabled)"   }
+if ($cfg.Editors.Cursor)   { Install-Pkg "Cursor"            "Anysphere.Cursor"                 } else { Write-Skip "Cursor (disabled)"   }
+if ($cfg.Editors.PyCharm)  { Install-Pkg "PyCharm Community" "JetBrains.PyCharm.Community"     } else { Write-Skip "PyCharm (disabled)"  }
+if ($cfg.Editors.WebStorm) { Install-Pkg "WebStorm"          "JetBrains.WebStorm"              } else { Write-Skip "WebStorm (disabled)" }
 
 # =============================================================================
-# 5. RUNTIMES E GERENCIADORES DE VERSAO
+# 4. GIT AND VERSION CONTROL
 # =============================================================================
-Write-Step "Runtimes e Gerenciadores de Versao"
+Write-Step "Git and Version Control"
 
-if ($cfg.Runtimes.Mise)       { Install-Pkg "mise"                   "jdx.mise"                        } else { Write-Skip "mise (desativado)"       }
-if ($cfg.Runtimes.PyenvWin)   { Install-Pkg "pyenv-win"              "pyenv-win.pyenv-win"              } else { Write-Skip "pyenv-win (desativado)"   }
-if ($cfg.Runtimes.NvmWindows) { Install-Pkg "nvm-windows"            "CoreyButler.NVMforWindows"        } else { Write-Skip "nvm-windows (desativado)" }
-if ($cfg.Runtimes.Python313)  { Install-Pkg "Python 3.13"            "Python.Python.3.13"               } else { Write-Skip "Python 3.13 (desativado)" }
-if ($cfg.Runtimes.NodeLTS)    { Install-Pkg "Node.js LTS"            "OpenJS.NodeJS.LTS"                } else { Write-Skip "Node.js LTS (desativado)" }
-if ($cfg.Runtimes.Java21)     { Install-Pkg "Eclipse Temurin 21 JDK" "EclipseAdoptium.Temurin.21.JDK"  } else { Write-Skip "Java 21 (desativado)"     }
+if ($cfg.GitTools.GitHubCLI)  { Install-Pkg "GitHub CLI"  "GitHub.cli"          } else { Write-Skip "GitHub CLI (disabled)"  }
+if ($cfg.GitTools.GitKraken)  { Install-Pkg "GitKraken"   "Axosoft.GitKraken"   } else { Write-Skip "GitKraken (disabled)"  }
+if ($cfg.GitTools.Delta)      { Install-Pkg "delta"        "dandavison.delta"    } else { Write-Skip "delta (disabled)"      }
+
+# =============================================================================
+# 5. RUNTIMES AND VERSION MANAGERS
+# =============================================================================
+Write-Step "Runtimes and Version Managers"
+
+if ($cfg.Runtimes.Mise)       { Install-Pkg "mise"                   "jdx.mise"                        } else { Write-Skip "mise (disabled)"       }
+if ($cfg.Runtimes.PyenvWin)   { Install-Pkg "pyenv-win"              "pyenv-win.pyenv-win"              } else { Write-Skip "pyenv-win (disabled)"   }
+if ($cfg.Runtimes.NvmWindows) { Install-Pkg "nvm-windows"            "CoreyButler.NVMforWindows"        } else { Write-Skip "nvm-windows (disabled)" }
+if ($cfg.Runtimes.Python313)  { Install-Pkg "Python 3.13"            "Python.Python.3.13"               } else { Write-Skip "Python 3.13 (disabled)" }
+if ($cfg.Runtimes.NodeLTS)    { Install-Pkg "Node.js LTS"            "OpenJS.NodeJS.LTS"                } else { Write-Skip "Node.js LTS (disabled)" }
+if ($cfg.Runtimes.Java21)     { Install-Pkg "Eclipse Temurin 21 JDK" "EclipseAdoptium.Temurin.21.JDK"  } else { Write-Skip "Java 21 (disabled)"     }
 
 if ($cfg.Runtimes.Uv) {
     if (Get-Command uv -ErrorAction SilentlyContinue) {
-        Write-Skip "uv (ja instalado)"
+        Write-Skip "uv (already installed)"
         $script:Skipped++
     } else {
         Write-Host "  --> uv..." -ForegroundColor White
@@ -243,16 +243,16 @@ if ($cfg.Runtimes.Uv) {
             Write-OK "uv"
             $script:Installed++
         } else {
-            Write-Warn "uv - reinicie o terminal e verifique se foi instalado"
+            Write-Warn "uv - restart terminal and verify installation"
         }
     }
 } else {
-    Write-Skip "uv (desativado)"
+    Write-Skip "uv (disabled)"
 }
 
 if ($cfg.Runtimes.Pnpm) {
     if (Get-Command pnpm -ErrorAction SilentlyContinue) {
-        Write-Skip "pnpm (ja instalado)"
+        Write-Skip "pnpm (already installed)"
         $script:Skipped++
     } else {
         Write-Host "  --> pnpm..." -ForegroundColor White
@@ -261,72 +261,72 @@ if ($cfg.Runtimes.Pnpm) {
             Write-OK "pnpm"
             $script:Installed++
         } else {
-            Write-Warn "pnpm - reinicie o terminal e verifique se foi instalado"
+            Write-Warn "pnpm - restart terminal and verify installation"
         }
     }
 } else {
-    Write-Skip "pnpm (desativado)"
+    Write-Skip "pnpm (disabled)"
 }
 
 # =============================================================================
-# 6. BANCO DE DADOS
+# 6. DATABASES
 # =============================================================================
-Write-Step "Banco de Dados"
+Write-Step "Databases"
 
-if ($cfg.Database.PostgreSQL16)  { Install-Pkg "PostgreSQL 16"     "PostgreSQL.PostgreSQL.16"          } else { Write-Skip "PostgreSQL 16 (desativado)"   }
-if ($cfg.Database.DBeaver)       { Install-Pkg "DBeaver"           "dbeaver.dbeaver"                   } else { Write-Skip "DBeaver (desativado)"          }
-if ($cfg.Database.TablePlus)     { Install-Pkg "TablePlus"         "TablePlus.TablePlus"               } else { Write-Skip "TablePlus (desativado)"        }
-if ($cfg.Database.PgAdmin)       { Install-Pkg "pgAdmin 4"         "PostgreSQL.pgAdmin"                } else { Write-Skip "pgAdmin (desativado)"          }
-if ($cfg.Database.RedisInsight)  { Install-Pkg "Redis Insight"     "RedisLabs.RedisInsight"            } else { Write-Skip "Redis Insight (desativado)"    }
-if ($cfg.Database.SQLiteBrowser) { Install-Pkg "DB Browser SQLite" "DBBrowserForSQLite.DBBrowserForSQLite" } else { Write-Skip "SQLite Browser (desativado)" }
-
-# =============================================================================
-# 7. DOCKER E INFRAESTRUTURA
-# =============================================================================
-Write-Step "Docker e Infraestrutura"
-
-Write-Info "Docker roda via Docker Engine nativo no WSL - sem Docker Desktop."
-Write-Info "Execute o script wsl/provision.sh no WSL para instalar e configurar."
-Write-Info "Vantagem: ~50-150 MB de RAM vs ~1 GB do Docker Desktop."
+if ($cfg.Database.PostgreSQL16)  { Install-Pkg "PostgreSQL 16"     "PostgreSQL.PostgreSQL.16"          } else { Write-Skip "PostgreSQL 16 (disabled)"   }
+if ($cfg.Database.DBeaver)       { Install-Pkg "DBeaver"           "dbeaver.dbeaver"                   } else { Write-Skip "DBeaver (disabled)"          }
+if ($cfg.Database.TablePlus)     { Install-Pkg "TablePlus"         "TablePlus.TablePlus"               } else { Write-Skip "TablePlus (disabled)"        }
+if ($cfg.Database.PgAdmin)       { Install-Pkg "pgAdmin 4"         "PostgreSQL.pgAdmin"                } else { Write-Skip "pgAdmin (disabled)"          }
+if ($cfg.Database.RedisInsight)  { Install-Pkg "Redis Insight"     "RedisLabs.RedisInsight"            } else { Write-Skip "Redis Insight (disabled)"    }
+if ($cfg.Database.SQLiteBrowser) { Install-Pkg "DB Browser SQLite" "DBBrowserForSQLite.DBBrowserForSQLite" } else { Write-Skip "SQLite Browser (disabled)" }
 
 # =============================================================================
-# 8. API E TESTES HTTP
+# 7. DOCKER AND INFRASTRUCTURE
 # =============================================================================
-Write-Step "API e Testes HTTP"
+Write-Step "Docker and Infrastructure"
 
-if ($cfg.API.Postman)  { Install-Pkg "Postman"  "Postman.Postman"  } else { Write-Skip "Postman (desativado)"  }
-if ($cfg.API.Insomnia) { Install-Pkg "Insomnia" "Kong.Insomnia"    } else { Write-Skip "Insomnia (desativado)" }
-if ($cfg.API.Bruno)    { Install-Pkg "Bruno"    "Bruno.Bruno"      } else { Write-Skip "Bruno (desativado)"    }
-
-# =============================================================================
-# 9. UTILITARIOS CLI
-# =============================================================================
-Write-Step "Utilitarios de Linha de Comando"
-
-if ($cfg.CLI.Ripgrep) { Install-Pkg "ripgrep" "BurntSushi.ripgrep.MSVC" } else { Write-Skip "ripgrep (desativado)" }
-if ($cfg.CLI.Fd)      { Install-Pkg "fd"      "sharkdp.fd"              } else { Write-Skip "fd (desativado)"      }
-if ($cfg.CLI.Bat)     { Install-Pkg "bat"     "sharkdp.bat"             } else { Write-Skip "bat (desativado)"     }
-if ($cfg.CLI.Eza)     { Install-Pkg "eza"     "eza-community.eza"       } else { Write-Skip "eza (desativado)"     }
-if ($cfg.CLI.Delta)   { Install-Pkg "delta"   "dandavison.delta"        } else { Write-Skip "delta (desativado)"   }
-if ($cfg.CLI.Jq)      { Install-Pkg "jq"      "jqlang.jq"               } else { Write-Skip "jq (desativado)"      }
-if ($cfg.CLI.Yq)      { Install-Pkg "yq"      "MikeFarah.yq"            } else { Write-Skip "yq (desativado)"      }
-if ($cfg.CLI.Wget)    { Install-Pkg "wget"    "GnuWin32.Wget"           } else { Write-Skip "wget (desativado)"    }
-if ($cfg.CLI.Make)    { Install-Pkg "make"    "GnuWin32.Make"           } else { Write-Skip "make (desativado)"    }
-if ($cfg.CLI.Just)    { Install-Pkg "just"    "Casey.Just"              } else { Write-Skip "just (desativado)"    }
-if ($cfg.CLI.Curl)    { Install-Pkg "curl"    "cURL.cURL"               } else { Write-Skip "curl (desativado)"    }
+Write-Info "Docker runs via native Docker Engine in WSL - no Docker Desktop needed."
+Write-Info "Run the wsl/provision.sh script inside WSL to install and configure it."
+Write-Info "Benefit: ~50-150 MB RAM vs ~1 GB for Docker Desktop."
 
 # =============================================================================
-# 10. SEGURANCA E AUTENTICACAO
+# 8. API AND HTTP TESTING
 # =============================================================================
-Write-Step "Seguranca e Autenticacao"
+Write-Step "API and HTTP Testing"
 
-if ($cfg.Security.Bitwarden) { Install-Pkg "Bitwarden" "Bitwarden.Bitwarden" } else { Write-Skip "Bitwarden (desativado)" }
-if ($cfg.Security.Gpg4win)   { Install-Pkg "Gpg4win"   "GnuPG.Gpg4win"      } else { Write-Skip "Gpg4win (desativado)"   }
+if ($cfg.API.Postman)  { Install-Pkg "Postman"  "Postman.Postman"  } else { Write-Skip "Postman (disabled)"  }
+if ($cfg.API.Insomnia) { Install-Pkg "Insomnia" "Kong.Insomnia"    } else { Write-Skip "Insomnia (disabled)" }
+if ($cfg.API.Bruno)    { Install-Pkg "Bruno"    "Bruno.Bruno"      } else { Write-Skip "Bruno (disabled)"    }
+
+# =============================================================================
+# 9. CLI UTILITIES
+# =============================================================================
+Write-Step "CLI Utilities"
+
+if ($cfg.CLI.Ripgrep) { Install-Pkg "ripgrep" "BurntSushi.ripgrep.MSVC" } else { Write-Skip "ripgrep (disabled)" }
+if ($cfg.CLI.Fd)      { Install-Pkg "fd"      "sharkdp.fd"              } else { Write-Skip "fd (disabled)"      }
+if ($cfg.CLI.Bat)     { Install-Pkg "bat"     "sharkdp.bat"             } else { Write-Skip "bat (disabled)"     }
+if ($cfg.CLI.Eza)     { Install-Pkg "eza"     "eza-community.eza"       } else { Write-Skip "eza (disabled)"     }
+if ($cfg.CLI.Delta)   { Install-Pkg "delta"   "dandavison.delta"        } else { Write-Skip "delta (disabled)"   }
+if ($cfg.CLI.Jq)      { Install-Pkg "jq"      "jqlang.jq"               } else { Write-Skip "jq (disabled)"      }
+if ($cfg.CLI.Yq)      { Install-Pkg "yq"      "MikeFarah.yq"            } else { Write-Skip "yq (disabled)"      }
+if ($cfg.CLI.Wget)    { Install-Pkg "wget"    "GnuWin32.Wget"           } else { Write-Skip "wget (disabled)"    }
+if ($cfg.CLI.Make)    { Install-Pkg "make"    "GnuWin32.Make"           } else { Write-Skip "make (disabled)"    }
+if ($cfg.CLI.Just)    { Install-Pkg "just"    "Casey.Just"              } else { Write-Skip "just (disabled)"    }
+if ($cfg.CLI.Curl)    { Install-Pkg "curl"    "cURL.cURL"               } else { Write-Skip "curl (disabled)"    }
+
+# =============================================================================
+# 10. SECURITY AND AUTHENTICATION
+# =============================================================================
+Write-Step "Security and Authentication"
+
+if ($cfg.Security.Bitwarden) { Install-Pkg "Bitwarden" "Bitwarden.Bitwarden" } else { Write-Skip "Bitwarden (disabled)" }
+if ($cfg.Security.Gpg4win)   { Install-Pkg "Gpg4win"   "GnuPG.Gpg4win"      } else { Write-Skip "Gpg4win (disabled)"   }
 
 if ($cfg.Security.OpenSSH) {
     $ssh = Get-WindowsCapability -Online -Name "OpenSSH.Client*"
     if ($ssh.State -eq "Installed") {
-        Write-Skip "OpenSSH Client (ja instalado)"
+        Write-Skip "OpenSSH Client (already installed)"
         $script:Skipped++
     } else {
         Write-Host "  --> OpenSSH Client..." -ForegroundColor White
@@ -335,80 +335,80 @@ if ($cfg.Security.OpenSSH) {
         $script:Installed++
     }
 } else {
-    Write-Skip "OpenSSH (desativado)"
+    Write-Skip "OpenSSH (disabled)"
 }
 
 # =============================================================================
-# 11. PRODUTIVIDADE
+# 11. PRODUCTIVITY
 # =============================================================================
-Write-Step "Produtividade e Organizacao"
+Write-Step "Productivity and Organization"
 
-if ($cfg.Productivity.Obsidian)   { Install-Pkg "Obsidian"      "Obsidian.Obsidian"           } else { Write-Skip "Obsidian (desativado)"    }
-if ($cfg.Productivity.Notion)     { Install-Pkg "Notion"        "Notion.Notion"               } else { Write-Skip "Notion (desativado)"      }
-if ($cfg.Productivity.Slack)      { Install-Pkg "Slack"         "SlackTechnologies.Slack"     } else { Write-Skip "Slack (desativado)"       }
-if ($cfg.Productivity.Discord)    { Install-Pkg "Discord"       "Discord.Discord"             } else { Write-Skip "Discord (desativado)"     }
-if ($cfg.Productivity.ShareX)     { Install-Pkg "ShareX"        "ShareX.ShareX"              } else { Write-Skip "ShareX (desativado)"      }
-if ($cfg.Productivity.PowerToys)  { Install-Pkg "PowerToys"     "Microsoft.PowerToys"        } else { Write-Skip "PowerToys (desativado)"   }
-if ($cfg.Productivity.Everything) { Install-Pkg "Everything"    "voidtools.Everything"       } else { Write-Skip "Everything (desativado)"  }
-if ($cfg.Productivity.AutoHotkey) { Install-Pkg "AutoHotkey v2" "AutoHotkey.AutoHotkey"      } else { Write-Skip "AutoHotkey (desativado)"  }
-
-# =============================================================================
-# 12. NAVEGADORES
-# =============================================================================
-Write-Step "Navegadores"
-
-if ($cfg.Browsers.Chrome)     { Install-Pkg "Google Chrome"             "Google.Chrome"                     } else { Write-Skip "Chrome (desativado)"      }
-if ($cfg.Browsers.FirefoxDev) { Install-Pkg "Firefox Developer Edition" "Mozilla.Firefox.DeveloperEdition"  } else { Write-Skip "Firefox Dev (desativado)" }
+if ($cfg.Productivity.Obsidian)   { Install-Pkg "Obsidian"      "Obsidian.Obsidian"           } else { Write-Skip "Obsidian (disabled)"    }
+if ($cfg.Productivity.Notion)     { Install-Pkg "Notion"        "Notion.Notion"               } else { Write-Skip "Notion (disabled)"      }
+if ($cfg.Productivity.Slack)      { Install-Pkg "Slack"         "SlackTechnologies.Slack"     } else { Write-Skip "Slack (disabled)"       }
+if ($cfg.Productivity.Discord)    { Install-Pkg "Discord"       "Discord.Discord"             } else { Write-Skip "Discord (disabled)"     }
+if ($cfg.Productivity.ShareX)     { Install-Pkg "ShareX"        "ShareX.ShareX"              } else { Write-Skip "ShareX (disabled)"      }
+if ($cfg.Productivity.PowerToys)  { Install-Pkg "PowerToys"     "Microsoft.PowerToys"        } else { Write-Skip "PowerToys (disabled)"   }
+if ($cfg.Productivity.Everything) { Install-Pkg "Everything"    "voidtools.Everything"       } else { Write-Skip "Everything (disabled)"  }
+if ($cfg.Productivity.AutoHotkey) { Install-Pkg "AutoHotkey v2" "AutoHotkey.AutoHotkey"      } else { Write-Skip "AutoHotkey (disabled)"  }
 
 # =============================================================================
-# 13. FONTES
+# 12. BROWSERS
 # =============================================================================
-Write-Step "Fontes para Desenvolvimento"
+Write-Step "Browsers"
 
-if ($cfg.Fonts.JetBrainsMono) { Install-Pkg   "JetBrains Mono Nerd Font" "DEVCOM.JetBrainsMonoNerdFont"        } else { Write-Skip "JetBrains Mono (desativado)" }
-if ($cfg.Fonts.FiraCode)      { Install-Pkg   "Fira Code"                "carrierwaveuploader.FiraCode"        } else { Write-Skip "Fira Code (desativado)"      }
-if ($cfg.Fonts.CascadiaCode)  { Install-Pkg   "Cascadia Code"            "Microsoft.CascadiaCode"             } else { Write-Skip "Cascadia Code (desativado)"  }
-if ($cfg.Fonts.NerdFontsHack) { Install-Choco "Nerd Fonts (Hack)"        "nerdfont-hack"                      } else { Write-Skip "Nerd Fonts Hack (desativado)" }
+if ($cfg.Browsers.Chrome)     { Install-Pkg "Google Chrome"             "Google.Chrome"                     } else { Write-Skip "Chrome (disabled)"      }
+if ($cfg.Browsers.FirefoxDev) { Install-Pkg "Firefox Developer Edition" "Mozilla.Firefox.DeveloperEdition"  } else { Write-Skip "Firefox Dev (disabled)" }
 
 # =============================================================================
-# 14. VS CODE EXTENSOES
+# 13. FONTS
 # =============================================================================
-Write-Step "VS Code - Extensoes"
+Write-Step "Development Fonts"
+
+if ($cfg.Fonts.JetBrainsMono) { Install-Pkg   "JetBrains Mono Nerd Font" "DEVCOM.JetBrainsMonoNerdFont"        } else { Write-Skip "JetBrains Mono (disabled)" }
+if ($cfg.Fonts.FiraCode)      { Install-Pkg   "Fira Code"                "carrierwaveuploader.FiraCode"        } else { Write-Skip "Fira Code (disabled)"      }
+if ($cfg.Fonts.CascadiaCode)  { Install-Pkg   "Cascadia Code"            "Microsoft.CascadiaCode"             } else { Write-Skip "Cascadia Code (disabled)"  }
+if ($cfg.Fonts.NerdFontsHack) { Install-Choco "Nerd Fonts (Hack)"        "nerdfont-hack"                      } else { Write-Skip "Nerd Fonts Hack (disabled)" }
+
+# =============================================================================
+# 14. VS CODE EXTENSIONS
+# =============================================================================
+Write-Step "VS Code - Extensions"
 
 if (Get-Command code -ErrorAction SilentlyContinue) {
     $ext = $cfg.VSCodeExtensions
 
     Write-Host "`n  Python / Django" -ForegroundColor DarkCyan
-    if ($ext.Python)       { Install-VSExt "ms-python.python"                  } else { Write-Skip "ms-python.python (desativado)"       }
-    if ($ext.Pylance)      { Install-VSExt "ms-python.vscode-pylance"          } else { Write-Skip "ms-python.vscode-pylance (desativado)" }
-    if ($ext.Debugpy)      { Install-VSExt "ms-python.debugpy"                 } else { Write-Skip "ms-python.debugpy (desativado)"       }
-    if ($ext.VscodeDjango) { Install-VSExt "batisteo.vscode-django"            } else { Write-Skip "batisteo.vscode-django (desativado)"  }
-    if ($ext.AutoCloseTag) { Install-VSExt "formulahendry.auto-close-tag"      } else { Write-Skip "auto-close-tag (desativado)"          }
+    if ($ext.Python)       { Install-VSExt "ms-python.python"                  } else { Write-Skip "ms-python.python (disabled)"       }
+    if ($ext.Pylance)      { Install-VSExt "ms-python.vscode-pylance"          } else { Write-Skip "ms-python.vscode-pylance (disabled)" }
+    if ($ext.Debugpy)      { Install-VSExt "ms-python.debugpy"                 } else { Write-Skip "ms-python.debugpy (disabled)"       }
+    if ($ext.VscodeDjango) { Install-VSExt "batisteo.vscode-django"            } else { Write-Skip "batisteo.vscode-django (disabled)"  }
+    if ($ext.AutoCloseTag) { Install-VSExt "formulahendry.auto-close-tag"      } else { Write-Skip "auto-close-tag (disabled)"          }
 
     Write-Host "`n  Angular / TypeScript" -ForegroundColor DarkCyan
-    if ($ext.NgTemplate)      { Install-VSExt "Angular.ng-template"            } else { Write-Skip "ng-template (desativado)"      }
-    if ($ext.TypeScriptNext)  { Install-VSExt "ms-vscode.vscode-typescript-next" } else { Write-Skip "typescript-next (desativado)" }
-    if ($ext.ESLint)          { Install-VSExt "dbaeumer.vscode-eslint"         } else { Write-Skip "vscode-eslint (desativado)"    }
-    if ($ext.Prettier)        { Install-VSExt "esbenp.prettier-vscode"         } else { Write-Skip "prettier (desativado)"         }
+    if ($ext.NgTemplate)      { Install-VSExt "Angular.ng-template"            } else { Write-Skip "ng-template (disabled)"      }
+    if ($ext.TypeScriptNext)  { Install-VSExt "ms-vscode.vscode-typescript-next" } else { Write-Skip "typescript-next (disabled)" }
+    if ($ext.ESLint)          { Install-VSExt "dbaeumer.vscode-eslint"         } else { Write-Skip "vscode-eslint (disabled)"    }
+    if ($ext.Prettier)        { Install-VSExt "esbenp.prettier-vscode"         } else { Write-Skip "prettier (disabled)"         }
 
-    Write-Host "`n  Geral" -ForegroundColor DarkCyan
-    if ($ext.GitLens)          { Install-VSExt "eamodio.gitlens"                        } else { Write-Skip "gitlens (desativado)"           }
-    if ($ext.GitGraph)         { Install-VSExt "mhutchie.git-graph"                     } else { Write-Skip "git-graph (desativado)"          }
-    if ($ext.DockerExt)        { Install-VSExt "ms-azuretools.vscode-docker"            } else { Write-Skip "vscode-docker (desativado)"      }
-    if ($ext.RemoteContainers) { Install-VSExt "ms-vscode-remote.remote-containers"     } else { Write-Skip "remote-containers (desativado)"  }
-    if ($ext.MaterialIcons)    { Install-VSExt "PKief.material-icon-theme"              } else { Write-Skip "material-icons (desativado)"      }
-    if ($ext.IndentRainbow)    { Install-VSExt "oderwat.indent-rainbow"                 } else { Write-Skip "indent-rainbow (desativado)"      }
-    if ($ext.SpellChecker)     { Install-VSExt "streetsidesoftware.code-spell-checker"  } else { Write-Skip "spell-checker (desativado)"       }
+    Write-Host "`n  General" -ForegroundColor DarkCyan
+    if ($ext.GitLens)          { Install-VSExt "eamodio.gitlens"                        } else { Write-Skip "gitlens (disabled)"           }
+    if ($ext.GitGraph)         { Install-VSExt "mhutchie.git-graph"                     } else { Write-Skip "git-graph (disabled)"          }
+    if ($ext.DockerExt)        { Install-VSExt "ms-azuretools.vscode-docker"            } else { Write-Skip "vscode-docker (disabled)"      }
+    if ($ext.RemoteContainers) { Install-VSExt "ms-vscode-remote.remote-containers"     } else { Write-Skip "remote-containers (disabled)"  }
+    if ($ext.MaterialIcons)    { Install-VSExt "PKief.material-icon-theme"              } else { Write-Skip "material-icons (disabled)"      }
+    if ($ext.IndentRainbow)    { Install-VSExt "oderwat.indent-rainbow"                 } else { Write-Skip "indent-rainbow (disabled)"      }
+    if ($ext.SpellChecker)     { Install-VSExt "streetsidesoftware.code-spell-checker"  } else { Write-Skip "spell-checker (disabled)"       }
 } else {
-    Write-Warn "VS Code nao encontrado no PATH - extensoes puladas."
-    Write-Warn "Reinicie o terminal e execute: powershell -ExecutionPolicy Bypass -File windows.ps1"
+    Write-Warn "VS Code not found in PATH - extensions skipped."
+    Write-Warn "Restart the terminal and run: powershell -ExecutionPolicy Bypass -File windows.ps1"
 }
 
 # =============================================================================
-# CONFIGURACAO DO GIT
+# GIT CONFIGURATION
 # =============================================================================
 if ($cfg.Git.UserName -ne "" -or $cfg.Git.UserEmail -ne "") {
-    Write-Step "Configuracao do Git"
+    Write-Step "Git Configuration"
 
     if (Get-Command git -ErrorAction SilentlyContinue) {
         if ($cfg.Git.UserName -ne "") {
@@ -420,38 +420,38 @@ if ($cfg.Git.UserName -ne "" -or $cfg.Git.UserEmail -ne "") {
             Write-OK "git user.email = $($cfg.Git.UserEmail)"
         }
     } else {
-        Write-Warn "git nao encontrado no PATH - configure manualmente apos reiniciar o terminal"
+        Write-Warn "git not found in PATH - configure manually after restarting the terminal"
     }
 }
 
 # =============================================================================
-# RESUMO FINAL
+# FINAL SUMMARY
 # =============================================================================
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  Resumo" -ForegroundColor Cyan
+Write-Host "  Summary" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
-Write-Host "  Instalados : $($script:Installed)" -ForegroundColor Green
-Write-Host "  Ja existiam: $($script:Skipped)"   -ForegroundColor DarkGray
+Write-Host "  Installed : $($script:Installed)" -ForegroundColor Green
+Write-Host "  Skipped   : $($script:Skipped)"   -ForegroundColor DarkGray
 
 $failColor = "Green"
 if ($script:Failed -gt 0) { $failColor = "Red" }
-Write-Host "  Falhas     : $($script:Failed)" -ForegroundColor $failColor
+Write-Host "  Failed    : $($script:Failed)" -ForegroundColor $failColor
 
 if ($script:FailList.Count -gt 0) {
     Write-Host ""
-    Write-Host "  Falhou em:" -ForegroundColor Red
+    Write-Host "  Failed items:" -ForegroundColor Red
     foreach ($item in $script:FailList) {
         Write-Host "    - $item" -ForegroundColor Red
     }
 }
 
 Write-Host ""
-Write-Host "Proximos passos:" -ForegroundColor Cyan
-Write-Host "  1. Reinicie o computador para aplicar alteracoes de PATH"
-Write-Host "  2. Autentique no GitHub:"
+Write-Host "Next steps:" -ForegroundColor Cyan
+Write-Host "  1. Restart the computer to apply PATH changes"
+Write-Host "  2. Authenticate with GitHub:"
 Write-Host "       gh auth login"
-Write-Host "  3. Configure o WSL:"
+Write-Host "  3. Configure WSL:"
 Write-Host "       cd wsl"
 Write-Host "       .\setup-wsl.ps1"
 Write-Host ""

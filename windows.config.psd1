@@ -1,14 +1,14 @@
 # =============================================================================
-# windows.config.psd1 - Configuracao do setup Windows
+# windows.config.psd1 - Windows setup configuration
 #
-# true  = instalar
-# false = pular
+# true  = install
+# false = skip
 # =============================================================================
 @{
 
     # -------------------------------------------------------------------------
-    # Configuracao do Git (aplicada ao final com git config --global)
-    # Deixe vazio "" para pular a configuracao
+    # Git configuration (applied at the end with git config --global)
+    # Leave empty "" to skip configuration
     # -------------------------------------------------------------------------
     Git = @{
         UserName  = ""
@@ -16,82 +16,82 @@
     }
 
     # -------------------------------------------------------------------------
-    # Gerenciadores de Pacotes
-    # Chocolatey e a atualizacao do winget sao sempre executados (base do setup)
+    # Package Managers
+    # Chocolatey and winget source update are always run (setup base)
     # -------------------------------------------------------------------------
     PackageManagers = @{
         Chocolatey = $true
     }
 
     # -------------------------------------------------------------------------
-    # Terminal e Shell
+    # Terminal and Shell
     # -------------------------------------------------------------------------
     Terminal = @{
         WindowsTerminal = $true
         PowerShell7     = $true
         Git             = $true
         OhMyPosh        = $true
-        Starship        = $false   # alternativa ao OhMyPosh - escolha um
+        Starship        = $false   # alternative to OhMyPosh - pick one
         Zoxide          = $true
         Fzf             = $true
     }
 
     # -------------------------------------------------------------------------
-    # Editores e IDEs
+    # Editors and IDEs
     # -------------------------------------------------------------------------
     Editors = @{
         VSCode    = $true
         Cursor    = $true
-        PyCharm   = $true   # pesado - instale manualmente se necessario
-        WebStorm  = $true   # pesado - instale manualmente se necessario
+        PyCharm   = $true   # heavy - install manually if needed
+        WebStorm  = $true   # heavy - install manually if needed
     }
 
     # -------------------------------------------------------------------------
-    # Git e Controle de Versao
+    # Git and Version Control
     # -------------------------------------------------------------------------
     GitTools = @{
         GitHubCLI  = $true
-        GitKraken  = $true   # opcional - cliente visual
+        GitKraken  = $true   # optional - visual client
         Delta      = $false
     }
 
     # -------------------------------------------------------------------------
-    # Runtimes e Gerenciadores de Versao
+    # Runtimes and Version Managers
     # -------------------------------------------------------------------------
     Runtimes = @{
-        Mise       = $true    # gerenciador universal (recomendado)
-        PyenvWin   = $false   # alternativa ao mise para Python
-        NvmWindows = $false   # alternativa ao mise para Node
+        Mise       = $true    # universal version manager (recommended)
+        PyenvWin   = $false   # alternative to mise for Python
+        NvmWindows = $false   # alternative to mise for Node
         Python313  = $false
         NodeLTS    = $true
         Java21     = $true
-        Uv         = $true    # gerenciador de pacotes Python ultrarapido
-        Pnpm       = $true    # gerenciador de pacotes Node eficiente
+        Uv         = $true    # ultra-fast Python package manager
+        Pnpm       = $true    # efficient Node package manager
     }
 
     # -------------------------------------------------------------------------
-    # Banco de Dados
+    # Databases
     # -------------------------------------------------------------------------
     Database = @{
         PostgreSQL16    = $true
         DBeaver         = $true
-        TablePlus       = $false   # pago apos trial
-        PgAdmin         = $true   # alternativa ao DBeaver para Postgres
+        TablePlus       = $false   # paid after trial
+        PgAdmin         = $true    # alternative to DBeaver for Postgres
         RedisInsight    = $false
         SQLiteBrowser   = $false
     }
 
     # -------------------------------------------------------------------------
-    # API e Testes HTTP
+    # API and HTTP Testing
     # -------------------------------------------------------------------------
     API = @{
-        Postman  = $true   # pesado - escolha um cliente HTTP
-        Insomnia = $false   # alternativa ao Postman
-        Bruno    = $true    # leve, open-source, baseado em arquivos
+        Postman  = $true   # heavy - pick one HTTP client
+        Insomnia = $false  # alternative to Postman
+        Bruno    = $true   # lightweight, open-source, file-based
     }
 
     # -------------------------------------------------------------------------
-    # Utilitarios de Linha de Comando
+    # CLI Utilities
     # -------------------------------------------------------------------------
     CLI = @{
         Ripgrep = $true
@@ -108,7 +108,7 @@
     }
 
     # -------------------------------------------------------------------------
-    # Seguranca e Autenticacao
+    # Security and Authentication
     # -------------------------------------------------------------------------
     Security = @{
         Bitwarden   = $true
@@ -117,21 +117,21 @@
     }
 
     # -------------------------------------------------------------------------
-    # Produtividade
+    # Productivity
     # -------------------------------------------------------------------------
     Productivity = @{
         Obsidian    = $true
-        Notion      = $false   # opcional
-        Slack       = $false   # instale se usar no trabalho
-        Discord     = $false   # instale se usar
+        Notion      = $false   # optional
+        Slack       = $false   # install if used at work
+        Discord     = $false   # install if used
         ShareX      = $true
         PowerToys   = $true
         Everything  = $true
-        AutoHotkey  = $false   # opcional - automacao de teclado
+        AutoHotkey  = $false   # optional - keyboard automation
     }
 
     # -------------------------------------------------------------------------
-    # Navegadores
+    # Browsers
     # -------------------------------------------------------------------------
     Browsers = @{
         Chrome            = $true
@@ -139,7 +139,7 @@
     }
 
     # -------------------------------------------------------------------------
-    # Fontes
+    # Fonts
     # -------------------------------------------------------------------------
     Fonts = @{
         JetBrainsMono = $true
@@ -149,7 +149,7 @@
     }
 
     # -------------------------------------------------------------------------
-    # VS Code - Extensoes
+    # VS Code Extensions
     # -------------------------------------------------------------------------
     VSCodeExtensions = @{
         # Python / Django
@@ -165,7 +165,7 @@
         ESLint          = $true
         Prettier        = $true
 
-        # Geral
+        # General
         GitLens         = $true
         GitGraph        = $true
         DockerExt       = $true
