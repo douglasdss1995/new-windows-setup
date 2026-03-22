@@ -1,227 +1,227 @@
-# Ferramentas para Desenvolvedor Django + Angular
+# Tools for Django + Angular Developer
 
-Guia de instalação e configuração de ferramentas para uma máquina de desenvolvimento com foco em Django (Python) e Angular (TypeScript/JavaScript), com suporte a múltiplas linguagens.
+Installation and configuration guide for a development machine focused on Django (Python) and Angular (TypeScript/JavaScript), with support for multiple languages.
 
 ---
 
-## Gerenciadores de Pacotes e Runtimes
+## Package Managers and Runtimes
 
-| Ferramenta | Descrição |
+| Tool | Description |
 |---|---|
-| [Chocolatey](https://chocolatey.org/) | Gerenciador de pacotes para Windows |
-| [Winget](https://learn.microsoft.com/pt-br/windows/package-manager/) | Gerenciador de pacotes nativo do Windows |
-| [nvm-windows](https://github.com/coreybutler/nvm-windows) | Gerenciador de versões do Node.js |
-| [Node.js (LTS)](https://nodejs.org/) | Runtime JavaScript (instalar via nvm) |
-| [pyenv-win](https://github.com/pyenv-win/pyenv-win) | Gerenciador de versões do Python |
-| [Python 3.x](https://www.python.org/) | Runtime Python (instalar via pyenv) |
-| [mise](https://mise.jdx.dev/) | Gerenciador universal de versões de runtimes (Python, Node, Java, Ruby, Go...) |
-| [SDKMAN](https://sdkman.io/) | Gerenciador de SDKs JVM (Java, Kotlin, Groovy) |
-| [Java JDK](https://adoptium.net/) | Runtime Java (Eclipse Temurin recomendado) |
+| [Chocolatey](https://chocolatey.org/) | Package manager for Windows |
+| [Winget](https://learn.microsoft.com/en-us/windows/package-manager/) | Native Windows package manager |
+| [nvm-windows](https://github.com/coreybutler/nvm-windows) | Node.js version manager |
+| [Node.js (LTS)](https://nodejs.org/) | JavaScript runtime (install via nvm) |
+| [pyenv-win](https://github.com/pyenv-win/pyenv-win) | Python version manager |
+| [Python 3.x](https://www.python.org/) | Python runtime (install via pyenv) |
+| [mise](https://mise.jdx.dev/) | Universal runtime version manager (Python, Node, Java, Ruby, Go...) |
+| [SDKMAN](https://sdkman.io/) | JVM SDK manager (Java, Kotlin, Groovy) |
+| [Java JDK](https://adoptium.net/) | Java runtime (Eclipse Temurin recommended) |
 
 ---
 
-## Terminal e Shell
+## Terminal and Shell
 
-| Ferramenta | Descrição |
+| Tool | Description |
 |---|---|
-| [Windows Terminal](https://aka.ms/terminal) | Terminal moderno com suporte a múltiplos shells |
-| [Git Bash](https://gitforwindows.org/) | Bash no Windows com utilitários Unix |
-| [PowerShell 7+](https://github.com/PowerShell/PowerShell) | Shell moderno cross-platform |
-| [Oh My Posh](https://ohmyposh.dev/) | Prompt customizável para qualquer shell |
-| [Starship](https://starship.rs/) | Prompt cross-shell rápido e configurável |
-| [zoxide](https://github.com/ajeetdsouza/zoxide) | Navegação rápida entre diretórios (substituto do `cd`) |
-| [fzf](https://github.com/junegunn/fzf) | Fuzzy finder para linha de comando |
+| [Windows Terminal](https://aka.ms/terminal) | Modern terminal with multi-shell support |
+| [Git Bash](https://gitforwindows.org/) | Bash on Windows with Unix utilities |
+| [PowerShell 7+](https://github.com/PowerShell/PowerShell) | Modern cross-platform shell |
+| [Oh My Posh](https://ohmyposh.dev/) | Customizable prompt for any shell |
+| [Starship](https://starship.rs/) | Fast cross-shell configurable prompt |
+| [zoxide](https://github.com/ajeetdsouza/zoxide) | Fast directory navigation (replaces `cd`) |
+| [fzf](https://github.com/junegunn/fzf) | Command-line fuzzy finder |
 
 ---
 
-## Editores e IDEs
+## Editors and IDEs
 
-| Ferramenta | Descrição |
+| Tool | Description |
 |---|---|
-| [VS Code](https://code.visualstudio.com/) | Editor principal — Django e Angular |
-| [PyCharm Community/Professional](https://www.jetbrains.com/pycharm/) | IDE dedicada para Python/Django |
-| [WebStorm](https://www.jetbrains.com/webstorm/) | IDE dedicada para JavaScript/TypeScript/Angular |
-| [Cursor](https://cursor.sh/) | Editor com IA integrada (fork do VS Code) |
+| [VS Code](https://code.visualstudio.com/) | Primary editor - Django and Angular |
+| [PyCharm Community/Professional](https://www.jetbrains.com/pycharm/) | Dedicated Python/Django IDE |
+| [WebStorm](https://www.jetbrains.com/webstorm/) | Dedicated JavaScript/TypeScript/Angular IDE |
+| [Cursor](https://cursor.sh/) | AI-powered editor (VS Code fork) |
 
 ---
 
-## VS Code — Extensões Essenciais
+## VS Code - Essential Extensions
 
 ### Python / Django
-- `ms-python.python` — Suporte Python
-- `ms-python.vscode-pylance` — Language server Python
-- `ms-python.debugpy` — Debugger Python
-- `batisteo.vscode-django` — Templates e snippets Django
-- `formulahendry.auto-close-tag` — Fechamento automático de tags
+- `ms-python.python` - Python support
+- `ms-python.vscode-pylance` - Python language server
+- `ms-python.debugpy` - Python debugger
+- `batisteo.vscode-django` - Django templates and snippets
+- `formulahendry.auto-close-tag` - Automatic tag closing
 
 ### Angular / TypeScript
-- `Angular.ng-template` — Suporte oficial Angular
-- `ms-vscode.vscode-typescript-next` — TypeScript next
-- `dbaeumer.vscode-eslint` — ESLint integrado
-- `esbenp.prettier-vscode` — Formatação de código
+- `Angular.ng-template` - Official Angular support
+- `ms-vscode.vscode-typescript-next` - TypeScript next
+- `dbaeumer.vscode-eslint` - Integrated ESLint
+- `esbenp.prettier-vscode` - Code formatting
 
-### Geral
-- `eamodio.gitlens` — Git avançado no editor
-- `mhutchie.git-graph` — Visualização de branches
-- `ms-azuretools.vscode-docker` — Suporte Docker
-- `ms-vscode-remote.remote-containers` — Dev Containers
-- `PKief.material-icon-theme` — Ícones de arquivos
-- `oderwat.indent-rainbow` — Indentação colorida
-- `streetsidesoftware.code-spell-checker` — Corretor ortográfico
-
----
-
-## Git e Controle de Versão
-
-| Ferramenta | Descrição |
-|---|---|
-| [Git](https://git-scm.com/) | Controle de versão |
-| [GitHub CLI (gh)](https://cli.github.com/) | Gerenciar GitHub pela linha de comando |
-| [GitLens](https://gitkraken.com/gitlens) | Extensão VS Code para Git avançado |
-| [GitKraken](https://www.gitkraken.com/) | Cliente Git visual (opcional) |
-| [pre-commit](https://pre-commit.com/) | Hooks de Git para validação antes do commit |
+### General
+- `eamodio.gitlens` - Advanced Git in editor
+- `mhutchie.git-graph` - Branch visualization
+- `ms-azuretools.vscode-docker` - Docker support
+- `ms-vscode-remote.remote-containers` - Dev Containers
+- `PKief.material-icon-theme` - File icons
+- `oderwat.indent-rainbow` - Colored indentation
+- `streetsidesoftware.code-spell-checker` - Spell checker
 
 ---
 
-## Python — Ferramentas de Desenvolvimento
+## Git and Version Control
 
-| Ferramenta | Descrição |
+| Tool | Description |
 |---|---|
-| [pip](https://pip.pypa.io/) | Gerenciador de pacotes Python |
-| [uv](https://github.com/astral-sh/uv) | Gerenciador de pacotes/ambientes ultrarrápido |
-| [pipenv](https://pipenv.pypa.io/) | Ambientes virtuais + dependências |
-| [poetry](https://python-poetry.org/) | Gerenciamento moderno de projetos Python |
-| [virtualenv](https://virtualenv.pypa.io/) | Ambientes virtuais isolados |
-| [black](https://black.readthedocs.io/) | Formatador de código Python |
-| [ruff](https://github.com/astral-sh/ruff) | Linter Python ultrarrápido |
-| [mypy](https://mypy-lang.org/) | Type checker estático para Python |
-| [pytest](https://pytest.org/) | Framework de testes |
-| [ipython](https://ipython.org/) | Shell Python interativo melhorado |
-| [httpie](https://httpie.io/) | Cliente HTTP para linha de comando |
+| [Git](https://git-scm.com/) | Version control |
+| [GitHub CLI (gh)](https://cli.github.com/) | Manage GitHub from the command line |
+| [GitLens](https://gitkraken.com/gitlens) | VS Code extension for advanced Git |
+| [GitKraken](https://www.gitkraken.com/) | Visual Git client (optional) |
+| [pre-commit](https://pre-commit.com/) | Git hooks for pre-commit validation |
 
 ---
 
-## Node.js / Angular — Ferramentas de Desenvolvimento
+## Python - Development Tools
 
-| Ferramenta | Descrição |
+| Tool | Description |
 |---|---|
-| [npm](https://www.npmjs.com/) | Gerenciador de pacotes Node |
-| [pnpm](https://pnpm.io/) | Gerenciador de pacotes rápido e eficiente |
-| [Angular CLI](https://angular.io/cli) | Criação e gerenciamento de projetos Angular |
-| [ESLint](https://eslint.org/) | Linter JavaScript/TypeScript |
-| [Prettier](https://prettier.io/) | Formatador de código |
-| [Jest](https://jestjs.io/) | Framework de testes JavaScript |
-| [Nx](https://nx.dev/) | Monorepo e ferramentas de build para Angular |
+| [pip](https://pip.pypa.io/) | Python package manager |
+| [uv](https://github.com/astral-sh/uv) | Ultra-fast package/environment manager |
+| [pipenv](https://pipenv.pypa.io/) | Virtual environments + dependencies |
+| [poetry](https://python-poetry.org/) | Modern Python project management |
+| [virtualenv](https://virtualenv.pypa.io/) | Isolated virtual environments |
+| [black](https://black.readthedocs.io/) | Python code formatter |
+| [ruff](https://github.com/astral-sh/ruff) | Ultra-fast Python linter |
+| [mypy](https://mypy-lang.org/) | Static type checker for Python |
+| [pytest](https://pytest.org/) | Testing framework |
+| [ipython](https://ipython.org/) | Enhanced interactive Python shell |
+| [httpie](https://httpie.io/) | HTTP client for command line |
 
 ---
 
-## Banco de Dados
+## Node.js / Angular - Development Tools
 
-| Ferramenta | Descrição |
+| Tool | Description |
 |---|---|
-| [PostgreSQL](https://www.postgresql.org/) | Banco relacional principal para Django |
-| [DBeaver](https://dbeaver.io/) | Cliente universal de banco de dados (GUI) |
-| [TablePlus](https://tableplus.com/) | Cliente de banco de dados moderno (GUI) |
-| [Redis](https://redis.io/) | Cache, filas e sessões |
-| [Redis Insight](https://redis.com/redis-enterprise/redis-insight/) | GUI para Redis |
-| [SQLite Browser](https://sqlitebrowser.org/) | Editor visual para SQLite |
-| [pgAdmin](https://www.pgadmin.org/) | Administração PostgreSQL (GUI) |
+| [npm](https://www.npmjs.com/) | Node package manager |
+| [pnpm](https://pnpm.io/) | Fast and efficient package manager |
+| [Angular CLI](https://angular.io/cli) | Angular project creation and management |
+| [ESLint](https://eslint.org/) | JavaScript/TypeScript linter |
+| [Prettier](https://prettier.io/) | Code formatter |
+| [Jest](https://jestjs.io/) | JavaScript testing framework |
+| [Nx](https://nx.dev/) | Monorepo and build tools for Angular |
 
 ---
 
-## Docker e Infraestrutura
+## Databases
 
-> Docker roda via **Docker Engine nativo no WSL** — sem Docker Desktop. Menor uso de memória, controle total via systemd e inicialização automática com o WSL.
-
-| Ferramenta | Descrição |
+| Tool | Description |
 |---|---|
-| [Docker Engine](https://docs.docker.com/engine/) | Daemon Docker nativo no WSL (sem Docker Desktop) — ~50–150 MB vs ~1 GB do Desktop |
-| [Docker Compose](https://docs.docker.com/compose/) | Orquestração de containers local |
-| [Portainer](https://www.portainer.io/) | UI web para gerenciar containers Docker (roda via providers compose) |
-| [WSL 2](https://learn.microsoft.com/pt-br/windows/wsl/) | Linux no Windows — Docker Engine e providers rodam aqui |
+| [PostgreSQL](https://www.postgresql.org/) | Primary relational database for Django |
+| [DBeaver](https://dbeaver.io/) | Universal database client (GUI) |
+| [TablePlus](https://tableplus.com/) | Modern database client (GUI) |
+| [Redis](https://redis.io/) | Cache, queues and sessions |
+| [Redis Insight](https://redis.com/redis-enterprise/redis-insight/) | GUI for Redis |
+| [SQLite Browser](https://sqlitebrowser.org/) | Visual editor for SQLite |
+| [pgAdmin](https://www.pgadmin.org/) | PostgreSQL administration (GUI) |
 
-### Providers (Serviços Compartilhados)
+---
 
-Serviços de infraestrutura compartilhados entre projetos, gerenciados via `~/providers/docker-compose.yml` e iniciados automaticamente com o WSL.
+## Docker and Infrastructure
 
-| Serviço | Imagem | Porta | Descrição |
+> Docker runs via **native Docker Engine in WSL** - no Docker Desktop. Lower memory usage, full control via systemd and automatic startup with WSL.
+
+| Tool | Description |
+|---|---|
+| [Docker Engine](https://docs.docker.com/engine/) | Native Docker daemon in WSL (no Docker Desktop) - ~50-150 MB vs ~1 GB for Desktop |
+| [Docker Compose](https://docs.docker.com/compose/) | Local container orchestration |
+| [Portainer](https://www.portainer.io/) | Web UI for managing Docker containers (runs via providers compose) |
+| [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/) | Linux on Windows - Docker Engine and providers run here |
+
+### Providers (Shared Services)
+
+Infrastructure services shared across projects, managed via `~/providers/docker-compose.yml` and started automatically with WSL.
+
+| Service | Image | Port | Description |
 |---|---|---|---|
-| PostgreSQL | `postgres:15-alpine` | 5432 | Banco relacional principal |
-| Redis | `redis:7-alpine` | 6379 | Cache, filas (Celery) e sessões |
-| pgAdmin | `dpage/pgadmin4` | 5050 | UI web para PostgreSQL |
-| Portainer | `portainer/portainer-ce` | 9000 / 9443 | UI web para gerenciar containers |
+| PostgreSQL | `postgres:15-alpine` | 5432 | Primary relational database |
+| Redis | `redis:7-alpine` | 6379 | Cache, queues (Celery) and sessions |
+| pgAdmin | `dpage/pgadmin4` | 5050 | Web UI for PostgreSQL |
+| Portainer | `portainer/portainer-ce` | 9000 / 9443 | Web UI for managing containers |
 
-> **Redis no compose ou nativo?** Compose. Redis é um serviço de infraestrutura compartilhado (como Postgres), não há ganho em instalá-lo nativamente no WSL. O `redis.conf` limita memória a 256 MB com política `allkeys-lru`, e o ciclo de vida fica consistente com os demais serviços.
-
----
-
-## API e Testes HTTP
-
-| Ferramenta | Descrição |
-|---|---|
-| [Postman](https://www.postman.com/) | Cliente REST/GraphQL completo |
-| [Insomnia](https://insomnia.rest/) | Cliente REST/GraphQL alternativo |
-| [Bruno](https://www.usebruno.com/) | Cliente HTTP open-source baseado em arquivos |
-| [curl](https://curl.se/) | Cliente HTTP linha de comando |
+> **Redis in compose or native?** Compose. Redis is a shared infrastructure service (like Postgres), there's no benefit in installing it natively in WSL. The `redis.conf` limits memory to 256 MB with `allkeys-lru` policy, and the lifecycle stays consistent with other services.
 
 ---
 
-## Utilitários de Linha de Comando
+## API and HTTP Testing
 
-| Ferramenta | Descrição |
+| Tool | Description |
 |---|---|
-| [ripgrep (rg)](https://github.com/BurntSushi/ripgrep) | Busca em arquivos ultrarrápida |
-| [fd](https://github.com/sharkdp/fd) | Alternativa moderna ao `find` |
-| [bat](https://github.com/sharkdp/bat) | Alternativa ao `cat` com syntax highlight |
-| [eza](https://github.com/eza-community/eza) | Alternativa moderna ao `ls` |
-| [delta](https://github.com/dandavison/delta) | Visualizador de diffs para Git |
-| [jq](https://jqlang.github.io/jq/) | Processador JSON na linha de comando |
-| [yq](https://github.com/mikefarah/yq) | Processador YAML na linha de comando |
-| [wget](https://www.gnu.org/software/wget/) | Download de arquivos via linha de comando |
-| [make](https://www.gnu.org/software/make/) | Automação de tarefas via Makefile |
-| [just](https://github.com/casey/just) | Alternativa moderna ao make |
+| [Postman](https://www.postman.com/) | Full REST/GraphQL client |
+| [Insomnia](https://insomnia.rest/) | Alternative REST/GraphQL client |
+| [Bruno](https://www.usebruno.com/) | Open-source file-based HTTP client |
+| [curl](https://curl.se/) | Command-line HTTP client |
 
 ---
 
-## Segurança e Autenticação
+## CLI Utilities
 
-| Ferramenta | Descrição |
+| Tool | Description |
 |---|---|
-| [1Password](https://1password.com/) / [Bitwarden](https://bitwarden.com/) | Gerenciador de senhas |
+| [ripgrep (rg)](https://github.com/BurntSushi/ripgrep) | Ultra-fast file search |
+| [fd](https://github.com/sharkdp/fd) | Modern alternative to `find` |
+| [bat](https://github.com/sharkdp/bat) | Alternative to `cat` with syntax highlighting |
+| [eza](https://github.com/eza-community/eza) | Modern alternative to `ls` |
+| [delta](https://github.com/dandavison/delta) | Diff viewer for Git |
+| [jq](https://jqlang.github.io/jq/) | JSON processor for command line |
+| [yq](https://github.com/mikefarah/yq) | YAML processor for command line |
+| [wget](https://www.gnu.org/software/wget/) | File download via command line |
+| [make](https://www.gnu.org/software/make/) | Task automation via Makefile |
+| [just](https://github.com/casey/just) | Modern alternative to make |
+
+---
+
+## Security and Authentication
+
+| Tool | Description |
+|---|---|
+| [1Password](https://1password.com/) / [Bitwarden](https://bitwarden.com/) | Password manager |
 | [OpenSSH](https://www.openssh.com/) | SSH client/server |
-| [GPG (Gpg4win)](https://www.gpg4win.org/) | Assinatura de commits e criptografia |
+| [GPG (Gpg4win)](https://www.gpg4win.org/) | Commit signing and encryption |
 
 ---
 
-## Produtividade e Organização
+## Productivity and Organization
 
-| Ferramenta | Descrição |
+| Tool | Description |
 |---|---|
-| [Obsidian](https://obsidian.md/) | Notas em Markdown / gestão de conhecimento |
-| [Notion](https://www.notion.so/) | Documentação e organização de projetos |
-| [Slack](https://slack.com/) / [Discord](https://discord.com/) | Comunicação com times |
-| [ShareX](https://getsharex.com/) | Capturas de tela e gravação de tela |
-| [PowerToys](https://github.com/microsoft/PowerToys) | Utilitários produtividade Windows (FancyZones, etc.) |
-| [Everything](https://www.voidtools.com/) | Busca ultrarrápida de arquivos no Windows |
-| [AutoHotkey](https://www.autohotkey.com/) | Automação e atalhos de teclado no Windows |
+| [Obsidian](https://obsidian.md/) | Markdown notes / knowledge management |
+| [Notion](https://www.notion.so/) | Documentation and project organization |
+| [Slack](https://slack.com/) / [Discord](https://discord.com/) | Team communication |
+| [ShareX](https://getsharex.com/) | Screenshots and screen recording |
+| [PowerToys](https://github.com/microsoft/PowerToys) | Windows productivity utilities (FancyZones, etc.) |
+| [Everything](https://www.voidtools.com/) | Ultra-fast file search on Windows |
+| [AutoHotkey](https://www.autohotkey.com/) | Automation and keyboard shortcuts on Windows |
 
 ---
 
-## Navegadores
+## Browsers
 
-| Ferramenta | Descrição |
+| Tool | Description |
 |---|---|
-| [Chrome](https://www.google.com/chrome/) | Desenvolvimento web — DevTools |
-| [Firefox Developer Edition](https://www.mozilla.org/firefox/developer/) | Ferramentas avançadas de dev |
-| [Edge](https://www.microsoft.com/edge) | Alternativa com integração Windows |
+| [Chrome](https://www.google.com/chrome/) | Web development - DevTools |
+| [Firefox Developer Edition](https://www.mozilla.org/firefox/developer/) | Advanced dev tools |
+| [Edge](https://www.microsoft.com/edge) | Alternative with Windows integration |
 
 ---
 
-## Fontes para Desenvolvimento
+## Development Fonts
 
-| Fonte | Descrição |
+| Font | Description |
 |---|---|
-| [JetBrains Mono](https://www.jetbrains.com/lp/mono/) | Fonte monospace para código |
-| [Fira Code](https://github.com/tonsky/FiraCode) | Fonte com ligaduras para código |
-| [Cascadia Code](https://github.com/microsoft/cascadia-code) | Fonte da Microsoft com ligaduras |
-| [Nerd Fonts](https://www.nerdfonts.com/) | Fontes com ícones para terminal |
+| [JetBrains Mono](https://www.jetbrains.com/lp/mono/) | Monospace font for code |
+| [Fira Code](https://github.com/tonsky/FiraCode) | Font with ligatures for code |
+| [Cascadia Code](https://github.com/microsoft/cascadia-code) | Microsoft font with ligatures |
+| [Nerd Fonts](https://www.nerdfonts.com/) | Fonts with icons for terminal |

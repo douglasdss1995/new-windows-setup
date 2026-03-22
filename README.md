@@ -1,22 +1,22 @@
 # new-windows-setup
 
-Automação para configurar uma máquina de desenvolvimento Windows do zero, focada em projetos **Django** (Python) e **Angular** (TypeScript), com suporte a múltiplas linguagens e ferramentas.
+Automation for setting up a Windows development machine from scratch, focused on **Django** (Python) and **Angular** (TypeScript) projects, with support for multiple languages and tools.
 
 ---
 
-## Visão Geral
+## Overview
 
 ```
 new-windows-setup/
-├── ferramentas.md              # Catálogo completo de ferramentas recomendadas
-├── windows/
-│   └── install-tools.ps1      # Instala todas as ferramentas no Windows via winget/choco
+├── ferramentas.md              # Complete catalog of recommended tools
+├── windows.ps1                 # Installs all tools on Windows via winget/choco
+├── windows.config.psd1         # Configuration file (enable/disable tools)
 └── wsl/
-    ├── setup-wsl.ps1           # Habilita e configura o WSL 2 + Ubuntu
-    ├── .wslconfig              # Configuração global do WSL (memória, CPU, rede)
-    ├── wsl.conf                # Configuração interna da distro Linux
-    ├── provision.sh            # Provisiona o ambiente de dev dentro do Ubuntu
-    └── providers/              # Referência do compose de serviços compartilhados
+    ├── setup-wsl.ps1           # Enables and configures WSL 2 + Ubuntu
+    ├── .wslconfig              # Global WSL configuration (memory, CPU, network)
+    ├── wsl.conf                # Internal distro Linux configuration
+    ├── provision.sh            # Provisions the dev environment inside Ubuntu
+    └── providers/              # Shared services compose reference
         ├── docker-compose.yml
         ├── .env.example
         └── providers/
@@ -27,229 +27,210 @@ new-windows-setup/
 
 ---
 
-## Pré-requisitos
+## Prerequisites
 
-- Windows 10 (21H2+) ou Windows 11
-- PowerShell rodando como **Administrador**
-- Conexão com a internet
+- Windows 10 (21H2+) or Windows 11
+- PowerShell running as **Administrator**
+- Internet connection
 
 ---
 
-## ⚠️ Execution Policy — Faça isso antes de tudo
+## Execution Policy
 
-Por padrão o Windows bloqueia a execução de scripts `.ps1`. Se ao rodar qualquer script aparecer o erro:
+By default Windows blocks `.ps1` script execution. If you see this error:
 
 ```
-.\install-tools.ps1 cannot be loaded because running scripts is disabled on this system.
+.\windows.ps1 cannot be loaded because running scripts is disabled on this system.
 ```
 
-Escolha **uma** das opções abaixo:
+Choose **one** of the options below:
 
-### Opção A — Só para a sessão atual (mais seguro, sem efeito permanente)
+### Option A — Current session only (safer, no permanent effect)
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\install-tools.ps1
+powershell -ExecutionPolicy Bypass -File .\windows.ps1
 ```
-> Use esta opção se não quiser alterar a política da máquina. Execute esse comando no lugar de `.\install-tools.ps1` diretamente.
+> Use this if you don't want to change the machine policy.
 
-### Opção B — Para o usuário atual (recomendado para devs, permanente)
+### Option B — Current user only (recommended for devs, permanent)
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
-> Não precisa de Admin. Scripts locais rodam livremente; scripts baixados da internet precisam ter assinatura digital. **Recomendado.**
+> No Admin required. Local scripts run freely; downloaded scripts need a digital signature. **Recommended.**
 
-### Opção C — Para a máquina inteira (requer Admin)
+### Option C — Entire machine (requires Admin)
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine
 ```
-> Aplica para todos os usuários da máquina.
+> Applies to all users on the machine.
 
-### Verificar a política atual
+### Check current policy
 ```powershell
 Get-ExecutionPolicy -List
 ```
 
-| Política | Descrição |
+| Policy | Description |
 |---|---|
-| `Restricted` | Nenhum script pode rodar (padrão do Windows) |
-| `AllSigned` | Só scripts com assinatura digital |
-| `RemoteSigned` | Scripts locais livres; baixados precisam de assinatura ✅ |
-| `Bypass` | Tudo roda sem restrição (use só em sessões isoladas) |
-| `Unrestricted` | Tudo roda, mas exibe aviso para scripts baixados |
+| `Restricted` | No scripts can run (Windows default) |
+| `AllSigned` | Only digitally signed scripts |
+| `RemoteSigned` | Local scripts free; downloaded need signature |
+| `Bypass` | Everything runs without restriction |
+| `Unrestricted` | Everything runs, but shows warning for downloaded scripts |
 
-> **Nota:** O `install-tools.ps1` detecta automaticamente a política `Restricted` ou `AllSigned` e ajusta para `RemoteSigned` no escopo `CurrentUser` antes de prosseguir — mas para isso ele precisa ser chamado primeiro com a **Opção A** ou pelo PowerShell como Admin.
+> **Note:** `windows.ps1` automatically detects `Restricted` or `AllSigned` policy and adjusts to `RemoteSigned` at `CurrentUser` scope before continuing — but it needs to be called first with **Option A** or via PowerShell as Admin.
 
 ---
 
-## Início Rápido
+## Quick Start
 
-### Passo 1 — Instalar ferramentas Windows
+### Step 1 — Install Windows tools
 
 ```powershell
-# PowerShell como Administrador
-cd windows
-.\install-tools.ps1
+# PowerShell as Administrator
+.\windows.ps1
 ```
 
-Reinicie o computador após a conclusão para aplicar as alterações de PATH.
+Restart the computer after completion to apply PATH changes.
 
-### Passo 2 — Configurar o WSL
+### Step 2 — Configure WSL
 
 ```powershell
-# PowerShell como Administrador
+# PowerShell as Administrator
 cd wsl
 .\setup-wsl.ps1
 ```
 
-O script instala o Ubuntu 24.04, aplica as configurações e executa automaticamente o `provision.sh` dentro do WSL.
+The script installs Ubuntu 24.04, applies configuration and automatically runs `provision.sh` inside WSL.
 
-### Passo 3 — Configurações finais
+### Step 3 — Final configuration
 
 ```bash
-# Dentro do WSL
-git config --global user.name "Seu Nome"
-git config --global user.email "seu@email.com"
+# Inside WSL
+git config --global user.name "Your Name"
+git config --global user.email "your@email.com"
 gh auth login
 ```
 
 ---
 
-## install-tools.ps1
+## windows.ps1
 
-Instala todas as ferramentas listadas em `ferramentas.md` usando **winget** (primário) e **Chocolatey** (complemento).
+Installs all tools listed in `ferramentas.md` using **winget** (primary) and **Chocolatey** (complement).
 
-| Categoria | Exemplos |
+| Category | Examples |
 |---|---|
 | Terminal | Windows Terminal, PowerShell 7, Git Bash, Oh My Posh, Starship |
-| Editores | VS Code, Cursor, PyCharm Community, WebStorm |
+| Editors | VS Code, Cursor, PyCharm Community, WebStorm |
 | Runtimes | mise, pyenv-win, nvm, Python, Node LTS, JDK 21, uv, pnpm |
-| Banco de dados | PostgreSQL, DBeaver, TablePlus, pgAdmin, Redis Insight |
-| Docker | Docker Engine no WSL (via `provision.sh`) + providers compose |
+| Databases | PostgreSQL, DBeaver, TablePlus, pgAdmin, Redis Insight |
+| Docker | Docker Engine in WSL (via `provision.sh`) + providers compose |
 | API | Postman, Insomnia, Bruno |
 | CLI | ripgrep, fd, bat, eza, fzf, zoxide, jq, delta, just |
-| Segurança | Bitwarden, Gpg4win, OpenSSH |
-| Produtividade | PowerToys, Obsidian, ShareX, Everything, AutoHotkey |
-| Navegadores | Chrome, Firefox Developer Edition |
-| Fontes | JetBrains Mono Nerd, Fira Code, Cascadia Code |
-| VS Code | 17 extensões para Python/Django, Angular/TS e utilitários gerais |
-
-**Opções disponíveis:**
-
-```powershell
-# Instalar tudo
-.\install-tools.ps1
-
-# Simular sem instalar nada
-.\install-tools.ps1 -DryRun
-
-# Pular categorias específicas
-.\install-tools.ps1 -Skip Docker,Browsers,IDEs
-
-# Instalar apenas categorias específicas
-.\install-tools.ps1 -Only CLI,Fonts,VSCodeExtensions
-```
-
-Categorias: `PackageManagers`, `Terminal`, `Editors`, `Git`, `Runtimes`, `Database`, `Docker`, `API`, `CLI`, `Security`, `Productivity`, `Browsers`, `Fonts`, `VSCodeExtensions`
+| Security | Bitwarden, Gpg4win, OpenSSH |
+| Productivity | PowerToys, Obsidian, ShareX, Everything, AutoHotkey |
+| Browsers | Chrome, Firefox Developer Edition |
+| Fonts | JetBrains Mono Nerd, Fira Code, Cascadia Code |
+| VS Code | 17 extensions for Python/Django, Angular/TS and general utilities |
 
 ---
 
 ## setup-wsl.ps1
 
-Orquestra a instalação e configuração completa do WSL 2.
+Orchestrates the complete WSL 2 installation and configuration.
 
-**O que faz:**
-1. Habilita os recursos `WSL` e `VirtualMachinePlatform` no Windows
-2. Atualiza o kernel do WSL
-3. Define WSL 2 como padrão
-4. Instala a distro (padrão: Ubuntu 24.04)
-5. Copia `.wslconfig` para `%USERPROFILE%`
-6. Injeta `wsl.conf` em `/etc/wsl.conf` dentro da distro
-7. Reinicia o WSL para aplicar as configurações
-8. Executa `provision.sh` automaticamente
+**What it does:**
+1. Enables `WSL` and `VirtualMachinePlatform` Windows features
+2. Updates the WSL kernel
+3. Sets WSL 2 as default
+4. Installs the distro (default: Ubuntu 24.04)
+5. Copies `.wslconfig` to `%USERPROFILE%`
+6. Injects `wsl.conf` into `/etc/wsl.conf` inside the distro
+7. Restarts WSL to apply configuration
+8. Runs `provision.sh` automatically
 
 ```powershell
-# Instalação completa (padrão)
+# Full installation (default)
 .\setup-wsl.ps1
 
-# Usar outra distro
+# Use a different distro
 .\setup-wsl.ps1 -Distro Ubuntu-22.04
 
-# Só configurar WSL sem provisionar
-.\setup-wsl.ps1 -SkipProvision
+# Configure WSL without provisioning
+.\setup-wsl.ps1 -SkipProvision:$true
 ```
 
 ---
 
 ## provision.sh
 
-Provisiona o ambiente de desenvolvimento dentro do Ubuntu.
+Provisions the development environment inside Ubuntu.
 
-**O que instala:**
+**What it installs:**
 
-| Etapa | Conteúdo |
+| Step | Content |
 |---|---|
-| Sistema | Dependências de compilação, curl, wget, make |
+| System | Build dependencies, curl, wget, make |
 | Shell | Zsh, Oh My Zsh, plugins (autosuggestions, syntax-highlighting, completions) |
-| mise | Gerenciador universal de runtimes |
-| Python | Versão latest via mise + uv + poetry, black, ruff, mypy, pytest, ipython |
+| mise | Universal runtime manager |
+| Python | Latest version via mise + uv + poetry, black, ruff, mypy, pytest, ipython |
 | Node.js | LTS via mise + pnpm + Angular CLI, ESLint, Prettier |
 | CLI | ripgrep, fd, bat, eza, fzf, zoxide, delta, jq, yq, gh |
-| Docker | Daemon nativo (sem Docker Desktop) + systemd enable (auto-start) |
-| Providers | PostgreSQL, Redis, pgAdmin, Portainer via compose em `~/providers/` |
-| Git | Configurado com delta como pager |
-| Shell config | `.zshrc` com aliases para Django, Git, Docker, Python, Providers (`pvup`, `pvdown`...) |
+| Docker | Native daemon (no Docker Desktop) + systemd enable (auto-start) |
+| Providers | PostgreSQL, Redis, pgAdmin, Portainer via compose at `~/providers/` |
+| Git | Configured with delta as pager |
+| Shell config | `.zshrc` with aliases for Django, Git, Docker, Python, Providers (`pvup`, `pvdown`...) |
 
 **Flags:**
 
 ```bash
-bash provision.sh                  # tudo
-bash provision.sh --skip-docker    # sem Docker
-bash provision.sh --skip-python    # sem Python
-bash provision.sh --skip-node      # sem Node
+bash provision.sh                  # everything
+bash provision.sh --skip-docker    # without Docker
+bash provision.sh --skip-python    # without Python
+bash provision.sh --skip-node      # without Node
 ```
 
 ---
 
 ## .wslconfig
 
-Configuração global do WSL, copiada para `%USERPROFILE%\.wslconfig`.
+Global WSL configuration, copied to `%USERPROFILE%\.wslconfig`.
 
-Otimizada para **32 GB RAM / 16 cores**. Ajuste conforme sua máquina:
+Optimized for **32 GB RAM / 16 cores**. Adjust for your machine:
 
 ```ini
 [wsl2]
-memory=16GB        # 50% da RAM total recomendado
-processors=8       # metade dos cores lógicos
+memory=16GB        # 50% of total RAM recommended
+processors=8       # half of logical cores
 swap=4GB
-networkingMode=mirrored   # localhost compartilhado Windows ↔ WSL
-autoMemoryReclaim=gradual # devolve RAM ao Windows quando ocioso
+networkingMode=mirrored   # shared localhost Windows <-> WSL
+autoMemoryReclaim=gradual # returns RAM to Windows when idle
 ```
 
 ---
 
 ## wsl.conf
 
-Configuração interna da distro, aplicada em `/etc/wsl.conf`.
+Internal distro configuration, applied at `/etc/wsl.conf`.
 
-Destaques:
-- `systemd=true` — necessário para Docker nativo e serviços
-- Montagem dos drives Windows com permissões corretas (`metadata,uid=1000`)
+Highlights:
+- `systemd=true` — required for native Docker and services
+- Windows drive mounting with correct permissions (`metadata,uid=1000`)
 - `hostname=dev-wsl`
-- `appendWindowsPath=true` — permite usar `code .` e outros binários Windows no terminal WSL
+- `appendWindowsPath=true` — allows using `code .` and other Windows binaries in WSL terminal
 
 ---
 
 ## Providers
 
-O `provision.sh` configura automaticamente os serviços compartilhados em `~/providers/` dentro do WSL e cria um serviço systemd para iniciá-los automaticamente.
+`provision.sh` automatically configures shared services at `~/providers/` inside WSL and creates a systemd service to start them automatically.
 
-| Serviço | URL / Porta | Credenciais padrão |
+| Service | URL / Port | Default credentials |
 |---|---|---|
 | PostgreSQL | `localhost:5432` | `postgres` / `postgres` |
 | Redis | `localhost:6379` | — |
 | pgAdmin | http://localhost:5050 | `admin@admin.com` / `admin` |
-| Portainer | http://localhost:9000 | (define no primeiro acesso) |
+| Portainer | http://localhost:9000 | (set on first access) |
 
-**Aliases disponíveis no shell após o provisionamento:**
+**Shell aliases available after provisioning:**
 
 ```bash
 pvup        # docker compose up -d
@@ -259,16 +240,16 @@ pvps        # docker compose ps
 pvrestart   # docker compose restart
 ```
 
-> Edite as senhas padrão em `~/providers/.env` antes de subir os serviços.
+> Edit default passwords at `~/providers/.env` before starting services.
 
 ---
 
-## Ferramentas
+## Tools
 
-Consulte [`ferramentas.md`](./ferramentas.md) para o catálogo completo com links e descrições de todas as ferramentas recomendadas.
+See [`ferramentas.md`](./ferramentas.md) for the complete catalog with links and descriptions of all recommended tools.
 
 ---
 
-## Licença
+## License
 
 [MIT](./LICENSE)

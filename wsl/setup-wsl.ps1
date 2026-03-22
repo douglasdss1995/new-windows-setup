@@ -1,12 +1,12 @@
 # =============================================================================
-# setup-wsl.ps1 — Instalação e configuração do WSL 2 + Ubuntu
-# Executar como Administrador no PowerShell
-# Uso: .\setup-wsl.ps1 [-Distro ubuntu-24.04] [-SkipProvision]
+# setup-wsl.ps1 — WSL 2 + Ubuntu installation and configuration
+# Run as Administrator in PowerShell
+# Usage: .\setup-wsl.ps1 [-Distro ubuntu-24.04] [-SkipProvision]
 # =============================================================================
 
 param(
-    [string]$Distro      = "Ubuntu-24.04",
-    [switch]$SkipProvision
+    [string]$Distro        = "Ubuntu-24.04",
+    [bool]  $SkipProvision = $false
 )
 
 Set-StrictMode -Version Latest
@@ -18,145 +18,192 @@ $ErrorActionPreference = "Stop"
 function Write-Step  { param($msg) Write-Host "`n=== $msg ===" -ForegroundColor Cyan }
 function Write-OK    { param($msg) Write-Host "[OK] $msg"   -ForegroundColor Green }
 function Write-Warn  { param($msg) Write-Host "[WARN] $msg" -ForegroundColor Yellow }
-function Write-Fail  { param($msg) Write-Host "[ERRO] $msg" -ForegroundColor Red; exit 1 }
+function Write-Fail  { param($msg) Write-Host "[ERROR] $msg" -ForegroundColor Red; exit 1 }
 
 # -----------------------------------------------------------------------------
-# Verificar execução como Administrador
+# Check Administrator
 # -----------------------------------------------------------------------------
 if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
     [Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Fail "Execute este script como Administrador (clique direito > Executar como Administrador)"
+    Write-Fail "Run this script as Administrator (right-click > Run as Administrator)"
 }
 
 # -----------------------------------------------------------------------------
-# 1. Habilitar recursos do Windows necessários
+# Marker file for resuming after restart
 # -----------------------------------------------------------------------------
-Write-Step "Habilitando recursos do Windows"
+$markerFile = Join-Path $env:TEMP "wsl-setup-pending-restart.flag"
+
+# -----------------------------------------------------------------------------
+# 1. Enable required Windows features
+# -----------------------------------------------------------------------------
+Write-Step "Enabling Windows features"
 
 $features = @(
     "Microsoft-Windows-Subsystem-Linux",
     "VirtualMachinePlatform"
 )
 
+$restartNeeded = $false
+
 foreach ($feature in $features) {
     $state = (Get-WindowsOptionalFeature -Online -FeatureName $feature).State
     if ($state -ne "Enabled") {
-        Write-Host "  Habilitando $feature..." -ForegroundColor Yellow
+        Write-Host "  Enabling $feature..." -ForegroundColor Yellow
         Enable-WindowsOptionalFeature -Online -FeatureName $feature -NoRestart | Out-Null
-        Write-OK "$feature habilitado"
+        Write-OK "$feature enabled"
+        $restartNeeded = $true
     } else {
-        Write-OK "$feature já habilitado"
+        Write-OK "$feature already enabled"
     }
 }
 
-# -----------------------------------------------------------------------------
-# 2. Atualizar o kernel do WSL
-# -----------------------------------------------------------------------------
-Write-Step "Atualizando kernel do WSL"
-wsl --update
-Write-OK "Kernel WSL atualizado"
+# A restart is required before continuing if any feature was just enabled
+if ($restartNeeded) {
+    Write-Host ""
+    Write-Host "============================================" -ForegroundColor Yellow
+    Write-Host "  RESTART REQUIRED" -ForegroundColor Yellow
+    Write-Host "============================================" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  Windows features were enabled, but the system must" -ForegroundColor White
+    Write-Host "  be restarted for WSL to work correctly." -ForegroundColor White
+    Write-Host ""
+    Write-Host "  After restarting, run this script again to continue" -ForegroundColor Cyan
+    Write-Host "  the installation from where it left off." -ForegroundColor Cyan
+    Write-Host ""
 
-# -----------------------------------------------------------------------------
-# 3. Definir WSL 2 como padrão
-# -----------------------------------------------------------------------------
-Write-Step "Definindo WSL 2 como padrão"
-wsl --set-default-version 2
-Write-OK "WSL 2 definido como padrão"
+    # Create marker to signal setup was started
+    "pending" | Out-File -FilePath $markerFile -Encoding UTF8
+    Write-Host "  (Resume marker saved to: $markerFile)" -ForegroundColor DarkGray
+    Write-Host ""
 
-# -----------------------------------------------------------------------------
-# 4. Instalar a distro
-# -----------------------------------------------------------------------------
-Write-Step "Verificando distro: $Distro"
+    $answer = Read-Host "  Restart now? (Y/N)"
+    if ($answer -match '^[Yy]$') {
+        Write-Host ""
+        Write-Host "  Restarting in 5 seconds... Press Ctrl+C to cancel." -ForegroundColor Yellow
+        Start-Sleep -Seconds 5
+        Restart-Computer -Force
+    } else {
+        Write-Host ""
+        Write-Warn "Restart the computer manually and run the script again."
+        exit 0
+    }
+}
 
-$installedDistros = wsl --list --quiet 2>$null
-$isInstalled = $installedDistros -match [regex]::Escape($Distro)
-
-if (-not $isInstalled) {
-    Write-Host "  Instalando $Distro..." -ForegroundColor Yellow
-    wsl --install -d $Distro --no-launch
-    Write-OK "$Distro instalado"
-    Write-Warn "Primeira execução requer criação de usuário. Inicie manualmente uma vez antes de continuar."
-    Write-Host "`n  Execute: wsl -d $Distro" -ForegroundColor Cyan
-    Write-Host "  Crie seu usuário e senha, depois execute este script novamente com -SkipProvision:$false`n"
-    exit 0
-} else {
-    Write-OK "$Distro já instalado"
+# Clear marker if it exists from a previous run
+if (Test-Path $markerFile) {
+    Remove-Item $markerFile -Force
+    Write-Host "  (Resuming setup after restart)" -ForegroundColor DarkGray
 }
 
 # -----------------------------------------------------------------------------
-# 5. Copiar .wslconfig para o perfil do usuário
+# 2. Update the WSL kernel
 # -----------------------------------------------------------------------------
-Write-Step "Instalando .wslconfig"
+Write-Step "Updating WSL kernel"
+wsl --update
+Write-OK "WSL kernel updated"
+
+# -----------------------------------------------------------------------------
+# 3. Set WSL 2 as default
+# -----------------------------------------------------------------------------
+Write-Step "Setting WSL 2 as default"
+wsl --set-default-version 2
+Write-OK "WSL 2 set as default"
+
+# -----------------------------------------------------------------------------
+# 4. Install the distro
+# -----------------------------------------------------------------------------
+Write-Step "Checking distro: $Distro"
+
+# wsl --list outputs UTF-16 with null bytes - strip them before matching
+$installedDistros = (wsl --list --quiet 2>$null) -replace "`0", ""
+$isInstalled = $installedDistros -match [regex]::Escape($Distro)
+
+if (-not $isInstalled) {
+    Write-Host "  Installing $Distro..." -ForegroundColor Yellow
+    wsl --install -d $Distro --no-launch
+    Write-OK "$Distro installed"
+    Write-Warn "First run requires creating a user. Launch it manually once before continuing."
+    Write-Host "`n  Run: wsl -d $Distro" -ForegroundColor Cyan
+    Write-Host "  Create your user and password, then run this script again with -SkipProvision:`$false`n"
+    exit 0
+} else {
+    Write-OK "$Distro already installed"
+}
+
+# -----------------------------------------------------------------------------
+# 5. Copy .wslconfig to user profile
+# -----------------------------------------------------------------------------
+Write-Step "Installing .wslconfig"
 
 $wslConfigSrc = Join-Path $PSScriptRoot ".wslconfig"
 $wslConfigDst = Join-Path $env:USERPROFILE ".wslconfig"
 
 if (Test-Path $wslConfigSrc) {
     Copy-Item -Path $wslConfigSrc -Destination $wslConfigDst -Force
-    Write-OK ".wslconfig copiado para $wslConfigDst"
+    Write-OK ".wslconfig copied to $wslConfigDst"
 } else {
-    Write-Warn ".wslconfig não encontrado em $wslConfigSrc — pulando"
+    Write-Warn ".wslconfig not found at $wslConfigSrc — skipping"
 }
 
 # -----------------------------------------------------------------------------
-# 6. Copiar wsl.conf para dentro da distro
+# 6. Copy wsl.conf into the distro
 # -----------------------------------------------------------------------------
-Write-Step "Configurando wsl.conf na distro"
+Write-Step "Configuring wsl.conf in the distro"
 
 $wslConfSrc = Join-Path $PSScriptRoot "wsl.conf"
 
 if (Test-Path $wslConfSrc) {
     $wslConfContent = Get-Content $wslConfSrc -Raw
-    # Escreve o arquivo dentro do WSL via stdin
+    # Write the file inside WSL via stdin
     $wslConfContent | wsl -d $Distro -- bash -c "sudo tee /etc/wsl.conf > /dev/null"
-    Write-OK "wsl.conf configurado em /etc/wsl.conf"
+    Write-OK "wsl.conf configured at /etc/wsl.conf"
 } else {
-    Write-Warn "wsl.conf não encontrado em $wslConfSrc — pulando"
+    Write-Warn "wsl.conf not found at $wslConfSrc — skipping"
 }
 
 # -----------------------------------------------------------------------------
-# 7. Reiniciar o WSL para aplicar configurações
+# 7. Restart WSL to apply configuration
 # -----------------------------------------------------------------------------
-Write-Step "Reiniciando WSL para aplicar configurações"
+Write-Step "Restarting WSL to apply configuration"
 wsl --shutdown
 Start-Sleep -Seconds 2
-Write-OK "WSL reiniciado"
+Write-OK "WSL restarted"
 
 # -----------------------------------------------------------------------------
-# 8. Copiar e executar o provision.sh dentro do WSL
+# 8. Copy and run provision.sh inside WSL
 # -----------------------------------------------------------------------------
 if (-not $SkipProvision) {
-    Write-Step "Executando provision.sh na distro $Distro"
+    Write-Step "Running provision.sh in distro $Distro"
 
     $provisionSrc = Join-Path $PSScriptRoot "provision.sh"
 
     if (-not (Test-Path $provisionSrc)) {
-        Write-Fail "provision.sh não encontrado em $provisionSrc"
+        Write-Fail "provision.sh not found at $provisionSrc"
     }
 
-    # Converter caminho Windows para path WSL
+    # Convert Windows path to WSL path
     $provisionWslPath = wsl -d $Distro -- wslpath -u "$provisionSrc"
     $provisionWslPath = $provisionWslPath.Trim()
 
-    # Garantir permissão de execução e rodar
+    # Ensure execute permission and run
     wsl -d $Distro -- bash -c "chmod +x '$provisionWslPath' && bash '$provisionWslPath'"
 
-    Write-OK "provision.sh executado com sucesso"
+    Write-OK "provision.sh executed successfully"
 } else {
-    Write-Warn "Provisionamento pulado (-SkipProvision)"
+    Write-Warn "Provisioning skipped (-SkipProvision)"
 }
 
 # -----------------------------------------------------------------------------
-# Concluído
+# Done
 # -----------------------------------------------------------------------------
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Green
-Write-Host "  WSL configurado com sucesso!" -ForegroundColor Green
+Write-Host "  WSL configured successfully!" -ForegroundColor Green
 Write-Host "============================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "Para abrir o WSL:"
+Write-Host "To open WSL:"
 Write-Host "  wsl -d $Distro" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Para abrir no Windows Terminal:"
-Write-Host "  Clique na seta do terminal e selecione $Distro" -ForegroundColor Cyan
+Write-Host "To open in Windows Terminal:"
+Write-Host "  Click the terminal arrow and select $Distro" -ForegroundColor Cyan
 Write-Host ""
