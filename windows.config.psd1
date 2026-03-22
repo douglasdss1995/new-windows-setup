@@ -42,8 +42,8 @@
     Editors = @{
         VSCode    = $true
         Cursor    = $true
-        PyCharm   = $false   # pesado - instale manualmente se necessario
-        WebStorm  = $false   # pesado - instale manualmente se necessario
+        PyCharm   = $true   # pesado - instale manualmente se necessario
+        WebStorm  = $true   # pesado - instale manualmente se necessario
     }
 
     # -------------------------------------------------------------------------
@@ -51,8 +51,8 @@
     # -------------------------------------------------------------------------
     GitTools = @{
         GitHubCLI  = $true
-        GitKraken  = $false   # opcional - cliente visual
-        Delta      = $true
+        GitKraken  = $true   # opcional - cliente visual
+        Delta      = $false
     }
 
     # -------------------------------------------------------------------------
@@ -62,7 +62,7 @@
         Mise       = $true    # gerenciador universal (recomendado)
         PyenvWin   = $false   # alternativa ao mise para Python
         NvmWindows = $false   # alternativa ao mise para Node
-        Python313  = $true
+        Python313  = $false
         NodeLTS    = $true
         Java21     = $true
         Uv         = $true    # gerenciador de pacotes Python ultrarapido
@@ -76,16 +76,16 @@
         PostgreSQL16    = $true
         DBeaver         = $true
         TablePlus       = $false   # pago apos trial
-        PgAdmin         = $false   # alternativa ao DBeaver para Postgres
-        RedisInsight    = $true
-        SQLiteBrowser   = $true
+        PgAdmin         = $true   # alternativa ao DBeaver para Postgres
+        RedisInsight    = $false
+        SQLiteBrowser   = $false
     }
 
     # -------------------------------------------------------------------------
     # API e Testes HTTP
     # -------------------------------------------------------------------------
     API = @{
-        Postman  = $false   # pesado - escolha um cliente HTTP
+        Postman  = $true   # pesado - escolha um cliente HTTP
         Insomnia = $false   # alternativa ao Postman
         Bruno    = $true    # leve, open-source, baseado em arquivos
     }
