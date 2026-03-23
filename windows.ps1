@@ -225,7 +225,30 @@ if ($cfg.GitTools.Delta)      { Install-Pkg "delta"        "dandavison.delta"   
 # =============================================================================
 Write-Step "Runtimes and Version Managers"
 
-if ($cfg.Runtimes.Mise)       { Install-Pkg "mise"                   "jdx.mise"                        } else { Write-Skip "mise (disabled)"       }
+if ($cfg.Runtimes.Mise) {
+    Install-Pkg "mise" "jdx.mise"
+
+    # Configure mise activation in the PowerShell profile so shims are loaded
+    # automatically and `mise use` works per-directory without manually adding
+    # %LOCALAPPDATA%\mise\shims to PATH.
+    $miseLine = 'mise activate pwsh | Out-String | Invoke-Expression'
+    $profilePath = $PROFILE.CurrentUserAllHosts   # %USERPROFILE%\Documents\PowerShell\profile.ps1
+
+    if (-not (Test-Path $profilePath)) {
+        New-Item -ItemType File -Path $profilePath -Force | Out-Null
+    }
+
+    $profileContent = Get-Content $profilePath -Raw -ErrorAction SilentlyContinue
+    if ($profileContent -notmatch [regex]::Escape($miseLine)) {
+        Add-Content -Path $profilePath -Value "`n# mise - version manager activation`n$miseLine"
+        Write-OK "mise activation added to PowerShell profile ($profilePath)"
+    } else {
+        Write-Skip "mise activation already in PowerShell profile"
+    }
+} else {
+    Write-Skip "mise (disabled)"
+}
+
 if ($cfg.Runtimes.PyenvWin)   { Install-Pkg "pyenv-win"              "pyenv-win.pyenv-win"              } else { Write-Skip "pyenv-win (disabled)"   }
 if ($cfg.Runtimes.NvmWindows) { Install-Pkg "nvm-windows"            "CoreyButler.NVMforWindows"        } else { Write-Skip "nvm-windows (disabled)" }
 if ($cfg.Runtimes.Python313)  { Install-Pkg "Python 3.13"            "Python.Python.3.13"               } else { Write-Skip "Python 3.13 (disabled)" }
