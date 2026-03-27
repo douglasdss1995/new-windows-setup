@@ -27,23 +27,28 @@
     # Terminal and Shell
     # -------------------------------------------------------------------------
     Terminal = @{
-        WindowsTerminal = $true
-        PowerShell7     = $true
-        Git             = $true
-        OhMyPosh        = $true
-        Starship        = $false   # alternative to OhMyPosh - pick one
-        Zoxide          = $true
-        Fzf             = $true
+        WindowsTerminal        = $true
+        PowerShell7            = $true
+        SetPowerShell7AsDefault = $true   # set PS7 as default in Windows Terminal and VS Code
+        Git                    = $true
+        OhMyPosh               = $true
+        Starship               = $false   # alternative to OhMyPosh - pick one
+        Zoxide                 = $true
+        Fzf                    = $true
     }
 
     # -------------------------------------------------------------------------
     # Editors and IDEs
     # -------------------------------------------------------------------------
     Editors = @{
-        VSCode    = $true
-        Cursor    = $true
-        PyCharm   = $true   # heavy - install manually if needed
-        WebStorm  = $true   # heavy - install manually if needed
+        VSCode            = $true
+        Cursor            = $true
+        # JetBrains: install Toolbox first; IDEs install via Toolbox (API) with winget fallback
+        JetBrainsToolbox  = $false    # Toolbox manages installs, updates and licenses
+        PyCharm           = $false    # Community (free) - set PyCharmProfessional for paid license
+        PyCharmProfessional = $true # Professional requires active JetBrains license
+        WebStorm          = $true    # requires active JetBrains license
+        DataGrip          = $true   # database IDE - requires active JetBrains license
     }
 
     # -------------------------------------------------------------------------
@@ -60,11 +65,11 @@
     # -------------------------------------------------------------------------
     Runtimes = @{
         Mise       = $true    # universal version manager (recommended)
-        PyenvWin   = $false   # alternative to mise for Python
+        PyenvWin   = $true   # alternative to mise for Python
         NvmWindows = $false   # alternative to mise for Node
         Python313  = $false
-        NodeLTS    = $true
-        Java21     = $true
+        NodeLTS    = $false   # managed by mise - install via: mise use -g node@lts
+        Java21     = $false
         Uv         = $true    # ultra-fast Python package manager
         Pnpm       = $true    # efficient Node package manager
     }
@@ -73,7 +78,7 @@
     # Databases
     # -------------------------------------------------------------------------
     Database = @{
-        PostgreSQL16    = $true
+        PostgreSQL16    = $false
         DBeaver         = $true
         TablePlus       = $false   # paid after trial
         PgAdmin         = $true    # alternative to DBeaver for Postgres
@@ -87,7 +92,7 @@
     API = @{
         Postman  = $true   # heavy - pick one HTTP client
         Insomnia = $false  # alternative to Postman
-        Bruno    = $true   # lightweight, open-source, file-based
+        Bruno    = $false   # lightweight, open-source, file-based
     }
 
     # -------------------------------------------------------------------------
@@ -103,6 +108,7 @@
         Yq      = $true
         Wget    = $true
         Make    = $true
+        Sudo    = $true
         Just    = $true
         Curl    = $true
     }
@@ -125,9 +131,24 @@
         Slack       = $false   # install if used at work
         Discord     = $false   # install if used
         ShareX      = $true
-        PowerToys   = $true
+        PowerToys   = $false
         Everything  = $true
+        WizTree     = $true    # disk usage analyzer
         AutoHotkey  = $false   # optional - keyboard automation
+        DrawIO      = $true    # diagram and flowchart editor (diagrams.net)
+    }
+
+    # -------------------------------------------------------------------------
+    # Utilities
+    # -------------------------------------------------------------------------
+    Utilities = @{
+        SevenZip   = $true    # archive manager (free, open-source)
+        WinRAR     = $false   # archive manager (trialware - pick one)
+        VLC        = $true    # media player
+        WinSCP     = $true    # SFTP/FTP client
+        PuTTY      = $true    # SSH/Telnet client
+        NotepadPP  = $true    # text editor
+        VCRedist   = $true    # Visual C++ Redistributables (2015-2022 x64 + x86)
     }
 
     # -------------------------------------------------------------------------

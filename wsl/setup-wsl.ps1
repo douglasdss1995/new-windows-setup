@@ -5,7 +5,9 @@
 # =============================================================================
 
 param(
-    [string]$Distro        = "Ubuntu-24.04",
+    # "ubuntu" tracks the latest Ubuntu LTS automatically (recommended).
+    # Use "Ubuntu-24.04" to pin to a specific release.
+    [string]$Distro        = "ubuntu",
     [bool]  $SkipProvision = $false
 )
 
@@ -99,8 +101,12 @@ if (Test-Path $markerFile) {
 # 2. Update the WSL kernel
 # -----------------------------------------------------------------------------
 Write-Step "Updating WSL kernel"
-wsl --update
-Write-OK "WSL kernel updated"
+try {
+    wsl --update 2>&1 | Out-Null
+    Write-OK "WSL kernel updated"
+} catch {
+    Write-Warn "WSL kernel update failed (no internet or Store blocked) — continuing with current version"
+}
 
 # -----------------------------------------------------------------------------
 # 3. Set WSL 2 as default
@@ -124,7 +130,7 @@ if (-not $isInstalled) {
     Write-OK "$Distro installed"
     Write-Warn "First run requires creating a user. Launch it manually once before continuing."
     Write-Host "`n  Run: wsl -d $Distro" -ForegroundColor Cyan
-    Write-Host "  Create your user and password, then run this script again with -SkipProvision:`$false`n"
+    Write-Host "  Create your user and password, then run this script again.`n" -ForegroundColor Cyan
     exit 0
 } else {
     Write-OK "$Distro already installed"
@@ -153,9 +159,18 @@ Write-Step "Configuring wsl.conf in the distro"
 $wslConfSrc = Join-Path $PSScriptRoot "wsl.conf"
 
 if (Test-Path $wslConfSrc) {
-    $wslConfContent = Get-Content $wslConfSrc -Raw
-    # Write the file inside WSL via stdin
-    $wslConfContent | wsl -d $Distro -- bash -c "sudo tee /etc/wsl.conf > /dev/null"
+    # Normalize to LF before writing into Linux — CRLF in /etc/wsl.conf causes
+    # silent parse failures in systemd and automount.
+    $wslConfContent = (Get-Content $wslConfSrc -Raw) -replace "`r`n", "`n" -replace "`r", "`n"
+
+    # Step 1: write to a temp file in the user home via pipe (no sudo — stdin is
+    #         occupied by the pipe so sudo would hang waiting for the password).
+    $wslConfContent | wsl -d $Distro -- bash -c "cat > ~/wsl.conf.tmp"
+
+    # Step 2: move to /etc/wsl.conf with sudo in a separate call that has a TTY,
+    #         so the password prompt works if the user hasn't cached credentials.
+    wsl -d $Distro -- sudo mv ~/wsl.conf.tmp /etc/wsl.conf
+
     Write-OK "wsl.conf configured at /etc/wsl.conf"
 } else {
     Write-Warn "wsl.conf not found at $wslConfSrc — skipping"
@@ -166,7 +181,7 @@ if (Test-Path $wslConfSrc) {
 # -----------------------------------------------------------------------------
 Write-Step "Restarting WSL to apply configuration"
 wsl --shutdown
-Start-Sleep -Seconds 2
+Start-Sleep -Seconds 5
 Write-OK "WSL restarted"
 
 # -----------------------------------------------------------------------------
@@ -181,14 +196,36 @@ if (-not $SkipProvision) {
         Write-Fail "provision.sh not found at $provisionSrc"
     }
 
-    # Convert Windows path to WSL path
-    $provisionWslPath = wsl -d $Distro -- wslpath -u "$provisionSrc"
-    $provisionWslPath = $provisionWslPath.Trim()
+    # Copy provision.sh to the Linux home directory and strip CRLF line endings.
+    # Running directly from /mnt/c/... is slower (cross-OS filesystem) and breaks
+    # if the file was saved with Windows CRLF endings (\r\n causes bash errors).
+    $provisionContent = (Get-Content $provisionSrc -Raw) -replace "`r`n", "`n" -replace "`r", "`n"
+    $provisionContent | wsl -d $Distro -- bash -c "cat > ~/provision.sh && chmod +x ~/provision.sh"
 
-    # Ensure execute permission and run
-    wsl -d $Distro -- bash -c "chmod +x '$provisionWslPath' && bash '$provisionWslPath'"
+    # Run from the Linux home directory
+    wsl -d $Distro -- bash -c "bash ~/provision.sh"
 
     Write-OK "provision.sh executed successfully"
+
+    # -------------------------------------------------------------------------
+    # First boot of providers — run after provision while Docker is already
+    # active in the same WSL session, avoiding race conditions on next restart.
+    # -------------------------------------------------------------------------
+    Write-Step "Starting providers for the first time"
+    Write-Host "  Waiting for Docker to be ready..." -ForegroundColor DarkGray
+    $dockerReady = $false
+    for ($i = 0; $i -lt 15; $i++) {
+        $check = wsl -d $Distro -- bash -c "docker info > /dev/null 2>&1 && echo ok" 2>$null
+        if ($check -match "ok") { $dockerReady = $true; break }
+        Start-Sleep -Seconds 2
+    }
+
+    if ($dockerReady) {
+        wsl -d $Distro -- bash -c "cd ~/providers && docker container prune -f > /dev/null 2>&1; docker compose up -d --remove-orphans" 2>&1
+        Write-OK "Providers started"
+    } else {
+        Write-Warn "Docker did not become ready in time - run 'pvup' manually after opening WSL"
+    }
 } else {
     Write-Warn "Provisioning skipped (-SkipProvision)"
 }

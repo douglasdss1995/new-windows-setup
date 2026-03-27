@@ -33,15 +33,7 @@ networkingMode=mirrored
 # Firewall do Windows aplicado ao WSL (recomendado com networkingMode=mirrored)
 firewall=true
 
-# --- Performance --------------------------------------------------------------
-
-# Habilitar compressão de memória (reduz uso de RAM com custo mínimo de CPU)
-pageReporting=true
-
-# Permite que o kernel do WSL libere memória de volta ao Windows quando ocioso
-# Útil para evitar que o WSL consuma RAM indefinidamente
-# (disponível a partir do Windows 11 22H2)
-autoMemoryReclaim=gradual
+# --- Armazenamento ------------------------------------------------------------
 
 # --- Armazenamento ------------------------------------------------------------
 
@@ -56,3 +48,9 @@ autoMemoryReclaim=gradual
 # --- Debug (desabilitado em produção) -----------------------------------------
 # debugConsole=false
 # kernelCommandLine=
+
+[experimental]
+# Permite que o kernel do WSL libere memória de volta ao Windows quando ocioso
+# Útil para evitar que o WSL consuma RAM indefinidamente
+# (disponível a partir do Windows 11 22H2 / WSL 2.0+)
+autoMemoryReclaim=gradual

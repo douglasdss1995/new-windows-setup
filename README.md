@@ -31,6 +31,8 @@ new-windows-setup/
 
 - Windows 10 (21H2+) or Windows 11
 - PowerShell running as **Administrator**
+  - `windows.ps1` — Windows PowerShell 5.1 or PowerShell 7
+  - `setup-wsl.ps1` — **PowerShell 7.6** or later (required)
 - Internet connection
 
 ---
@@ -89,17 +91,40 @@ Get-ExecutionPolicy -List
 .\windows.ps1
 ```
 
-Restart the computer after completion to apply PATH changes.
+At the end of execution the script displays:
+
+```
+Next steps:
+  1. Restart the computer to apply PATH changes
+  2. Authenticate with GitHub:
+       gh auth login
+  3. Configure WSL:
+       cd wsl
+       .\setup-wsl.ps1
+```
 
 ### Step 2 — Configure WSL
 
+> **Requires PowerShell 7.6.** Open PowerShell 7 as Administrator before running this step.
+
 ```powershell
-# PowerShell as Administrator
+# PowerShell 7.6 as Administrator
 cd wsl
 .\setup-wsl.ps1
 ```
 
-The script installs Ubuntu 24.04, applies configuration and automatically runs `provision.sh` inside WSL.
+**If Ubuntu is not yet installed**, the script installs the distro and pauses:
+
+```
+[WARN] First run requires creating a user. Launch it manually once before continuing.
+
+  Run: wsl -d ubuntu
+  Create your user and password, then run this script again.
+```
+
+Open a new terminal, run `wsl -d ubuntu`, enter a username and password when prompted, then exit WSL and run `.\setup-wsl.ps1` again to complete the setup.
+
+On the second run, the script applies the configuration and automatically runs `provision.sh` inside WSL.
 
 ### Step 3 — Final configuration
 
@@ -134,6 +159,8 @@ Installs all tools listed in `ferramentas.md` using **winget** (primary) and **C
 ---
 
 ## setup-wsl.ps1
+
+> **Requires PowerShell 7.6** as Administrator.
 
 Orchestrates the complete WSL 2 installation and configuration.
 
