@@ -135,6 +135,8 @@ for RC in "$HOME/.zshrc" "$HOME/.bashrc"; do
     echo '' >> "$RC"
     echo '# mise - runtime version manager' >> "$RC"
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$RC"
+    echo '# Trust mise config files from the Windows host drive (avoids "not trusted" errors in WSL)' >> "$RC"
+    echo 'export MISE_TRUSTED_CONFIG_PATHS="/mnt/c"' >> "$RC"
     echo 'eval "$(mise activate bash)"' >> "$RC"
   fi
 done
@@ -377,8 +379,8 @@ alias dkps='docker ps'
 alias dkpsa='docker ps -a'
 
 # Providers (PostgreSQL, Redis, pgAdmin, Portainer)
-alias pvup='docker compose -f ~/providers/docker-compose.yml up -d'
-alias pvdown='docker compose -f ~/providers/docker-compose.yml down'
+alias pvup='docker compose -f ~/providers/docker-compose.yml up -d --remove-orphans'
+alias pvdown='docker compose -f ~/providers/docker-compose.yml down --remove-orphans'
 alias pvlogs='docker compose -f ~/providers/docker-compose.yml logs -f'
 alias pvps='docker compose -f ~/providers/docker-compose.yml ps'
 alias pvrestart='docker compose -f ~/providers/docker-compose.yml restart'
@@ -618,6 +620,7 @@ After=docker.service network-online.target
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=$PROVIDERS_DIR
+ExecStartPre=-/usr/bin/docker container prune -f
 ExecStart=/usr/bin/docker compose up -d --remove-orphans
 ExecStop=/usr/bin/docker compose down --remove-orphans
 TimeoutStartSec=120

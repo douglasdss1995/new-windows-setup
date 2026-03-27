@@ -16,7 +16,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-postgres}
-      TZ: ${TZ:-America/Sao_Paulo}
+      TZ: ${TZ:-America/Manaus}
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     volumes:
@@ -61,7 +61,7 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
-      TZ: ${TZ:-America/Sao_Paulo}
+      TZ: ${TZ:-America/Manaus}
     ports:
       - "${PGADMIN_PORT:-5050}:80"
     volumes:

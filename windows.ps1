@@ -129,6 +129,92 @@ function Install-Choco {
 }
 
 # -----------------------------------------------------------------------------
+# Function: install JetBrains IDE via Toolbox (with winget fallback)
+#
+# The Toolbox App exposes a local REST API after startup. We discover the port
+# from the lock file it creates, POST an install request, and fall back to a
+# direct winget install if the API is unavailable or returns an error.
+# Downloads always originate from download.jetbrains.com regardless of method.
+# -----------------------------------------------------------------------------
+function Install-JetBrainsTool {
+    param(
+        [string]$Name,
+        [string]$WingetId,
+        [string]$ToolboxTag   # product tag used by Toolbox API, e.g. "WebStorm"
+    )
+
+    # Skip if already installed (winget check covers both Toolbox and direct installs)
+    $check = winget list --id $WingetId --exact --accept-source-agreements 2>&1 | Out-String
+    if ($check -match [regex]::Escape($WingetId)) {
+        Write-Skip "$Name (already installed)"
+        $script:Skipped++
+        return
+    }
+
+    $toolboxExe = "$env:LOCALAPPDATA\JetBrains\Toolbox\bin\jetbrains-toolbox.exe"
+
+    if ((Test-Path $toolboxExe) -and $ToolboxTag) {
+        Write-Host "  --> $Name (via JetBrains Toolbox)..." -ForegroundColor White
+
+        # Start Toolbox minimized if not already running
+        $tbProc = Get-Process -Name "jetbrains-toolbox" -ErrorAction SilentlyContinue
+        if (-not $tbProc) {
+            Start-Process $toolboxExe -ArgumentList "--minimized" -WindowStyle Hidden
+            Write-Info "Waiting for Toolbox to initialize..."
+            Start-Sleep -Seconds 8
+        }
+
+        # Toolbox writes its REST API port to a JSON lock file
+        $portFile = "$env:LOCALAPPDATA\JetBrains\Toolbox\.lock"
+        $apiPort  = $null
+
+        if (Test-Path $portFile) {
+            try {
+                $lockData = Get-Content $portFile -Raw -ErrorAction Stop | ConvertFrom-Json
+                $apiPort  = $lockData.port
+            } catch { }
+        }
+
+        # Fallback: scan common Toolbox port range (63342-63352)
+        if (-not $apiPort) {
+            foreach ($p in 63342..63352) {
+                try {
+                    $r = Invoke-RestMethod "http://localhost:$p/api/about" -TimeoutSec 1 -ErrorAction Stop
+                    if ($r) { $apiPort = $p; break }
+                } catch { }
+            }
+        }
+
+        if ($apiPort) {
+            try {
+                Invoke-RestMethod -Uri "http://localhost:$apiPort/api/tools/$ToolboxTag/install" `
+                                  -Method Post -TimeoutSec 30 -ErrorAction Stop | Out-Null
+                Write-OK "$Name (Toolbox)"
+                $script:Installed++
+                return
+            } catch {
+                Write-Warn "$Name - Toolbox API unavailable, falling back to winget..."
+            }
+        } else {
+            Write-Warn "$Name - could not reach Toolbox API, falling back to winget..."
+        }
+    }
+
+    # Fallback: direct winget install (downloads from official JetBrains CDN)
+    Write-Host "  --> $Name (winget)..." -ForegroundColor White
+    winget install --id $WingetId --exact --silent --accept-package-agreements --accept-source-agreements
+
+    if ($LASTEXITCODE -eq 0) {
+        Write-OK "$Name"
+        $script:Installed++
+    } else {
+        Write-Fail "$Name (exit code $LASTEXITCODE)"
+        $script:FailList += $Name
+        $script:Failed++
+    }
+}
+
+# -----------------------------------------------------------------------------
 # Function: install VS Code extension
 # -----------------------------------------------------------------------------
 function Install-VSExt {
@@ -206,10 +292,23 @@ if ($cfg.Terminal.Fzf)             { Install-Pkg "fzf"               "junegunn.f
 # =============================================================================
 Write-Step "Editors and IDEs"
 
-if ($cfg.Editors.VSCode)   { Install-Pkg "VS Code"           "Microsoft.VisualStudioCode"      } else { Write-Skip "VS Code (disabled)"   }
-if ($cfg.Editors.Cursor)   { Install-Pkg "Cursor"            "Anysphere.Cursor"                 } else { Write-Skip "Cursor (disabled)"   }
-if ($cfg.Editors.PyCharm)  { Install-Pkg "PyCharm Community" "JetBrains.PyCharm.Community"     } else { Write-Skip "PyCharm (disabled)"  }
-if ($cfg.Editors.WebStorm) { Install-Pkg "WebStorm"          "JetBrains.WebStorm"              } else { Write-Skip "WebStorm (disabled)" }
+if ($cfg.Editors.VSCode)  { Install-Pkg "VS Code" "Microsoft.VisualStudioCode" } else { Write-Skip "VS Code (disabled)"  }
+if ($cfg.Editors.Cursor)  { Install-Pkg "Cursor"  "Anysphere.Cursor"           } else { Write-Skip "Cursor (disabled)"  }
+
+# JetBrains Toolbox - install first so the IDEs below can use it
+if ($cfg.Editors.JetBrainsToolbox) {
+    Install-Pkg "JetBrains Toolbox" "JetBrains.Toolbox"
+    Write-Info "Toolbox installed - subsequent JetBrains IDEs will install via Toolbox API when available."
+} else {
+    Write-Skip "JetBrains Toolbox (disabled)"
+}
+
+# JetBrains IDEs - use Toolbox when available, direct winget as fallback
+# All packages download from download.jetbrains.com regardless of method.
+if ($cfg.Editors.PyCharm)             { Install-JetBrainsTool "PyCharm Community"    "JetBrains.PyCharm.Community"    "PyCharm"    } else { Write-Skip "PyCharm Community (disabled)"    }
+if ($cfg.Editors.PyCharmProfessional) { Install-JetBrainsTool "PyCharm Professional" "JetBrains.PyCharm.Professional" "PyCharm"    } else { Write-Skip "PyCharm Professional (disabled)" }
+if ($cfg.Editors.WebStorm)            { Install-JetBrainsTool "WebStorm"             "JetBrains.WebStorm"             "WebStorm"   } else { Write-Skip "WebStorm (disabled)"             }
+if ($cfg.Editors.DataGrip)            { Install-JetBrainsTool "DataGrip"             "JetBrains.DataGrip"             "DataGrip"   } else { Write-Skip "DataGrip (disabled)"             }
 
 # =============================================================================
 # 4. GIT AND VERSION CONTROL
@@ -249,7 +348,29 @@ if ($cfg.Runtimes.Mise) {
     Write-Skip "mise (disabled)"
 }
 
-if ($cfg.Runtimes.PyenvWin)   { Install-Pkg "pyenv-win"              "pyenv-win.pyenv-win"              } else { Write-Skip "pyenv-win (disabled)"   }
+if ($cfg.Runtimes.PyenvWin) {
+    Install-Pkg "pyenv-win" "pyenv-win.pyenv-win"
+
+    # pyenv-win requires its bin and shims directories in PATH to work after install
+    $pyenvBin   = "$env:USERPROFILE\.pyenv\pyenv-win\bin"
+    $pyenvShims = "$env:USERPROFILE\.pyenv\pyenv-win\shims"
+    $userPath   = [Environment]::GetEnvironmentVariable("PATH", "User")
+
+    $pathChanged = $false
+    foreach ($entry in @($pyenvBin, $pyenvShims)) {
+        if ($userPath -notmatch [regex]::Escape($entry)) {
+            $userPath    = "$entry;$userPath"
+            $pathChanged = $true
+        }
+    }
+
+    if ($pathChanged) {
+        [Environment]::SetEnvironmentVariable("PATH", $userPath, "User")
+        Write-OK "pyenv-win added to PATH (restart terminal to apply)"
+    } else {
+        Write-Skip "pyenv-win already in PATH"
+    }
+} else { Write-Skip "pyenv-win (disabled)" }
 if ($cfg.Runtimes.NvmWindows) { Install-Pkg "nvm-windows"            "CoreyButler.NVMforWindows"        } else { Write-Skip "nvm-windows (disabled)" }
 if ($cfg.Runtimes.Python313)  { Install-Pkg "Python 3.13"            "Python.Python.3.13"               } else { Write-Skip "Python 3.13 (disabled)" }
 if ($cfg.Runtimes.NodeLTS)    { Install-Pkg "Node.js LTS"            "OpenJS.NodeJS.LTS"                } else { Write-Skip "Node.js LTS (disabled)" }
@@ -333,8 +454,9 @@ if ($cfg.CLI.Eza)     { Install-Pkg "eza"     "eza-community.eza"       } else {
 if ($cfg.CLI.Delta)   { Install-Pkg "delta"   "dandavison.delta"        } else { Write-Skip "delta (disabled)"   }
 if ($cfg.CLI.Jq)      { Install-Pkg "jq"      "jqlang.jq"               } else { Write-Skip "jq (disabled)"      }
 if ($cfg.CLI.Yq)      { Install-Pkg "yq"      "MikeFarah.yq"            } else { Write-Skip "yq (disabled)"      }
-if ($cfg.CLI.Wget)    { Install-Pkg "wget"    "GnuWin32.Wget"           } else { Write-Skip "wget (disabled)"    }
-if ($cfg.CLI.Make)    { Install-Pkg "make"    "GnuWin32.Make"           } else { Write-Skip "make (disabled)"    }
+if ($cfg.CLI.Wget)    { Install-Pkg "wget"    "JernejSimoncic.Wget"     } else { Write-Skip "wget (disabled)"    }
+if ($cfg.CLI.Make)    { Install-Choco "make"   "make"                    } else { Write-Skip "make (disabled)"    }
+if ($cfg.CLI.Sudo)    { Install-Choco "sudo"   "gsudo"                   } else { Write-Skip "sudo (disabled)"    }
 if ($cfg.CLI.Just)    { Install-Pkg "just"    "Casey.Just"              } else { Write-Skip "just (disabled)"    }
 if ($cfg.CLI.Curl)    { Install-Pkg "curl"    "cURL.cURL"               } else { Write-Skip "curl (disabled)"    }
 
@@ -373,7 +495,9 @@ if ($cfg.Productivity.Discord)    { Install-Pkg "Discord"       "Discord.Discord
 if ($cfg.Productivity.ShareX)     { Install-Pkg "ShareX"        "ShareX.ShareX"              } else { Write-Skip "ShareX (disabled)"      }
 if ($cfg.Productivity.PowerToys)  { Install-Pkg "PowerToys"     "Microsoft.PowerToys"        } else { Write-Skip "PowerToys (disabled)"   }
 if ($cfg.Productivity.Everything) { Install-Pkg "Everything"    "voidtools.Everything"       } else { Write-Skip "Everything (disabled)"  }
+if ($cfg.Productivity.WizTree)    { Install-Pkg "WizTree"       "WizTree.WizTree"            } else { Write-Skip "WizTree (disabled)"     }
 if ($cfg.Productivity.AutoHotkey) { Install-Pkg "AutoHotkey v2" "AutoHotkey.AutoHotkey"      } else { Write-Skip "AutoHotkey (disabled)"  }
+if ($cfg.Productivity.DrawIO)    { Install-Pkg "draw.io"       "JGraph.Draw"                 } else { Write-Skip "draw.io (disabled)"    }
 
 # =============================================================================
 # 12. BROWSERS
@@ -389,8 +513,8 @@ if ($cfg.Browsers.FirefoxDev) { Install-Pkg "Firefox Developer Edition" "Mozilla
 Write-Step "Development Fonts"
 
 if ($cfg.Fonts.JetBrainsMono) { Install-Pkg   "JetBrains Mono Nerd Font" "DEVCOM.JetBrainsMonoNerdFont"        } else { Write-Skip "JetBrains Mono (disabled)" }
-if ($cfg.Fonts.FiraCode)      { Install-Pkg   "Fira Code"                "carrierwaveuploader.FiraCode"        } else { Write-Skip "Fira Code (disabled)"      }
-if ($cfg.Fonts.CascadiaCode)  { Install-Pkg   "Cascadia Code"            "Microsoft.CascadiaCode"             } else { Write-Skip "Cascadia Code (disabled)"  }
+if ($cfg.Fonts.FiraCode)      { Install-Choco "Fira Code"                "firacode"                            } else { Write-Skip "Fira Code (disabled)"      }
+if ($cfg.Fonts.CascadiaCode)  { Install-Choco "Cascadia Code"            "cascadiafonts"                      } else { Write-Skip "Cascadia Code (disabled)"  }
 if ($cfg.Fonts.NerdFontsHack) { Install-Choco "Nerd Fonts (Hack)"        "nerdfont-hack"                      } else { Write-Skip "Nerd Fonts Hack (disabled)" }
 
 # =============================================================================
@@ -426,6 +550,98 @@ if (Get-Command code -ErrorAction SilentlyContinue) {
     Write-Warn "VS Code not found in PATH - extensions skipped."
     Write-Warn "Restart the terminal and run: powershell -ExecutionPolicy Bypass -File windows.ps1"
 }
+
+# =============================================================================
+# 15. SET POWERSHELL 7 AS DEFAULT TERMINAL
+# =============================================================================
+Write-Step "PowerShell 7 as default terminal"
+
+if ($cfg.Terminal.SetPowerShell7AsDefault) {
+
+    # --- Windows Terminal ---
+    $wtPaths = @(
+        "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
+        "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
+    )
+    $wtDone = $false
+    foreach ($wtPath in $wtPaths) {
+        if (-not (Test-Path $wtPath)) { continue }
+        try {
+            $wt  = Get-Content $wtPath -Raw | ConvertFrom-Json
+            $ps7 = $wt.profiles.list | Where-Object {
+                $_.source -eq "Windows.Terminal.PowershellCore"
+            } | Select-Object -First 1
+
+            if ($ps7 -and $ps7.guid) {
+                if ($wt.defaultProfile -ne $ps7.guid) {
+                    $wt.defaultProfile = $ps7.guid
+                    $wt | ConvertTo-Json -Depth 20 | Set-Content $wtPath -Encoding UTF8
+                    Write-OK "Windows Terminal default -> PowerShell 7"
+                } else {
+                    Write-Skip "Windows Terminal: PowerShell 7 already default"
+                }
+            } else {
+                Write-Warn "Windows Terminal: PS7 profile not found - open Terminal once after install, then rerun"
+            }
+            $wtDone = $true
+        } catch {
+            Write-Warn "Windows Terminal settings update failed: $_"
+            $wtDone = $true
+        }
+        break
+    }
+    if (-not $wtDone) {
+        Write-Warn "Windows Terminal settings.json not found - open it once after install, then rerun"
+    }
+
+    # --- VS Code ---
+    $vsSettingsPath = "$env:APPDATA\Code\User\settings.json"
+    $vsSettingsDir  = Split-Path $vsSettingsPath
+
+    if (-not (Test-Path $vsSettingsDir)) {
+        New-Item -ItemType Directory -Path $vsSettingsDir -Force | Out-Null
+    }
+
+    if (-not (Test-Path $vsSettingsPath)) {
+        '{ "terminal.integrated.defaultProfile.windows": "PowerShell" }' |
+            Set-Content $vsSettingsPath -Encoding UTF8
+        Write-OK "VS Code settings.json created, default terminal -> PowerShell 7"
+    } else {
+        try {
+            $vs = Get-Content $vsSettingsPath -Raw | ConvertFrom-Json
+            if ($vs.'terminal.integrated.defaultProfile.windows' -ne "PowerShell") {
+                $vs | Add-Member -NotePropertyName "terminal.integrated.defaultProfile.windows" `
+                                 -NotePropertyValue "PowerShell" -Force
+                $vs | ConvertTo-Json -Depth 20 | Set-Content $vsSettingsPath -Encoding UTF8
+                Write-OK "VS Code default terminal -> PowerShell 7"
+            } else {
+                Write-Skip "VS Code: PowerShell 7 already default terminal"
+            }
+        } catch {
+            Write-Warn "VS Code settings.json could not be parsed (JSONC?) - add manually:"
+            Write-Warn '  "terminal.integrated.defaultProfile.windows": "PowerShell"'
+        }
+    }
+
+} else {
+    Write-Skip "PowerShell 7 as default terminal (disabled in config)"
+}
+
+# =============================================================================
+# 16. UTILITIES
+# =============================================================================
+Write-Step "Utilities"
+
+if ($cfg.Utilities.SevenZip)  { Install-Pkg "7-Zip"     "7zip.7zip"                     } else { Write-Skip "7-Zip (disabled)"              }
+if ($cfg.Utilities.WinRAR)    { Install-Pkg "WinRAR"    "RARLab.WinRAR"                 } else { Write-Skip "WinRAR (disabled)"             }
+if ($cfg.Utilities.VLC)       { Install-Pkg "VLC"       "VideoLAN.VLC"                  } else { Write-Skip "VLC (disabled)"                }
+if ($cfg.Utilities.WinSCP)    { Install-Pkg "WinSCP"    "WinSCP.WinSCP"                 } else { Write-Skip "WinSCP (disabled)"             }
+if ($cfg.Utilities.PuTTY)     { Install-Pkg "PuTTY"     "PuTTY.PuTTY"                   } else { Write-Skip "PuTTY (disabled)"              }
+if ($cfg.Utilities.NotepadPP) { Install-Pkg "Notepad++" "Notepad++.Notepad++"           } else { Write-Skip "Notepad++ (disabled)"          }
+if ($cfg.Utilities.VCRedist) {
+    Install-Pkg "VC++ Redist x64" "Microsoft.VCRedist.2015+.x64"
+    Install-Pkg "VC++ Redist x86" "Microsoft.VCRedist.2015+.x86"
+} else { Write-Skip "VC++ Redistributables (disabled)" }
 
 # =============================================================================
 # GIT CONFIGURATION
