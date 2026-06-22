@@ -1,0 +1,87 @@
+# =============================================================================
+# git-repos.config.psd1 - Git repositories clone configuration
+#
+# Credentials are defined per Provider (matched by hostname).
+# Repositories reference a Provider by name.
+#
+# Authentication methods (choose one per provider):
+#   Token  = Personal Access Token (HTTPS)
+#   SSHKey = path to private key file (SSH)
+#
+# Each repository can optionally override:
+#   Dir    = destination folder name (default: repo name from URL)
+# =============================================================================
+@{
+
+    # -------------------------------------------------------------------------
+    # Base directory where all repositories will be cloned
+    # -------------------------------------------------------------------------
+    CloneBaseDir = "$HOME\projects"
+
+    # -------------------------------------------------------------------------
+    # Credential providers - matched by hostname
+    # Add as many as needed (company GitLab, self-hosted Gitea, etc.)
+    # -------------------------------------------------------------------------
+    Providers    = @{
+
+        GitHub = @{
+            Host  = "github.com"
+            Token = ""          # GitHub Personal Access Token (PAT)
+            # SSHKey = "$HOME\.ssh\id_rsa_github"
+        }
+
+        GitLab = @{
+            Host   = "gitlab.fpf.br"
+            # Token  = ""          # GitLab Personal Access Token
+            SSHKey = "$HOME\.ssh\id_rsa_gitlab"
+        }
+
+        # Example: self-hosted / company GitLab
+        # WorkGitLab = @{
+        #     Host   = "gitlab.mycompany.com"
+        #     Token  = ""
+        #     # SSHKey = "$HOME\.ssh\id_rsa_work"
+        # }
+
+    }
+
+    # -------------------------------------------------------------------------
+    # Repositories to clone
+    #
+    # Required:
+    #   Url      = full HTTPS or SSH repository URL
+    #   Provider = key from the Providers table above
+    #
+    # Optional:
+    #   Dir      = custom folder name inside CloneBaseDir
+    #   Branch   = branch to checkout after clone (default: repo default branch)
+    # -------------------------------------------------------------------------
+    Repositories = @(
+
+        # --- GitHub examples ---
+        # @{
+        #     Url      = "https://github.com/youruser/project-a"
+        #     Provider = "GitHub"
+        # }
+        # @{
+        #     Url      = "https://github.com/youruser/project-b"
+        #     Provider = "GitHub"
+        #     Dir      = "my-project-b"
+        #     Branch   = "develop"
+        # }
+
+        # --- GitLab examples ---
+        # @{
+        #     Url      = "https://gitlab.com/yourgroup/api-service"
+        #     Provider = "GitLab"
+        # }
+
+        # --- SSH example (provider must have SSHKey set) ---
+        # @{
+        #     Url      = "git@github.com:youruser/private-repo.git"
+        #     Provider = "GitHub"
+        # }
+
+    )
+
+}

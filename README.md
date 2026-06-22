@@ -82,6 +82,73 @@ Get-ExecutionPolicy -List
 
 ---
 
+## Configuration
+
+Before running any script, edit the two configuration files to match your environment.
+
+### windows.config.psd1
+
+Controls which tools are installed on Windows. Set each flag to `$true` (install) or `$false` (skip).
+
+Start by filling in your Git identity — this is applied automatically with `git config --global` at the end of `windows.ps1`:
+
+```powershell
+Git = @{
+    UserName  = "Your Name"
+    UserEmail = "your@email.com"
+}
+```
+
+Key sections to review before your first run:
+
+| Section | What to decide |
+|---|---|
+| `Editors` | VS Code, Cursor, JetBrains IDEs — enable only what you use |
+| `Runtimes` | Mise is recommended; disable `PyenvWin` / `NvmWindows` if using Mise |
+| `Database` | Enable only the database tools you actually need |
+| `Productivity` | Slack, Discord, Notion — opt-in only |
+
+### git-repos.config.psd1
+
+Controls which repositories are cloned automatically when you run `git-clone.ps1`. Edit credentials and repo list before running that script.
+
+**1. Set the base clone directory:**
+
+```powershell
+CloneBaseDir = "$HOME\projects"
+```
+
+**2. Configure a credential provider** (choose Token for HTTPS or SSHKey for SSH):
+
+```powershell
+Providers = @{
+    GitHub = @{
+        Host  = "github.com"
+        Token = "ghp_yourPersonalAccessToken"
+    }
+    GitLab = @{
+        Host   = "gitlab.mycompany.com"
+        SSHKey = "$HOME\.ssh\id_rsa_gitlab"
+    }
+}
+```
+
+**3. Add the repositories to clone:**
+
+```powershell
+Repositories = @(
+    @{ Url = "https://github.com/youruser/project-a"; Provider = "GitHub" }
+    @{
+        Url      = "git@gitlab.mycompany.com:group/project-b.git"
+        Provider = "GitLab"
+        Dir      = "project-b-custom-name"   # optional: override folder name
+        Branch   = "develop"                  # optional: checkout specific branch
+    }
+)
+```
+
+---
+
 ## Quick Start
 
 ### Step 1 — Install Windows tools
@@ -126,7 +193,16 @@ Open a new terminal, run `wsl -d ubuntu`, enter a username and password when pro
 
 On the second run, the script applies the configuration and automatically runs `provision.sh` inside WSL.
 
-### Step 3 — Final configuration
+### Step 3 — Clone repositories
+
+After restarting, configure `git-repos.config.psd1` (see [Configuration](#configuration)) and run:
+
+```powershell
+# PowerShell — clones all repositories listed in git-repos.config.psd1
+.\git-clone.ps1
+```
+
+### Step 4 — Final configuration
 
 ```bash
 # Inside WSL
@@ -250,6 +326,45 @@ Highlights:
 
 `provision.sh` automatically configures shared services at `~/providers/` inside WSL and creates a systemd service to start them automatically.
 
+### .env setup
+
+Before starting the services, copy the example file and adjust credentials:
+
+```bash
+# Inside WSL — ~/providers/ is created automatically by provision.sh
+cd ~/providers
+cp .env.example .env
+nano .env   # or use your preferred editor
+```
+
+The `.env` file controls all service credentials and ports:
+
+```ini
+# PostgreSQL
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres      # change before first start
+POSTGRES_PORT=5432
+
+# Redis
+REDIS_PORT=6379
+
+# pgAdmin — http://localhost:5050
+PGADMIN_EMAIL=admin@admin.com
+PGADMIN_PASSWORD=admin          # change before first start
+PGADMIN_PORT=5050
+
+# Portainer — http://localhost:9000
+PORTAINER_HTTP_PORT=9000
+PORTAINER_HTTPS_PORT=9443
+
+# Timezone
+TZ=America/Sao_Paulo
+```
+
+> **Note:** If `provision.sh` already started the services before you edited `.env`, run `pvdown && pvup` to restart with the new credentials.
+
+### Services
+
 | Service | URL / Port | Default credentials |
 |---|---|---|
 | PostgreSQL | `localhost:5432` | `postgres` / `postgres` |
@@ -257,7 +372,7 @@ Highlights:
 | pgAdmin | http://localhost:5050 | `admin@admin.com` / `admin` |
 | Portainer | http://localhost:9000 | (set on first access) |
 
-**Shell aliases available after provisioning:**
+### Shell aliases available after provisioning
 
 ```bash
 pvup        # docker compose up -d
@@ -266,8 +381,6 @@ pvlogs      # docker compose logs -f
 pvps        # docker compose ps
 pvrestart   # docker compose restart
 ```
-
-> Edit default passwords at `~/providers/.env` before starting services.
 
 ---
 

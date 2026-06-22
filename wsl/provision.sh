@@ -135,8 +135,6 @@ for RC in "$HOME/.zshrc" "$HOME/.bashrc"; do
     echo '' >> "$RC"
     echo '# mise - runtime version manager' >> "$RC"
     echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$RC"
-    echo '# Trust mise config files from the Windows host drive (avoids "not trusted" errors in WSL)' >> "$RC"
-    echo 'export MISE_TRUSTED_CONFIG_PATHS="/mnt/c"' >> "$RC"
     echo 'eval "$(mise activate bash)"' >> "$RC"
   fi
 done
@@ -282,6 +280,11 @@ if ! command -v gh &>/dev/null; then
   sudo apt-get update -qq && sudo apt-get install -y -qq gh
 fi
 
+# direnv
+if ! command -v direnv &>/dev/null; then
+  sudo apt-get install -y -qq direnv
+fi
+
 success "CLI tools installed"
 
 # -----------------------------------------------------------------------------
@@ -379,8 +382,8 @@ alias dkps='docker ps'
 alias dkpsa='docker ps -a'
 
 # Providers (PostgreSQL, Redis, pgAdmin, Portainer)
-alias pvup='docker compose -f ~/providers/docker-compose.yml up -d --remove-orphans'
-alias pvdown='docker compose -f ~/providers/docker-compose.yml down --remove-orphans'
+alias pvup='docker container prune -f 2>/dev/null; docker compose -f ~/providers/docker-compose.yml up -d --remove-orphans --force-recreate'
+alias pvdown='docker compose -f ~/providers/docker-compose.yml down --remove-orphans; docker container prune -f 2>/dev/null'
 alias pvlogs='docker compose -f ~/providers/docker-compose.yml logs -f'
 alias pvps='docker compose -f ~/providers/docker-compose.yml ps'
 alias pvrestart='docker compose -f ~/providers/docker-compose.yml restart'
@@ -393,7 +396,17 @@ eval "$(zoxide init zsh)"
 export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'
 export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 
+# direnv
+eval "$(direnv hook zsh)"
+
 EOF
+fi
+
+# direnv hook for bash
+if ! grep -q 'direnv hook bash' "$HOME/.bashrc" 2>/dev/null; then
+  echo '' >> "$HOME/.bashrc"
+  echo '# direnv' >> "$HOME/.bashrc"
+  echo 'eval "$(direnv hook bash)"' >> "$HOME/.bashrc"
 fi
 
 success ".zshrc configured"
@@ -433,12 +446,34 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./providers/postgres/init:/docker-entrypoint-initdb.d
+    # Performance tuning for local development (not suitable for production).
+    # shared_buffers:             PostgreSQL's main memory cache for data pages (~25% of available RAM).
+    # max_connections:            Max simultaneous client connections; each one pre-allocates memory.
+    # work_mem:                   Memory per sort/hash operation per query — low values spill to disk.
+    # maintenance_work_mem:       Memory for VACUUM, ANALYZE and CREATE INDEX operations.
+    # effective_cache_size:       Hints to the query planner how much OS-level cache is available;
+    #                             without this the planner underestimates and picks worse query plans.
+    # wal_buffers:                Write-Ahead Log buffer in shared memory; reduces WAL I/O under write load.
+    # synchronous_commit:         "off" = writes return immediately without waiting for WAL flush to disk.
+    #                             Biggest dev performance win — at most ~600ms of transactions lost on crash.
+    # checkpoint_completion_target: Spreads checkpoint I/O over this fraction of the checkpoint interval,
+    #                             avoiding I/O spikes that stall queries.
+    # random_page_cost:           Cost estimate for a random page read. Default (4.0) is tuned for spinning
+    #                             disks — set to 1.1 for SSD/Docker so the planner prefers index scans.
+    # effective_io_concurrency:   Number of concurrent I/O requests the disk can handle; 200 for SSD/Docker
+    #                             improves parallelism in bitmap index scans.
     command: >
       postgres
-        -c shared_buffers=256MB
-        -c max_connections=200
-        -c work_mem=4MB
-        -c maintenance_work_mem=64MB
+        -c shared_buffers=512MB
+        -c max_connections=100
+        -c work_mem=32MB
+        -c maintenance_work_mem=256MB
+        -c effective_cache_size=1536MB
+        -c wal_buffers=16MB
+        -c synchronous_commit=off
+        -c checkpoint_completion_target=0.9
+        -c random_page_cost=1.1
+        -c effective_io_concurrency=200
     networks:
       - shared-network
     healthcheck:
@@ -608,32 +643,39 @@ SQL_EOF
 JSON_EOF
 
   # systemd service for auto-starting providers with WSL
+  # Always overwrite so re-running provision.sh applies the latest configuration.
   PROVIDERS_SERVICE="/etc/systemd/system/providers.service"
-  if [ ! -f "$PROVIDERS_SERVICE" ]; then
-    sudo tee "$PROVIDERS_SERVICE" > /dev/null << EOF
+  sudo tee "$PROVIDERS_SERVICE" > /dev/null << EOF
 [Unit]
 Description=Dev Providers (PostgreSQL, Redis, pgAdmin, Portainer)
 Requires=docker.service
 After=docker.service network-online.target
+Wants=network-online.target
 
 [Service]
 Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=$PROVIDERS_DIR
+# Wait up to 60 s for the Docker daemon to be truly responsive, not just started.
+# WSL mirrored networking takes a moment to stabilise after boot; starting containers
+# before that causes broken port bindings that require manual cleanup.
+ExecStartPre=/bin/bash -c 'i=0; until docker info >/dev/null 2>&1; do i=\$((i+1)); [ \$i -ge 30 ] && exit 1; sleep 2; done'
 ExecStartPre=-/usr/bin/docker container prune -f
-ExecStart=/usr/bin/docker compose up -d --remove-orphans
+ExecStart=/usr/bin/docker compose up -d --remove-orphans --force-recreate
 ExecStop=/usr/bin/docker compose down --remove-orphans
-TimeoutStartSec=120
+ExecStopPost=-/usr/bin/docker container prune -f
+TimeoutStartSec=180
 User=$USER
 
 [Install]
 WantedBy=multi-user.target
 EOF
-    sudo systemctl daemon-reload
+  sudo systemctl daemon-reload
+  if ! systemctl is-enabled providers.service &>/dev/null; then
     sudo systemctl enable providers.service
     success "Providers service enabled - starts automatically with WSL"
   else
-    warn "Providers service already configured at $PROVIDERS_SERVICE"
+    success "Providers service updated"
   fi
 
   success "Providers configured at: $PROVIDERS_DIR"
