@@ -48,6 +48,7 @@ Installation and configuration guide for a development machine focused on Django
 ## VS Code - Essential Extensions
 
 ### Python / Django
+
 - `ms-python.python` - Python support
 - `ms-python.vscode-pylance` - Python language server
 - `ms-python.debugpy` - Python debugger
@@ -55,12 +56,14 @@ Installation and configuration guide for a development machine focused on Django
 - `formulahendry.auto-close-tag` - Automatic tag closing
 
 ### Angular / TypeScript
+
 - `Angular.ng-template` - Official Angular support
 - `ms-vscode.vscode-typescript-next` - TypeScript next
 - `dbaeumer.vscode-eslint` - Integrated ESLint
 - `esbenp.prettier-vscode` - Code formatting
 
 ### General
+
 - `eamodio.gitlens` - Advanced Git in editor
 - `mhutchie.git-graph` - Branch visualization
 - `ms-azuretools.vscode-docker` - Docker support
