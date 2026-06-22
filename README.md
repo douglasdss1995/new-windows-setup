@@ -277,6 +277,7 @@ Provisions the development environment inside Ubuntu.
 | Python | Latest version via mise + uv + poetry, black, ruff, mypy, pytest, ipython |
 | Node.js | LTS via mise + pnpm + Angular CLI, ESLint, Prettier |
 | CLI | ripgrep, fd, bat, eza, fzf, zoxide, delta, jq, yq, gh |
+| direnv | Per-directory environment variable loading (`.envrc` files) |
 | Docker | Native daemon (no Docker Desktop) + systemd enable (auto-start) |
 | Providers | PostgreSQL, Redis, pgAdmin, Portainer via compose at `~/providers/` |
 | Git | Configured with delta as pager |
@@ -386,7 +387,7 @@ pvrestart   # docker compose restart
 
 ## Tools
 
-See [`ferramentas.md`](./ferramentas.md) for the complete catalog with links and descriptions of all recommended tools.
+See [`docs/tools.md`](./docs/tools.md) for the full catalog, split into [Windows tools](./docs/tools-windows.md) and [WSL tools](./docs/tools-wsl.md).
 
 ---
 
