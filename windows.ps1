@@ -417,7 +417,7 @@ if ($cfg.Runtimes.Pnpm) {
 # =============================================================================
 Write-Step "Databases"
 
-if ($cfg.Database.PostgreSQL16)  { Install-Pkg "PostgreSQL 16"     "PostgreSQL.PostgreSQL.16"          } else { Write-Skip "PostgreSQL 16 (disabled)"   }
+if ($cfg.Database.PostgreSQL18)  { Install-Pkg "PostgreSQL 18"     "PostgreSQL.PostgreSQL.18"          } else { Write-Skip "PostgreSQL 18 (disabled)"   }
 if ($cfg.Database.DBeaver)       { Install-Pkg "DBeaver"           "dbeaver.dbeaver"                   } else { Write-Skip "DBeaver (disabled)"          }
 if ($cfg.Database.TablePlus)     { Install-Pkg "TablePlus"         "TablePlus.TablePlus"               } else { Write-Skip "TablePlus (disabled)"        }
 if ($cfg.Database.PgAdmin)       { Install-Pkg "pgAdmin 4"         "PostgreSQL.pgAdmin"                } else { Write-Skip "pgAdmin (disabled)"          }
@@ -506,6 +506,7 @@ Write-Step "Browsers"
 
 if ($cfg.Browsers.Chrome)     { Install-Pkg "Google Chrome"             "Google.Chrome"                     } else { Write-Skip "Chrome (disabled)"      }
 if ($cfg.Browsers.FirefoxDev) { Install-Pkg "Firefox Developer Edition" "Mozilla.Firefox.DeveloperEdition"  } else { Write-Skip "Firefox Dev (disabled)" }
+if ($cfg.Browsers.Opera)      { Install-Pkg "Opera"                    "Opera.Opera"                        } else { Write-Skip "Opera (disabled)"      }
 
 # =============================================================================
 # 13. FONTS
@@ -543,6 +544,7 @@ if (Get-Command code -ErrorAction SilentlyContinue) {
     if ($ext.GitGraph)         { Install-VSExt "mhutchie.git-graph"                     } else { Write-Skip "git-graph (disabled)"          }
     if ($ext.DockerExt)        { Install-VSExt "ms-azuretools.vscode-docker"            } else { Write-Skip "vscode-docker (disabled)"      }
     if ($ext.RemoteContainers) { Install-VSExt "ms-vscode-remote.remote-containers"     } else { Write-Skip "remote-containers (disabled)"  }
+    if ($ext.RemoteWSL)        { Install-VSExt "ms-vscode-remote.remote-wsl"            } else { Write-Skip "remote-wsl (disabled)"          }
     if ($ext.MaterialIcons)    { Install-VSExt "PKief.material-icon-theme"              } else { Write-Skip "material-icons (disabled)"      }
     if ($ext.IndentRainbow)    { Install-VSExt "oderwat.indent-rainbow"                 } else { Write-Skip "indent-rainbow (disabled)"      }
     if ($ext.SpellChecker)     { Install-VSExt "streetsidesoftware.code-spell-checker"  } else { Write-Skip "spell-checker (disabled)"       }
@@ -646,16 +648,44 @@ if ($cfg.Utilities.VCRedist) {
 # =============================================================================
 # GIT CONFIGURATION
 # =============================================================================
+Write-Step "Git Configuration"
+
+# --- Symlink the shared .gitconfig (repo root) to $HOME/.gitconfig ---------
+$repoGitConfig = Join-Path $PSScriptRoot ".gitconfig"
+$homeGitConfig = Join-Path $env:USERPROFILE ".gitconfig"
+
+if (Test-Path $repoGitConfig) {
+    $existing = Get-Item -Path $homeGitConfig -Force -ErrorAction SilentlyContinue
+    $isCorrectSymlink = $existing -and $existing.LinkType -eq "SymbolicLink" -and
+        ($existing.Target -contains $repoGitConfig)
+
+    if ($isCorrectSymlink) {
+        Write-Skip "$homeGitConfig already symlinked to repo .gitconfig"
+    } else {
+        if ($existing) {
+            $backupPath = "$homeGitConfig.bak"
+            Move-Item -Path $homeGitConfig -Destination $backupPath -Force
+            Write-Warn "Existing .gitconfig backed up to $backupPath"
+        }
+        New-Item -ItemType SymbolicLink -Path $homeGitConfig -Target $repoGitConfig -Force | Out-Null
+        Write-OK "$homeGitConfig -> $repoGitConfig"
+    }
+} else {
+    Write-Warn "Repo .gitconfig not found at $repoGitConfig - skipping symlink"
+}
+
+# --- Identity: written to the untracked ~/.gitconfig.local, never to the ---
+# --- tracked/symlinked .gitconfig above -------------------------------------
 if ($cfg.Git.UserName -ne "" -or $cfg.Git.UserEmail -ne "") {
-    Write-Step "Git Configuration"
+    $gitConfigLocal = Join-Path $env:USERPROFILE ".gitconfig.local"
 
     if (Get-Command git -ErrorAction SilentlyContinue) {
         if ($cfg.Git.UserName -ne "") {
-            git config --global user.name $cfg.Git.UserName
+            git config --file $gitConfigLocal user.name $cfg.Git.UserName
             Write-OK "git user.name = $($cfg.Git.UserName)"
         }
         if ($cfg.Git.UserEmail -ne "") {
-            git config --global user.email $cfg.Git.UserEmail
+            git config --file $gitConfigLocal user.email $cfg.Git.UserEmail
             Write-OK "git user.email = $($cfg.Git.UserEmail)"
         }
     } else {

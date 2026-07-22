@@ -3,4 +3,4 @@ wsl/providers/.env
 
 .claude/settings.local.json
 git-repos.config.psd1
-git-repos.config.psd1
+windows.config.psd1

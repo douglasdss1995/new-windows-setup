@@ -63,6 +63,7 @@ Tools installed on Windows via `windows.ps1` using winget and Chocolatey. All fl
 - `mhutchie.git-graph` — Branch visualization
 - `ms-azuretools.vscode-docker` — Docker support
 - `ms-vscode-remote.remote-containers` — Dev Containers
+- `ms-vscode-remote.remote-wsl` — Develop directly inside WSL
 - `PKief.material-icon-theme` — File icons
 - `oderwat.indent-rainbow` — Colored indentation
 - `streetsidesoftware.code-spell-checker` — Spell checker
@@ -103,7 +104,7 @@ Tools installed on Windows via `windows.ps1` using winget and Chocolatey. All fl
 | [TablePlus](https://tableplus.com/) | Modern database client GUI (paid after trial) |
 | [Redis Insight](https://redis.com/redis-enterprise/redis-insight/) | GUI for Redis |
 | [SQLite Browser](https://sqlitebrowser.org/) | Visual editor for SQLite |
-| [PostgreSQL 16](https://www.postgresql.org/) | Native PostgreSQL install (optional — providers in WSL cover most needs) |
+| [PostgreSQL 18](https://www.postgresql.org/) | Native PostgreSQL install (optional — providers in WSL cover most needs) |
 
 ---
 
@@ -184,6 +185,7 @@ Tools installed on Windows via `windows.ps1` using winget and Chocolatey. All fl
 |---|---|
 | [Chrome](https://www.google.com/chrome/) | Web development — DevTools |
 | [Firefox Developer Edition](https://www.mozilla.org/firefox/developer/) | Advanced dev tools and CSS Grid inspector |
+| [Opera](https://www.opera.com/) | Alternative browser — built-in VPN and ad blocker (disabled by default) |
 
 ---
 

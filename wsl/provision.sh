@@ -2,6 +2,10 @@
 # =============================================================================
 # provision.sh — WSL environment provisioning for Django + Angular dev
 # Usage: bash provision.sh [--skip-docker] [--skip-node] [--skip-python]
+#                          [--skip-postgres] [--skip-redis]
+#                          [--skip-pgadmin] [--skip-portainer]
+#                          [--repo-path=/mnt/x/path/to/new-windows-setup]
+#                          [--git-username="Your Name"] [--git-email=you@example.com]
 # =============================================================================
 
 set -euo pipefail
@@ -12,14 +16,38 @@ set -euo pipefail
 SKIP_DOCKER=false
 SKIP_NODE=false
 SKIP_PYTHON=false
+SKIP_POSTGRES=false
+SKIP_REDIS=false
+SKIP_PGADMIN=false
+SKIP_PORTAINER=false
+REPO_PATH=""
+GIT_USERNAME=""
+GIT_EMAIL=""
 
 for arg in "$@"; do
   case $arg in
-    --skip-docker) SKIP_DOCKER=true ;;
-    --skip-node)   SKIP_NODE=true ;;
-    --skip-python) SKIP_PYTHON=true ;;
+    --skip-docker)      SKIP_DOCKER=true ;;
+    --skip-node)        SKIP_NODE=true ;;
+    --skip-python)      SKIP_PYTHON=true ;;
+    --skip-postgres)    SKIP_POSTGRES=true ;;
+    --skip-redis)       SKIP_REDIS=true ;;
+    --skip-pgadmin)     SKIP_PGADMIN=true ;;
+    --skip-portainer)   SKIP_PORTAINER=true ;;
+    --repo-path=*)      REPO_PATH="${arg#*=}" ;;
+    --git-username=*)   GIT_USERNAME="${arg#*=}" ;;
+    --git-email=*)      GIT_EMAIL="${arg#*=}" ;;
   esac
 done
+
+# Fallback: if not passed explicitly (e.g. running this script standalone,
+# outside the setup-wsl.ps1 flow), auto-detect a sibling .gitconfig one
+# directory up (repo root), in case this script is run from a full clone.
+if [ -z "$REPO_PATH" ]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  if [ -f "$SCRIPT_DIR/../.gitconfig" ]; then
+    REPO_PATH="$(cd "$SCRIPT_DIR/.." && pwd)"
+  fi
+fi
 
 # -----------------------------------------------------------------------------
 # Helpers
@@ -311,23 +339,59 @@ fi
 # -----------------------------------------------------------------------------
 step "Configuring Git"
 
-# delta as git pager
-git config --global core.pager delta
-git config --global interactive.diffFilter "delta --color-only"
-git config --global delta.navigate true
-git config --global delta.light false
-git config --global delta.line-numbers true
-git config --global delta.side-by-side false
-git config --global merge.conflictstyle diff3
-git config --global diff.colorMoved default
+if [ -n "$REPO_PATH" ] && [ -f "$REPO_PATH/.gitconfig" ]; then
+  # Symlink the shared .gitconfig (repo root) to ~/.gitconfig, so Windows and
+  # WSL read the exact same file instead of maintaining two config blocks.
+  if [ -L "$HOME/.gitconfig" ] && [ "$(readlink -f "$HOME/.gitconfig")" = "$(readlink -f "$REPO_PATH/.gitconfig")" ]; then
+    info "~/.gitconfig already symlinked to repo .gitconfig"
+  else
+    if [ -e "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ]; then
+      mv "$HOME/.gitconfig" "$HOME/.gitconfig.bak"
+      warn "Existing ~/.gitconfig backed up to ~/.gitconfig.bak"
+    fi
+    ln -sf "$REPO_PATH/.gitconfig" "$HOME/.gitconfig"
+    success "~/.gitconfig -> $REPO_PATH/.gitconfig"
+  fi
 
-# General useful settings
-git config --global pull.rebase false
-git config --global init.defaultBranch main
-git config --global core.autocrlf input
-git config --global core.editor "code --wait"
+  # Identity: written to the untracked ~/.gitconfig.local, never to the
+  # tracked/symlinked .gitconfig above.
+  [ -n "$GIT_USERNAME" ] && git config --file "$HOME/.gitconfig.local" user.name "$GIT_USERNAME"
+  [ -n "$GIT_EMAIL" ]    && git config --file "$HOME/.gitconfig.local" user.email "$GIT_EMAIL"
 
-success "Git configured"
+  success "Git configured (shared .gitconfig)"
+else
+  # Fallback: shared .gitconfig not found (e.g. this script was run standalone,
+  # without going through setup-wsl.ps1) - apply the same defaults inline so
+  # the script never breaks outside that flow.
+  warn "Shared .gitconfig not found - applying defaults inline (pass --repo-path to use the repo's .gitconfig)"
+
+  git config --global core.pager delta
+  git config --global interactive.diffFilter "delta --color-only"
+  git config --global delta.navigate true
+  git config --global delta.light false
+  git config --global delta.line-numbers true
+  git config --global delta.side-by-side false
+  git config --global merge.conflictstyle diff3
+  git config --global merge.ff only
+  git config --global diff.colorMoved default
+  git config --global pull.rebase true
+  git config --global rebase.autoStash true
+  git config --global push.default current
+  git config --global push.autoSetupRemote true
+  git config --global init.defaultBranch main
+  git config --global core.autocrlf input
+  git config --global core.editor "code --wait"
+  git config --global fetch.prune true
+  git config --global rerere.enabled true
+  git config --global help.autocorrect 1
+  git config --global commit.verbose true
+  git config --global alias.pushf "push --force-with-lease"
+
+  [ -n "$GIT_USERNAME" ] && git config --global user.name "$GIT_USERNAME"
+  [ -n "$GIT_EMAIL" ]    && git config --global user.email "$GIT_EMAIL"
+
+  success "Git configured"
+fi
 
 # -----------------------------------------------------------------------------
 # 10. .zshrc - configuration and aliases
@@ -415,25 +479,46 @@ success ".zshrc configured"
 # 11. Providers (PostgreSQL, Redis, pgAdmin, Portainer)
 # -----------------------------------------------------------------------------
 if [ "$SKIP_DOCKER" = false ]; then
-  step "Configuring Providers (PostgreSQL, Redis, pgAdmin, Portainer)"
 
-  PROVIDERS_DIR="$HOME/providers"
-  mkdir -p "$PROVIDERS_DIR/providers/postgres/init"
-  mkdir -p "$PROVIDERS_DIR/providers/redis"
-  mkdir -p "$PROVIDERS_DIR/providers/pgadmin"
+  # pgAdmin requires PostgreSQL — auto-skip if postgres is disabled
+  if [ "$SKIP_PGADMIN" = false ] && [ "$SKIP_POSTGRES" = true ]; then
+    warn "pgAdmin requires PostgreSQL — skipping pgAdmin automatically"
+    SKIP_PGADMIN=true
+  fi
 
-  # docker-compose.yml
-  cat > "$PROVIDERS_DIR/docker-compose.yml" << 'COMPOSE_EOF'
+  # Build human-readable list of enabled providers for logging
+  ENABLED_PROVIDERS=""
+  [ "$SKIP_POSTGRES"  = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }PostgreSQL"
+  [ "$SKIP_REDIS"     = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }Redis"
+  [ "$SKIP_PGADMIN"   = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }pgAdmin"
+  [ "$SKIP_PORTAINER" = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }Portainer"
+
+  if [ -z "$ENABLED_PROVIDERS" ]; then
+    warn "All providers skipped — no compose file generated"
+  else
+    step "Configuring Providers ($ENABLED_PROVIDERS)"
+
+    PROVIDERS_DIR="$HOME/providers"
+    mkdir -p "$PROVIDERS_DIR/providers/postgres/init"
+    mkdir -p "$PROVIDERS_DIR/providers/redis"
+    mkdir -p "$PROVIDERS_DIR/providers/pgadmin"
+
+    # ── docker-compose.yml (built conditionally per enabled provider) ─────────
+    cat > "$PROVIDERS_DIR/docker-compose.yml" << 'COMPOSE_HEADER'
 # =============================================================================
 # docker-compose.yml - Providers (Shared Services)
-# Services: PostgreSQL, Redis, pgAdmin, Portainer
+# Generated by provision.sh — re-run with different flags to change services.
 # Usage: docker compose up -d
 # =============================================================================
 
 services:
+COMPOSE_HEADER
+
+    if [ "$SKIP_POSTGRES" = false ]; then
+      cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'POSTGRES_SVC'
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:18-alpine
     container_name: postgres
     restart: unless-stopped
     environment:
@@ -481,6 +566,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+POSTGRES_SVC
+    fi
+
+    if [ "$SKIP_REDIS" = false ]; then
+      cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'REDIS_SVC'
 
   redis:
     image: redis:7-alpine
@@ -499,6 +589,11 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+REDIS_SVC
+    fi
+
+    if [ "$SKIP_PGADMIN" = false ]; then
+      cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'PGADMIN_SVC'
 
   pgadmin:
     image: dpage/pgadmin4:latest
@@ -518,6 +613,11 @@ services:
         condition: service_healthy
     networks:
       - shared-network
+PGADMIN_SVC
+    fi
+
+    if [ "$SKIP_PORTAINER" = false ]; then
+      cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'PORTAINER_SVC'
 
   portainer:
     image: portainer/portainer-ce:latest
@@ -531,6 +631,10 @@ services:
       - portainer_data:/data
     networks:
       - shared-network
+PORTAINER_SVC
+    fi
+
+    cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'COMPOSE_FOOTER'
 
 networks:
   shared-network:
@@ -538,15 +642,16 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
-  redis_data:
-  pgadmin_data:
-  portainer_data:
-COMPOSE_EOF
+COMPOSE_FOOTER
 
-  # .env - only create if it doesn't exist (preserve customizations)
-  if [ ! -f "$PROVIDERS_DIR/.env" ]; then
-    cat > "$PROVIDERS_DIR/.env" << 'ENV_EOF'
+    [ "$SKIP_POSTGRES"  = false ] && echo "  postgres_data:"  >> "$PROVIDERS_DIR/docker-compose.yml"
+    [ "$SKIP_REDIS"     = false ] && echo "  redis_data:"     >> "$PROVIDERS_DIR/docker-compose.yml"
+    [ "$SKIP_PGADMIN"   = false ] && echo "  pgadmin_data:"   >> "$PROVIDERS_DIR/docker-compose.yml"
+    [ "$SKIP_PORTAINER" = false ] && echo "  portainer_data:" >> "$PROVIDERS_DIR/docker-compose.yml"
+
+    # ── .env (only create if not present — preserve customizations) ───────────
+    if [ ! -f "$PROVIDERS_DIR/.env" ]; then
+      cat > "$PROVIDERS_DIR/.env" << 'ENV_EOF'
 # =============================================================================
 # .env - Providers (Shared Services)
 # =============================================================================
@@ -572,13 +677,14 @@ PORTAINER_HTTPS_PORT=9443
 # Timezone
 TZ=America/Sao_Paulo
 ENV_EOF
-    warn ".env file created with default values - edit passwords at: $PROVIDERS_DIR/.env"
-  else
-    warn ".env already exists at $PROVIDERS_DIR/.env - kept unchanged"
-  fi
+      warn ".env file created with default values - edit passwords at: $PROVIDERS_DIR/.env"
+    else
+      warn ".env already exists at $PROVIDERS_DIR/.env - kept unchanged"
+    fi
 
-  # redis.conf
-  cat > "$PROVIDERS_DIR/providers/redis/redis.conf" << 'REDIS_EOF'
+    # ── redis.conf ────────────────────────────────────────────────────────────
+    if [ "$SKIP_REDIS" = false ]; then
+      cat > "$PROVIDERS_DIR/providers/redis/redis.conf" << 'REDIS_EOF'
 # ==============================================
 # Redis - Configuration
 # ==============================================
@@ -608,9 +714,11 @@ tcp-keepalive 300
 # Databases
 databases 16
 REDIS_EOF
+    fi
 
-  # postgres init
-  cat > "$PROVIDERS_DIR/providers/postgres/init/01-init-db.sql" << 'SQL_EOF'
+    # ── postgres init ─────────────────────────────────────────────────────────
+    if [ "$SKIP_POSTGRES" = false ]; then
+      cat > "$PROVIDERS_DIR/providers/postgres/init/01-init-db.sql" << 'SQL_EOF'
 -- =============================================================================
 -- 01-init-db.sql - PostgreSQL initialization
 -- =============================================================================
@@ -624,9 +732,11 @@ BEGIN
   RAISE NOTICE 'PostgreSQL initialized successfully!';
 END $$;
 SQL_EOF
+    fi
 
-  # pgadmin servers.json
-  cat > "$PROVIDERS_DIR/providers/pgadmin/servers.json" << 'JSON_EOF'
+    # ── pgadmin servers.json ──────────────────────────────────────────────────
+    if [ "$SKIP_PGADMIN" = false ]; then
+      cat > "$PROVIDERS_DIR/providers/pgadmin/servers.json" << 'JSON_EOF'
 {
     "Servers": {
         "1": {
@@ -641,13 +751,14 @@ SQL_EOF
     }
 }
 JSON_EOF
+    fi
 
-  # systemd service for auto-starting providers with WSL
-  # Always overwrite so re-running provision.sh applies the latest configuration.
-  PROVIDERS_SERVICE="/etc/systemd/system/providers.service"
-  sudo tee "$PROVIDERS_SERVICE" > /dev/null << EOF
+    # ── systemd service ───────────────────────────────────────────────────────
+    # Always overwrite so re-running provision.sh applies the latest configuration.
+    PROVIDERS_SERVICE="/etc/systemd/system/providers.service"
+    sudo tee "$PROVIDERS_SERVICE" > /dev/null << EOF
 [Unit]
-Description=Dev Providers (PostgreSQL, Redis, pgAdmin, Portainer)
+Description=Dev Providers ($ENABLED_PROVIDERS)
 Requires=docker.service
 After=docker.service network-online.target
 Wants=network-online.target
@@ -670,17 +781,18 @@ User=$USER
 [Install]
 WantedBy=multi-user.target
 EOF
-  sudo systemctl daemon-reload
-  if ! systemctl is-enabled providers.service &>/dev/null; then
-    sudo systemctl enable providers.service
-    success "Providers service enabled - starts automatically with WSL"
-  else
-    success "Providers service updated"
-  fi
+    sudo systemctl daemon-reload
+    if ! systemctl is-enabled providers.service &>/dev/null; then
+      sudo systemctl enable providers.service
+      success "Providers service enabled - starts automatically with WSL"
+    else
+      success "Providers service updated"
+    fi
 
-  success "Providers configured at: $PROVIDERS_DIR"
-  info "pgAdmin   -> http://localhost:5050  (admin@admin.com / admin)"
-  info "Portainer -> http://localhost:9000"
+    success "Providers configured at: $PROVIDERS_DIR ($ENABLED_PROVIDERS)"
+    [ "$SKIP_PGADMIN"   = false ] && info "pgAdmin   -> http://localhost:5050  (admin@admin.com / admin)"
+    [ "$SKIP_PORTAINER" = false ] && info "Portainer -> http://localhost:9000"
+  fi
 fi
 
 # -----------------------------------------------------------------------------
@@ -692,16 +804,22 @@ echo -e "${GREEN}  Provisioning complete!${NC}"
 echo -e "${GREEN}============================================${NC}"
 echo ""
 echo "Next steps:"
-echo "  1. Restart terminal or run: exec zsh"
-echo "  2. Configure Git: git config --global user.name 'Your Name'"
-echo "  3. Configure Git: git config --global user.email 'your@email.com'"
-echo "  4. Authenticate with GitHub: gh auth login"
+STEP=1
+echo "  $STEP. Restart terminal or run: exec zsh"; STEP=$((STEP + 1))
+if [ -z "$GIT_USERNAME" ] || [ -z "$GIT_EMAIL" ]; then
+  echo "  $STEP. Configure Git identity (or set Git.UserName/UserEmail in windows.config.psd1 and re-run setup-wsl.ps1):"; STEP=$((STEP + 1))
+  [ -z "$GIT_USERNAME" ] && echo "       git config --file ~/.gitconfig.local user.name 'Your Name'"
+  [ -z "$GIT_EMAIL" ]    && echo "       git config --file ~/.gitconfig.local user.email 'your@email.com'"
+fi
+echo "  $STEP. Authenticate with GitHub: gh auth login"; STEP=$((STEP + 1))
 if [ "$SKIP_DOCKER" = false ]; then
-  echo "  5. For Docker without sudo: restart WSL session (wsl --shutdown in PowerShell)"
-  echo "  6. Start providers:  pvup   (or: cd ~/providers && docker compose up -d)"
-  echo "     - pgAdmin:        http://localhost:5050  (admin@admin.com / admin)"
-  echo "     - Portainer:      http://localhost:9000"
-  echo "     - PostgreSQL:     localhost:5432"
-  echo "     - Redis:          localhost:6379"
+  echo "  $STEP. For Docker without sudo: restart WSL session (wsl --shutdown in PowerShell)"; STEP=$((STEP + 1))
+  if [ -n "${ENABLED_PROVIDERS:-}" ]; then
+    echo "  $STEP. Start providers:  pvup   (or: cd ~/providers && docker compose up -d)"; STEP=$((STEP + 1))
+    [ "$SKIP_POSTGRES"  = false ] && echo "     - PostgreSQL:     localhost:5432"
+    [ "$SKIP_REDIS"     = false ] && echo "     - Redis:          localhost:6379"
+    [ "$SKIP_PGADMIN"   = false ] && echo "     - pgAdmin:        http://localhost:5050  (admin@admin.com / admin)"
+    [ "$SKIP_PORTAINER" = false ] && echo "     - Portainer:      http://localhost:9000"
+  fi
 fi
 echo ""

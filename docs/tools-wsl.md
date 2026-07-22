@@ -145,6 +145,20 @@ Infrastructure services shared across all projects, managed at `~/providers/dock
 | pgAdmin | `dpage/pgadmin4` | 5050 | Web UI for PostgreSQL |
 | Portainer | `portainer/portainer-ce` | 9000 / 9443 | Web UI for managing containers |
 
+Each provider can be individually included or excluded via `--skip-*` flags when running `provision.sh`:
+
+```bash
+bash provision.sh --skip-postgres        # no PostgreSQL (also skips pgAdmin)
+bash provision.sh --skip-redis           # no Redis
+bash provision.sh --skip-pgadmin         # no pgAdmin
+bash provision.sh --skip-portainer       # no Portainer
+
+# Example: Docker + only Redis
+bash provision.sh --skip-postgres --skip-pgadmin --skip-portainer
+```
+
+Re-running with different flags regenerates `docker-compose.yml` and updates the systemd service.
+
 Credentials and ports are controlled by `~/providers/.env`. Copy `.env.example` and edit before first start:
 
 ```bash
