@@ -10,7 +10,7 @@
     # Git configuration (applied at the end with git config --global)
     # Leave empty "" to skip configuration
     # -------------------------------------------------------------------------
-    Git = @{
+    Git              = @{
         UserName  = ""
         UserEmail = ""
     }
@@ -19,54 +19,54 @@
     # Package Managers
     # Chocolatey and winget source update are always run (setup base)
     # -------------------------------------------------------------------------
-    PackageManagers = @{
+    PackageManagers  = @{
         Chocolatey = $true
     }
 
     # -------------------------------------------------------------------------
     # Terminal and Shell
     # -------------------------------------------------------------------------
-    Terminal = @{
-        WindowsTerminal        = $true
-        PowerShell7            = $true
+    Terminal         = @{
+        WindowsTerminal         = $true
+        PowerShell7             = $true
         SetPowerShell7AsDefault = $true   # set PS7 as default in Windows Terminal and VS Code
-        Git                    = $true
-        OhMyPosh               = $true
-        Starship               = $false   # alternative to OhMyPosh - pick one
-        Zoxide                 = $true
-        Fzf                    = $true
+        Git                     = $true
+        OhMyPosh                = $false
+        Starship                = $false   # alternative to OhMyPosh - pick one
+        Zoxide                  = $true
+        Fzf                     = $true
     }
 
     # -------------------------------------------------------------------------
     # Editors and IDEs
     # -------------------------------------------------------------------------
-    Editors = @{
-        VSCode            = $true
-        Cursor            = $true
+    Editors          = @{
+        VSCode              = $true
+        Cursor              = $false
         # JetBrains: install Toolbox first; IDEs install via Toolbox (API) with winget fallback
-        JetBrainsToolbox  = $false    # Toolbox manages installs, updates and licenses
-        PyCharm           = $false    # Community (free) - set PyCharmProfessional for paid license
-        PyCharmProfessional = $true # Professional requires active JetBrains license
-        WebStorm          = $true    # requires active JetBrains license
-        DataGrip          = $true   # database IDE - requires active JetBrains license
+        JetBrainsToolbox    = $true    # Toolbox manages installs, updates and licenses
+        PyCharm             = $false    # Community (free) - set PyCharmProfessional for paid license
+        PyCharmProfessional = $false # Professional requires active JetBrains license
+        WebStorm            = $false    # requires active JetBrains license
+        DataGrip            = $false   # database IDE - requires active JetBrains license
     }
 
     # -------------------------------------------------------------------------
     # Git and Version Control
     # -------------------------------------------------------------------------
-    GitTools = @{
-        GitHubCLI  = $true
-        GitKraken  = $true   # optional - visual client
-        Delta      = $false
+    GitTools         = @{
+        GitHubCLI = $false
+        GitKraken = $true
+        Delta     = $false
     }
 
     # -------------------------------------------------------------------------
     # Runtimes and Version Managers
     # -------------------------------------------------------------------------
-    Runtimes = @{
+    Runtimes         = @{
         Mise       = $true    # universal version manager (recommended)
         PyenvWin   = $true   # alternative to mise for Python
-        NvmWindows = $false   # alternative to mise for Node
+        NvmWindows = $true   # alternative to mise for Node
         Python313  = $false
         NodeLTS    = $false   # managed by mise - install via: mise use -g node@lts
         Java21     = $false
@@ -77,28 +77,28 @@
     # -------------------------------------------------------------------------
     # Databases
     # -------------------------------------------------------------------------
-    Database = @{
-        PostgreSQL16    = $false
-        DBeaver         = $true
-        TablePlus       = $false   # paid after trial
-        PgAdmin         = $true    # alternative to DBeaver for Postgres
-        RedisInsight    = $false
-        SQLiteBrowser   = $false
+    Database         = @{
+        PostgreSQL18  = $false
+        DBeaver       = $true
+        TablePlus     = $false   # paid after trial
+        PgAdmin       = $true    # alternative to DBeaver for Postgres
+        RedisInsight  = $false
+        SQLiteBrowser = $false
     }
 
     # -------------------------------------------------------------------------
     # API and HTTP Testing
     # -------------------------------------------------------------------------
-    API = @{
+    API              = @{
         Postman  = $true   # heavy - pick one HTTP client
         Insomnia = $false  # alternative to Postman
-        Bruno    = $false   # lightweight, open-source, file-based
+        Bruno    = $true   # lightweight, open-source, file-based
     }
 
     # -------------------------------------------------------------------------
     # CLI Utilities
     # -------------------------------------------------------------------------
-    CLI = @{
+    CLI              = @{
         Ripgrep = $true
         Fd      = $true
         Bat     = $true
@@ -116,53 +116,54 @@
     # -------------------------------------------------------------------------
     # Security and Authentication
     # -------------------------------------------------------------------------
-    Security = @{
-        Bitwarden   = $true
-        Gpg4win     = $true
-        OpenSSH     = $true
+    Security         = @{
+        Bitwarden = $false
+        Gpg4win   = $true
+        OpenSSH   = $true
     }
 
     # -------------------------------------------------------------------------
     # Productivity
     # -------------------------------------------------------------------------
-    Productivity = @{
-        Obsidian    = $true
-        Notion      = $false   # optional
-        Slack       = $false   # install if used at work
-        Discord     = $false   # install if used
-        ShareX      = $true
-        PowerToys   = $false
-        Everything  = $true
-        WizTree     = $true    # disk usage analyzer
-        AutoHotkey  = $false   # optional - keyboard automation
-        DrawIO      = $true    # diagram and flowchart editor (diagrams.net)
+    Productivity     = @{
+        Obsidian   = $true
+        Notion     = $false   # optional
+        Slack      = $false   # install if used at work
+        Discord    = $false   # install if used
+        ShareX     = $true
+        PowerToys  = $false
+        Everything = $true
+        WizTree    = $true    # disk usage analyzer
+        AutoHotkey = $false   # optional - keyboard automation
+        DrawIO     = $true    # diagram and flowchart editor (diagrams.net)
     }
 
     # -------------------------------------------------------------------------
     # Utilities
     # -------------------------------------------------------------------------
-    Utilities = @{
-        SevenZip   = $true    # archive manager (free, open-source)
-        WinRAR     = $false   # archive manager (trialware - pick one)
-        VLC        = $true    # media player
-        WinSCP     = $true    # SFTP/FTP client
-        PuTTY      = $true    # SSH/Telnet client
-        NotepadPP  = $true    # text editor
-        VCRedist   = $true    # Visual C++ Redistributables (2015-2022 x64 + x86)
+    Utilities        = @{
+        SevenZip  = $true    # archive manager (free, open-source)
+        WinRAR    = $true   # archive manager (trialware - pick one)
+        VLC       = $true    # media player
+        WinSCP    = $true    # SFTP/FTP client
+        PuTTY     = $true    # SSH/Telnet client
+        NotepadPP = $true    # text editor
+        VCRedist  = $true    # Visual C++ Redistributables (2015-2022 x64 + x86)
     }
 
     # -------------------------------------------------------------------------
     # Browsers
     # -------------------------------------------------------------------------
-    Browsers = @{
-        Chrome            = $true
-        FirefoxDev        = $true
+    Browsers         = @{
+        Chrome     = $true
+        FirefoxDev = $true
+        Opera      = $false
     }
 
     # -------------------------------------------------------------------------
     # Fonts
     # -------------------------------------------------------------------------
-    Fonts = @{
+    Fonts            = @{
         JetBrainsMono = $true
         FiraCode      = $true
         CascadiaCode  = $true
@@ -174,25 +175,26 @@
     # -------------------------------------------------------------------------
     VSCodeExtensions = @{
         # Python / Django
-        Python          = $true
-        Pylance         = $true
-        Debugpy         = $true
-        VscodeDjango    = $true
-        AutoCloseTag    = $true
+        Python           = $true
+        Pylance          = $true
+        Debugpy          = $true
+        VscodeDjango     = $true
+        AutoCloseTag     = $true
 
         # Angular / TypeScript
-        NgTemplate      = $true
-        TypeScriptNext  = $true
-        ESLint          = $true
-        Prettier        = $true
+        NgTemplate       = $true
+        TypeScriptNext   = $true
+        ESLint           = $true
+        Prettier         = $true
 
         # General
-        GitLens         = $true
-        GitGraph        = $true
-        DockerExt       = $true
+        GitLens          = $true
+        GitGraph         = $true
+        DockerExt        = $true
         RemoteContainers = $true
-        MaterialIcons   = $true
-        IndentRainbow   = $true
-        SpellChecker    = $true
+        RemoteWSL        = $true
+        MaterialIcons    = $true
+        IndentRainbow    = $true
+        SpellChecker     = $true
     }
 }

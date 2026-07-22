@@ -10,7 +10,10 @@ Automation for setting up a Windows development machine from scratch, focused on
 new-windows-setup/
 ├── ferramentas.md              # Complete catalog of recommended tools
 ├── windows.ps1                 # Installs all tools on Windows via winget/choco
-├── windows.config.psd1         # Configuration file (enable/disable tools)
+├── windows.config.psd1.example # Configuration template (copy to windows.config.psd1)
+├── windows.config.psd1         # Your local configuration (gitignored, created by you)
+├── git-repos.config.psd1.example # Repo-clone config template (copy to git-repos.config.psd1)
+├── .gitconfig                  # Shared Git config, symlinked to $HOME/.gitconfig (Windows + WSL)
 └── wsl/
     ├── setup-wsl.ps1           # Enables and configures WSL 2 + Ubuntu
     ├── .wslconfig              # Global WSL configuration (memory, CPU, network)
@@ -48,34 +51,41 @@ By default Windows blocks `.ps1` script execution. If you see this error:
 Choose **one** of the options below:
 
 ### Option A — Current session only (safer, no permanent effect)
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\windows.ps1
 ```
+
 > Use this if you don't want to change the machine policy.
 
 ### Option B — Current user only (recommended for devs, permanent)
+
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
+
 > No Admin required. Local scripts run freely; downloaded scripts need a digital signature. **Recommended.**
 
 ### Option C — Entire machine (requires Admin)
+
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope LocalMachine
 ```
+
 > Applies to all users on the machine.
 
 ### Check current policy
+
 ```powershell
 Get-ExecutionPolicy -List
 ```
 
-| Policy | Description |
-|---|---|
-| `Restricted` | No scripts can run (Windows default) |
-| `AllSigned` | Only digitally signed scripts |
-| `RemoteSigned` | Local scripts free; downloaded need signature |
-| `Bypass` | Everything runs without restriction |
+| Policy         | Description                                               |
+| -------------- | --------------------------------------------------------- |
+| `Restricted`   | No scripts can run (Windows default)                      |
+| `AllSigned`    | Only digitally signed scripts                             |
+| `RemoteSigned` | Local scripts free; downloaded need signature             |
+| `Bypass`       | Everything runs without restriction                       |
 | `Unrestricted` | Everything runs, but shows warning for downloaded scripts |
 
 > **Note:** `windows.ps1` automatically detects `Restricted` or `AllSigned` policy and adjusts to `RemoteSigned` at `CurrentUser` scope before continuing — but it needs to be called first with **Option A** or via PowerShell as Admin.
@@ -84,13 +94,18 @@ Get-ExecutionPolicy -List
 
 ## Configuration
 
-Before running any script, edit the two configuration files to match your environment.
+Both config files below are **gitignored** — only the `.example` templates are versioned. Before running any script, copy each template and fill it in:
+
+```powershell
+Copy-Item windows.config.psd1.example windows.config.psd1
+Copy-Item git-repos.config.psd1.example git-repos.config.psd1
+```
 
 ### windows.config.psd1
 
 Controls which tools are installed on Windows. Set each flag to `$true` (install) or `$false` (skip).
 
-Start by filling in your Git identity — this is applied automatically with `git config --global` at the end of `windows.ps1`:
+Start by filling in your Git identity. This is the **single source of truth** for your Git identity — `windows.ps1` applies it on Windows, and `setup-wsl.ps1` reads the same file and passes it through to `provision.sh` so it's applied inside WSL too (see [.gitconfig](#gitconfig)):
 
 ```powershell
 Git = @{
@@ -101,12 +116,12 @@ Git = @{
 
 Key sections to review before your first run:
 
-| Section | What to decide |
-|---|---|
-| `Editors` | VS Code, Cursor, JetBrains IDEs — enable only what you use |
-| `Runtimes` | Mise is recommended; disable `PyenvWin` / `NvmWindows` if using Mise |
-| `Database` | Enable only the database tools you actually need |
-| `Productivity` | Slack, Discord, Notion — opt-in only |
+| Section        | What to decide                                                       |
+| -------------- | -------------------------------------------------------------------- |
+| `Editors`      | VS Code, Cursor, JetBrains IDEs — enable only what you use           |
+| `Runtimes`     | Mise is recommended; disable `PyenvWin` / `NvmWindows` if using Mise |
+| `Database`     | Enable only the database tools you actually need                     |
+| `Productivity` | Slack, Discord, Notion — opt-in only                                 |
 
 ### git-repos.config.psd1
 
@@ -204,10 +219,10 @@ After restarting, configure `git-repos.config.psd1` (see [Configuration](#config
 
 ### Step 4 — Final configuration
 
+Git identity and the shared `.gitconfig` were already applied automatically in Step 2 (from `windows.config.psd1`, see [.gitconfig](#gitconfig)). All that's left:
+
 ```bash
 # Inside WSL
-git config --global user.name "Your Name"
-git config --global user.email "your@email.com"
 gh auth login
 ```
 
@@ -217,20 +232,20 @@ gh auth login
 
 Installs all tools listed in `ferramentas.md` using **winget** (primary) and **Chocolatey** (complement).
 
-| Category | Examples |
-|---|---|
-| Terminal | Windows Terminal, PowerShell 7, Git Bash, Oh My Posh, Starship |
-| Editors | VS Code, Cursor, PyCharm Community, WebStorm |
-| Runtimes | mise, pyenv-win, nvm, Python, Node LTS, JDK 21, uv, pnpm |
-| Databases | PostgreSQL, DBeaver, TablePlus, pgAdmin, Redis Insight |
-| Docker | Docker Engine in WSL (via `provision.sh`) + providers compose |
-| API | Postman, Insomnia, Bruno |
-| CLI | ripgrep, fd, bat, eza, fzf, zoxide, jq, delta, just |
-| Security | Bitwarden, Gpg4win, OpenSSH |
-| Productivity | PowerToys, Obsidian, ShareX, Everything, AutoHotkey |
-| Browsers | Chrome, Firefox Developer Edition |
-| Fonts | JetBrains Mono Nerd, Fira Code, Cascadia Code |
-| VS Code | 17 extensions for Python/Django, Angular/TS and general utilities |
+| Category     | Examples                                                          |
+| ------------ | ----------------------------------------------------------------- |
+| Terminal     | Windows Terminal, PowerShell 7, Git Bash, Oh My Posh, Starship    |
+| Editors      | VS Code, Cursor, PyCharm Community, WebStorm                      |
+| Runtimes     | mise, pyenv-win, nvm, Python, Node LTS, JDK 21, uv, pnpm          |
+| Databases    | PostgreSQL, DBeaver, TablePlus, pgAdmin, Redis Insight            |
+| Docker       | Docker Engine in WSL (via `provision.sh`) + providers compose     |
+| API          | Postman, Insomnia, Bruno                                          |
+| CLI          | ripgrep, fd, bat, eza, fzf, zoxide, jq, delta, just               |
+| Security     | Bitwarden, Gpg4win, OpenSSH                                       |
+| Productivity | PowerToys, Obsidian, ShareX, Everything, AutoHotkey               |
+| Browsers     | Chrome, Firefox Developer Edition, Opera (opt-in)                 |
+| Fonts        | JetBrains Mono Nerd, Fira Code, Cascadia Code                     |
+| VS Code      | 18 extensions for Python/Django, Angular/TS and general utilities |
 
 ---
 
@@ -241,6 +256,7 @@ Installs all tools listed in `ferramentas.md` using **winget** (primary) and **C
 Orchestrates the complete WSL 2 installation and configuration.
 
 **What it does:**
+
 1. Enables `WSL` and `VirtualMachinePlatform` Windows features
 2. Updates the WSL kernel
 3. Sets WSL 2 as default
@@ -269,28 +285,58 @@ Provisions the development environment inside Ubuntu.
 
 **What it installs:**
 
-| Step | Content |
-|---|---|
-| System | Build dependencies, curl, wget, make |
-| Shell | Zsh, Oh My Zsh, plugins (autosuggestions, syntax-highlighting, completions) |
-| mise | Universal runtime manager |
-| Python | Latest version via mise + uv + poetry, black, ruff, mypy, pytest, ipython |
-| Node.js | LTS via mise + pnpm + Angular CLI, ESLint, Prettier |
-| CLI | ripgrep, fd, bat, eza, fzf, zoxide, delta, jq, yq, gh |
-| direnv | Per-directory environment variable loading (`.envrc` files) |
-| Docker | Native daemon (no Docker Desktop) + systemd enable (auto-start) |
-| Providers | PostgreSQL, Redis, pgAdmin, Portainer via compose at `~/providers/` |
-| Git | Configured with delta as pager |
+| Step         | Content                                                                                |
+| ------------ | -------------------------------------------------------------------------------------- |
+| System       | Build dependencies, curl, wget, make                                                   |
+| Shell        | Zsh, Oh My Zsh, plugins (autosuggestions, syntax-highlighting, completions)            |
+| mise         | Universal runtime manager                                                              |
+| Python       | Latest version via mise + uv + poetry, black, ruff, mypy, pytest, ipython              |
+| Node.js      | LTS via mise + pnpm + Angular CLI, ESLint, Prettier                                    |
+| CLI          | ripgrep, fd, bat, eza, fzf, zoxide, delta, jq, yq, gh                                  |
+| direnv       | Per-directory environment variable loading (`.envrc` files)                            |
+| Docker       | Native daemon (no Docker Desktop) + systemd enable (auto-start)                        |
+| Providers    | PostgreSQL, Redis, pgAdmin, Portainer via compose at `~/providers/`                    |
+| Git          | Shared `.gitconfig` symlinked from the repo (see [.gitconfig](#gitconfig))             |
 | Shell config | `.zshrc` with aliases for Django, Git, Docker, Python, Providers (`pvup`, `pvdown`...) |
 
 **Flags:**
 
 ```bash
-bash provision.sh                  # everything
-bash provision.sh --skip-docker    # without Docker
-bash provision.sh --skip-python    # without Python
-bash provision.sh --skip-node      # without Node
+bash provision.sh                        # everything
+bash provision.sh --skip-docker          # without Docker (also skips all providers)
+bash provision.sh --skip-python          # without Python
+bash provision.sh --skip-node            # without Node
+
+# Individual provider flags (requires Docker)
+bash provision.sh --skip-postgres        # without PostgreSQL (also skips pgAdmin)
+bash provision.sh --skip-redis           # without Redis
+bash provision.sh --skip-pgadmin         # without pgAdmin
+bash provision.sh --skip-portainer       # without Portainer
 ```
+
+Flags can be combined freely:
+
+```bash
+# Docker + only Redis (no Postgres, pgAdmin or Portainer)
+bash provision.sh --skip-postgres --skip-pgadmin --skip-portainer
+
+# Everything except Docker and its providers
+bash provision.sh --skip-docker
+```
+
+> Re-running `provision.sh` with different flags regenerates the `docker-compose.yml` and updates the systemd service. The `.env` file is **never overwritten** — existing credentials are preserved.
+
+---
+
+## .gitconfig
+
+Shared Git configuration, tracked at the repo root and symlinked to `$HOME/.gitconfig` on **both** Windows (by `windows.ps1`) and WSL (by `provision.sh`, via `setup-wsl.ps1` passing `--repo-path`). Editing this one file changes Git behavior identically in both environments — no need to update two config blocks.
+
+It only holds shared defaults (delta as pager, linear-history rebase workflow, merge/diff behavior, aliases) — **never** personal identity. `user.name`/`user.email` are written to a separate, untracked `~/.gitconfig.local`, which `.gitconfig` includes automatically. That file is populated from `windows.config.psd1`'s `Git` block (see [Configuration](#configuration)), so filling in your identity once applies it on both OSes.
+
+If `~/.gitconfig` already exists as a regular file when the scripts run, it's backed up to `~/.gitconfig.bak` before the symlink is created.
+
+Running `provision.sh` standalone (without `setup-wsl.ps1`, e.g. `bash provision.sh` inside an already-provisioned WSL) falls back to applying the same settings inline via `git config --global`, since there's no repo path to symlink to in that case.
 
 ---
 
@@ -316,6 +362,7 @@ autoMemoryReclaim=gradual # returns RAM to Windows when idle
 Internal distro configuration, applied at `/etc/wsl.conf`.
 
 Highlights:
+
 - `systemd=true` — required for native Docker and services
 - Windows drive mounting with correct permissions (`metadata,uid=1000`)
 - `hostname=dev-wsl`
@@ -366,12 +413,12 @@ TZ=America/Sao_Paulo
 
 ### Services
 
-| Service | URL / Port | Default credentials |
-|---|---|---|
-| PostgreSQL | `localhost:5432` | `postgres` / `postgres` |
-| Redis | `localhost:6379` | — |
-| pgAdmin | http://localhost:5050 | `admin@admin.com` / `admin` |
-| Portainer | http://localhost:9000 | (set on first access) |
+| Service    | URL / Port            | Default credentials         |
+| ---------- | --------------------- | --------------------------- |
+| PostgreSQL | `localhost:5432`      | `postgres` / `postgres`     |
+| Redis      | `localhost:6379`      | —                           |
+| pgAdmin    | http://localhost:5050 | `admin@admin.com` / `admin` |
+| Portainer  | http://localhost:9000 | (set on first access)       |
 
 ### Shell aliases available after provisioning
 

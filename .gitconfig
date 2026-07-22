@@ -1,0 +1,65 @@
+# =============================================================================
+# .gitconfig - Shared Git configuration (Windows + WSL)
+#
+# Symlinked to $HOME/.gitconfig by windows.ps1 (Windows) and provision.sh
+# (WSL) so both environments read the exact same file. Personal identity
+# (user.name / user.email) is NEVER written here - it lives in the untracked
+# ~/.gitconfig.local, included below, so this tracked file never picks up
+# personal data as a side effect of running the setup scripts.
+# =============================================================================
+
+[include]
+    path = ~/.gitconfig.local
+
+[core]
+    autocrlf = input
+    editor = code --wait
+    pager = delta
+
+[interactive]
+    diffFilter = delta --color-only
+
+[delta]
+    navigate = true
+    light = false
+    line-numbers = true
+    side-by-side = false
+
+[merge]
+    conflictstyle = diff3
+    ff = only
+
+[diff]
+    colorMoved = default
+
+[pull]
+    rebase = true
+
+[rebase]
+    autoStash = true
+
+[push]
+    default = current
+    autoSetupRemote = true
+
+[init]
+    defaultBranch = main
+
+[fetch]
+    prune = true
+
+[rerere]
+    enabled = true
+
+[help]
+    autocorrect = 1
+
+[commit]
+    verbose = true
+
+[alias]
+    st = status -sb
+    co = checkout
+    br = branch
+    lg = log --graph --oneline --decorate --all
+    pushf = push --force-with-lease

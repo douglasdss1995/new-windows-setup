@@ -30,12 +30,6 @@
             # SSHKey = "$HOME\.ssh\id_rsa_github"
         }
 
-        GitLab = @{
-            Host   = "gitlab.fpf.br"
-            # Token  = ""          # GitLab Personal Access Token
-            SSHKey = "$HOME\.ssh\id_rsa_gitlab"
-        }
-
         # Example: self-hosted / company GitLab
         # WorkGitLab = @{
         #     Host   = "gitlab.mycompany.com"

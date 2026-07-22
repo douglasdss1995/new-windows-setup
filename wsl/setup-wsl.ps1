@@ -202,8 +202,37 @@ if (-not $SkipProvision) {
     $provisionContent = (Get-Content $provisionSrc -Raw) -replace "`r`n", "`n" -replace "`r", "`n"
     $provisionContent | wsl -d $Distro -- bash -c "cat > ~/provision.sh && chmod +x ~/provision.sh"
 
+    # -------------------------------------------------------------------------
+    # Resolve the repo root's WSL mount path, so provision.sh can symlink the
+    # shared .gitconfig (repo root) straight into ~/.gitconfig instead of
+    # keeping a separate copy of the same settings.
+    # -------------------------------------------------------------------------
+    $repoRoot    = Split-Path $PSScriptRoot -Parent
+    $repoPathWsl = (wsl -d $Distro -- wslpath -a $repoRoot).Trim()
+
+    # -------------------------------------------------------------------------
+    # Git identity comes from windows.config.psd1 (single source of truth) so
+    # it's applied automatically on the WSL side too, not just on Windows.
+    # -------------------------------------------------------------------------
+    $gitUserName  = ""
+    $gitUserEmail = ""
+    $winConfigPath = Join-Path $repoRoot "windows.config.psd1"
+    if (Test-Path $winConfigPath) {
+        $winCfg = Import-PowerShellDataFile -Path $winConfigPath
+        if ($winCfg.Git) {
+            $gitUserName  = $winCfg.Git.UserName
+            $gitUserEmail = $winCfg.Git.UserEmail
+        }
+    } else {
+        Write-Warn "windows.config.psd1 not found at $winConfigPath - Git identity won't be passed to WSL"
+    }
+
+    $provisionArgs = "--repo-path=`"$repoPathWsl`""
+    if ($gitUserName)  { $provisionArgs += " --git-username=`"$gitUserName`"" }
+    if ($gitUserEmail) { $provisionArgs += " --git-email=`"$gitUserEmail`"" }
+
     # Run from the Linux home directory
-    wsl -d $Distro -- bash -c "bash ~/provision.sh"
+    wsl -d $Distro -- bash -c "bash ~/provision.sh $provisionArgs"
 
     Write-OK "provision.sh executed successfully"
 
