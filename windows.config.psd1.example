@@ -31,7 +31,8 @@
         PowerShell7             = $true
         SetPowerShell7AsDefault = $true   # set PS7 as default in Windows Terminal and VS Code
         Git                     = $true
-        OhMyPosh                = $false
+        OhMyPosh                = $true
+        OhMyPoshTheme           = "amro.omp.json"   # file in themes/, edit it or swap this to customize
         Starship                = $false   # alternative to OhMyPosh - pick one
         Zoxide                  = $true
         Fzf                     = $true

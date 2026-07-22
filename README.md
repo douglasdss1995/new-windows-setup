@@ -14,6 +14,8 @@ new-windows-setup/
 ├── windows.config.psd1         # Your local configuration (gitignored, created by you)
 ├── git-repos.config.psd1.example # Repo-clone config template (copy to git-repos.config.psd1)
 ├── .gitconfig                  # Shared Git config, symlinked to $HOME/.gitconfig (Windows + WSL)
+├── themes/
+│   └── amro.omp.json           # Oh My Posh prompt theme (default) - edit to customize
 └── wsl/
     ├── setup-wsl.ps1           # Enables and configures WSL 2 + Ubuntu
     ├── .wslconfig              # Global WSL configuration (memory, CPU, network)
@@ -235,6 +237,8 @@ Installs all tools listed in `ferramentas.md` using **winget** (primary) and **C
 | Category     | Examples                                                          |
 | ------------ | ----------------------------------------------------------------- |
 | Terminal     | Windows Terminal, PowerShell 7, Git Bash, Oh My Posh, Starship    |
+
+> Oh My Posh is enabled by default and activated automatically in your PowerShell profile using the `amro` theme (`themes/amro.omp.json`). To customize, edit that file directly, or add another `*.omp.json` file to `themes/` and point `Terminal.OhMyPoshTheme` at it in `windows.config.psd1`.
 | Editors      | VS Code, Cursor, PyCharm Community, WebStorm                      |
 | Runtimes     | mise, pyenv-win, nvm, Python, Node LTS, JDK 21, uv, pnpm          |
 | Databases    | PostgreSQL, DBeaver, TablePlus, pgAdmin, Redis Insight            |
