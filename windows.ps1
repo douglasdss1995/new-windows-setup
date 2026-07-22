@@ -28,6 +28,13 @@ $script:Skipped   = 0
 $script:Failed    = 0
 $script:FailList  = @()
 
+# PowerShell 7's "all hosts" profile, hardcoded rather than read from $PROFILE.
+# windows.ps1 is commonly launched from elevated Windows PowerShell 5.1, whose
+# $PROFILE.CurrentUserAllHosts points at Documents\WindowsPowerShell\profile.ps1
+# instead of pwsh's Documents\PowerShell\profile.ps1 - activation lines written
+# there would silently never load in the PS7 shell you actually use day to day.
+$script:Ps7ProfilePath = Join-Path $env:USERPROFILE "Documents\PowerShell\profile.ps1"
+
 # -----------------------------------------------------------------------------
 # Load configuration
 # -----------------------------------------------------------------------------
@@ -287,6 +294,31 @@ if ($cfg.Terminal.Starship)        { Install-Pkg "Starship"          "Starship.S
 if ($cfg.Terminal.Zoxide)          { Install-Pkg "zoxide"            "ajeetdsouza.zoxide"         } else { Write-Skip "zoxide (disabled)"       }
 if ($cfg.Terminal.Fzf)             { Install-Pkg "fzf"               "junegunn.fzf"               } else { Write-Skip "fzf (disabled)"         }
 
+if ($cfg.Terminal.OhMyPosh) {
+    # Activate Oh My Posh in the PowerShell profile, pointing at the theme file
+    # kept in themes/ so it can be customized without touching this script.
+    $themeFile = Join-Path $PSScriptRoot "themes\$($cfg.Terminal.OhMyPoshTheme)"
+
+    if (Test-Path $themeFile) {
+        $ompLine     = "oh-my-posh init pwsh --config '$themeFile' | Invoke-Expression"
+        $profilePath = $script:Ps7ProfilePath
+
+        if (-not (Test-Path $profilePath)) {
+            New-Item -ItemType File -Path $profilePath -Force | Out-Null
+        }
+
+        $profileContent = Get-Content $profilePath -Raw -ErrorAction SilentlyContinue
+        if ($profileContent -notmatch [regex]::Escape($ompLine)) {
+            Add-Content -Path $profilePath -Value "`n# Oh My Posh - prompt theme activation`n$ompLine"
+            Write-OK "Oh My Posh activation added to PowerShell profile ($profilePath)"
+        } else {
+            Write-Skip "Oh My Posh activation already in PowerShell profile"
+        }
+    } else {
+        Write-Warn "Oh My Posh theme not found at $themeFile - skipping profile activation"
+    }
+}
+
 # =============================================================================
 # 3. EDITORS AND IDEs
 # =============================================================================
@@ -331,7 +363,7 @@ if ($cfg.Runtimes.Mise) {
     # automatically and `mise use` works per-directory without manually adding
     # %LOCALAPPDATA%\mise\shims to PATH.
     $miseLine = 'mise activate pwsh | Out-String | Invoke-Expression'
-    $profilePath = $PROFILE.CurrentUserAllHosts   # %USERPROFILE%\Documents\PowerShell\profile.ps1
+    $profilePath = $script:Ps7ProfilePath
 
     if (-not (Test-Path $profilePath)) {
         New-Item -ItemType File -Path $profilePath -Force | Out-Null
