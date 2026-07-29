@@ -3,7 +3,7 @@
 # provision.sh — WSL environment provisioning for Django + Angular dev
 # Usage: bash provision.sh [--skip-docker] [--skip-node] [--skip-python]
 #                          [--skip-postgres] [--skip-redis]
-#                          [--skip-pgadmin] [--skip-portainer]
+#                          [--skip-pgadmin] [--skip-minio] [--skip-portainer]
 #                          [--repo-path=/mnt/x/path/to/new-windows-setup]
 #                          [--git-username="Your Name"] [--git-email=you@example.com]
 # =============================================================================
@@ -20,6 +20,7 @@ SKIP_POSTGRES=false
 SKIP_REDIS=false
 SKIP_PGADMIN=false
 SKIP_PORTAINER=false
+SKIP_MINIO=false
 REPO_PATH=""
 GIT_USERNAME=""
 GIT_EMAIL=""
@@ -33,6 +34,7 @@ for arg in "$@"; do
     --skip-redis)       SKIP_REDIS=true ;;
     --skip-pgadmin)     SKIP_PGADMIN=true ;;
     --skip-portainer)   SKIP_PORTAINER=true ;;
+    --skip-minio)       SKIP_MINIO=true ;;
     --repo-path=*)      REPO_PATH="${arg#*=}" ;;
     --git-username=*)   GIT_USERNAME="${arg#*=}" ;;
     --git-email=*)      GIT_EMAIL="${arg#*=}" ;;
@@ -358,6 +360,13 @@ if [ -n "$REPO_PATH" ] && [ -f "$REPO_PATH/.gitconfig" ]; then
   [ -n "$GIT_USERNAME" ] && git config --file "$HOME/.gitconfig.local" user.name "$GIT_USERNAME"
   [ -n "$GIT_EMAIL" ]    && git config --file "$HOME/.gitconfig.local" user.email "$GIT_EMAIL"
 
+  # Use Windows Git Credential Manager if available (for password-less auth)
+  GCM_PATH="/mnt/c/Program Files/Git/mingw64/libexec/git-core/git-credential-manager.exe"
+  if [ -f "$GCM_PATH" ]; then
+    git config --file "$HOME/.gitconfig.local" credential.helper "$GCM_PATH"
+    info "Git Credential Manager (Windows) configured"
+  fi
+
   success "Git configured (shared .gitconfig)"
 else
   # Fallback: shared .gitconfig not found (e.g. this script was run standalone,
@@ -389,6 +398,13 @@ else
 
   [ -n "$GIT_USERNAME" ] && git config --global user.name "$GIT_USERNAME"
   [ -n "$GIT_EMAIL" ]    && git config --global user.email "$GIT_EMAIL"
+
+  # Use Windows Git Credential Manager if available (for password-less auth)
+  GCM_PATH="/mnt/c/Program Files/Git/mingw64/libexec/git-core/git-credential-manager.exe"
+  if [ -f "$GCM_PATH" ]; then
+    git config --global credential.helper "$GCM_PATH"
+    info "Git Credential Manager (Windows) configured"
+  fi
 
   success "Git configured"
 fi
@@ -445,7 +461,7 @@ alias dkc='docker compose'
 alias dkps='docker ps'
 alias dkpsa='docker ps -a'
 
-# Providers (PostgreSQL, Redis, pgAdmin, Portainer)
+# Providers (PostgreSQL, Redis, pgAdmin, MinIO, Portainer)
 alias pvup='docker container prune -f 2>/dev/null; docker compose -f ~/providers/docker-compose.yml up -d --remove-orphans --force-recreate'
 alias pvdown='docker compose -f ~/providers/docker-compose.yml down --remove-orphans; docker container prune -f 2>/dev/null'
 alias pvlogs='docker compose -f ~/providers/docker-compose.yml logs -f'
@@ -476,7 +492,7 @@ fi
 success ".zshrc configured"
 
 # -----------------------------------------------------------------------------
-# 11. Providers (PostgreSQL, Redis, pgAdmin, Portainer)
+# 11. Providers (PostgreSQL, Redis, pgAdmin, Portainer, MinIO)
 # -----------------------------------------------------------------------------
 if [ "$SKIP_DOCKER" = false ]; then
 
@@ -491,6 +507,7 @@ if [ "$SKIP_DOCKER" = false ]; then
   [ "$SKIP_POSTGRES"  = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }PostgreSQL"
   [ "$SKIP_REDIS"     = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }Redis"
   [ "$SKIP_PGADMIN"   = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }pgAdmin"
+  [ "$SKIP_MINIO"     = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }MinIO"
   [ "$SKIP_PORTAINER" = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }Portainer"
 
   if [ -z "$ENABLED_PROVIDERS" ]; then
@@ -616,6 +633,33 @@ REDIS_SVC
 PGADMIN_SVC
     fi
 
+    if [ "$SKIP_MINIO" = false ]; then
+      cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'MINIO_SVC'
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      TZ: ${TZ:-America/Sao_Paulo}
+    ports:
+      - "${MINIO_PORT_API:-9000}:9000"
+      - "${MINIO_PORT_CONSOLE:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - shared-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+MINIO_SVC
+    fi
+
     if [ "$SKIP_PORTAINER" = false ]; then
       cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'PORTAINER_SVC'
 
@@ -624,8 +668,8 @@ PGADMIN_SVC
     container_name: portainer
     restart: unless-stopped
     ports:
-      - "${PORTAINER_HTTP_PORT:-9000}:9000"
-      - "${PORTAINER_HTTPS_PORT:-9443}:9443"
+      - "${PORTAINER_HTTP_PORT:-8001}:9000"
+      - "${PORTAINER_HTTPS_PORT:-8443}:8000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
@@ -647,6 +691,7 @@ COMPOSE_FOOTER
     [ "$SKIP_POSTGRES"  = false ] && echo "  postgres_data:"  >> "$PROVIDERS_DIR/docker-compose.yml"
     [ "$SKIP_REDIS"     = false ] && echo "  redis_data:"     >> "$PROVIDERS_DIR/docker-compose.yml"
     [ "$SKIP_PGADMIN"   = false ] && echo "  pgadmin_data:"   >> "$PROVIDERS_DIR/docker-compose.yml"
+    [ "$SKIP_MINIO"     = false ] && echo "  minio_data:"     >> "$PROVIDERS_DIR/docker-compose.yml"
     [ "$SKIP_PORTAINER" = false ] && echo "  portainer_data:" >> "$PROVIDERS_DIR/docker-compose.yml"
 
     # ── .env (only create if not present — preserve customizations) ───────────
@@ -660,7 +705,7 @@ COMPOSE_FOOTER
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_DB=postgres
-POSTGRES_PORT=5432
+POSTGRES_PORT=5433
 
 # Redis
 REDIS_PORT=6379
@@ -670,9 +715,15 @@ PGADMIN_EMAIL=admin@admin.com
 PGADMIN_PASSWORD=admin
 PGADMIN_PORT=5050
 
-# Portainer - http://localhost:9000
-PORTAINER_HTTP_PORT=9000
-PORTAINER_HTTPS_PORT=9443
+# MinIO - S3 API and Console
+MINIO_ROOT_USER=minioadmin
+MINIO_ROOT_PASSWORD=minioadmin
+MINIO_PORT_API=9000
+MINIO_PORT_CONSOLE=9001
+
+# Portainer - http://localhost:8001
+PORTAINER_HTTP_PORT=8001
+PORTAINER_HTTPS_PORT=8443
 
 # Timezone
 TZ=America/Sao_Paulo
@@ -791,7 +842,8 @@ EOF
 
     success "Providers configured at: $PROVIDERS_DIR ($ENABLED_PROVIDERS)"
     [ "$SKIP_PGADMIN"   = false ] && info "pgAdmin   -> http://localhost:5050  (admin@admin.com / admin)"
-    [ "$SKIP_PORTAINER" = false ] && info "Portainer -> http://localhost:9000"
+    [ "$SKIP_MINIO"     = false ] && info "MinIO     -> http://localhost:9001  (minioadmin / minioadmin)"
+    [ "$SKIP_PORTAINER" = false ] && info "Portainer -> http://localhost:8001"
   fi
 fi
 
@@ -816,10 +868,12 @@ if [ "$SKIP_DOCKER" = false ]; then
   echo "  $STEP. For Docker without sudo: restart WSL session (wsl --shutdown in PowerShell)"; STEP=$((STEP + 1))
   if [ -n "${ENABLED_PROVIDERS:-}" ]; then
     echo "  $STEP. Start providers:  pvup   (or: cd ~/providers && docker compose up -d)"; STEP=$((STEP + 1))
-    [ "$SKIP_POSTGRES"  = false ] && echo "     - PostgreSQL:     localhost:5432"
+    [ "$SKIP_POSTGRES"  = false ] && echo "     - PostgreSQL:     localhost:5433"
     [ "$SKIP_REDIS"     = false ] && echo "     - Redis:          localhost:6379"
     [ "$SKIP_PGADMIN"   = false ] && echo "     - pgAdmin:        http://localhost:5050  (admin@admin.com / admin)"
-    [ "$SKIP_PORTAINER" = false ] && echo "     - Portainer:      http://localhost:9000"
+    [ "$SKIP_MINIO"     = false ] && echo "     - MinIO API:      http://localhost:9000"
+    [ "$SKIP_MINIO"     = false ] && echo "     - MinIO Console:  http://localhost:9001  (minioadmin / minioadmin)"
+    [ "$SKIP_PORTAINER" = false ] && echo "     - Portainer:      http://localhost:8001"
   fi
 fi
 echo ""
