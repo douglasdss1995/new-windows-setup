@@ -27,19 +27,19 @@
 
 [merge]
     conflictstyle = diff3
-    ff = only
+	ff = only
 
 [diff]
     colorMoved = default
 
 [pull]
-    rebase = true
+	rebase = true
 
 [rebase]
-    autoStash = true
+	autoStash = true
 
 [push]
-    default = current
+	default = current
     autoSetupRemote = true
 
 [init]
@@ -62,4 +62,4 @@
     co = checkout
     br = branch
     lg = log --graph --oneline --decorate --all
-    pushf = push --force-with-lease
+	pushf = push --force-with-lease
