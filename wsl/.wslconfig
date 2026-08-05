@@ -10,7 +10,7 @@
 # --- Recursos -----------------------------------------------------------------
 
 # Memória máxima que o WSL pode usar (50% da RAM total é um bom equilíbrio)
-memory=16GB
+memory=10GB
 
 # Número de processadores virtuais disponíveis para o WSL
 processors=8
