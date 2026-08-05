@@ -191,10 +191,23 @@ if (-not $SkipProvision) {
     Write-Step "Running provision.sh in distro $Distro"
 
     $provisionSrc = Join-Path $PSScriptRoot "provision.sh"
+    $libSrcDir    = Join-Path $PSScriptRoot "lib"
 
     if (-not (Test-Path $provisionSrc)) {
         Write-Fail "provision.sh not found at $provisionSrc"
     }
+    if (-not (Test-Path $libSrcDir)) {
+        Write-Fail "wsl/lib not found at $libSrcDir"
+    }
+
+    # Transfer lib/*.sh first (same CRLF-stripping treatment as provision.sh),
+    # preserving the same relative layout provision.sh expects: ~/lib/*.sh next to ~/provision.sh.
+    wsl -d $Distro -- bash -c "mkdir -p ~/lib"
+    Get-ChildItem -Path $libSrcDir -Filter "*.sh" | ForEach-Object {
+        $libContent = (Get-Content $_.FullName -Raw) -replace "`r`n", "`n" -replace "`r", "`n"
+        $libContent | wsl -d $Distro -- bash -c "cat > ~/lib/$($_.Name)"
+    }
+    Write-OK "provision lib files copied to ~/lib"
 
     # Copy provision.sh to the Linux home directory and strip CRLF line endings.
     # Running directly from /mnt/c/... is slower (cross-OS filesystem) and breaks
