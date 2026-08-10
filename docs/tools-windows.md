@@ -1,6 +1,6 @@
 # Windows Tools
 
-Tools installed on Windows via `windows.ps1` using winget and Chocolatey. All flags are controlled by `windows.config.psd1`.
+Tools installed on Windows via `setup-windows.ps1` using winget and Chocolatey. All flags are controlled by `windows/windows.config.psd1`.
 
 ---
 
@@ -91,7 +91,7 @@ Tools installed on Windows via `windows.ps1` using winget and Chocolatey. All fl
 | [pnpm](https://pnpm.io/) | Fast and efficient Node package manager |
 | [Java JDK 21](https://adoptium.net/) | Java runtime (Eclipse Temurin) |
 
-> `mise`, `uv` and `pnpm` are also installed inside WSL by `provision.sh`.
+> `mise`, `uv` and `pnpm` are also installed inside WSL by `setup-wsl.sh`.
 
 ---
 
@@ -135,7 +135,7 @@ Tools installed on Windows via `windows.ps1` using winget and Chocolatey. All fl
 | [curl](https://curl.se/) | HTTP client |
 | [sudo](https://github.com/gerardog/gsudo) | `sudo` for Windows (gsudo) |
 
-> All of these are also installed inside WSL by `provision.sh`.
+> All of these are also installed inside WSL by `setup-wsl.sh`.
 
 ---
 

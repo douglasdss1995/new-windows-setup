@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-# provision.sh — WSL environment provisioning for Django + Angular dev
-# Usage: bash provision.sh [--skip-docker] [--skip-node] [--skip-python]
+# setup-wsl.sh — WSL environment provisioning for Django + Angular dev
+# Usage: bash setup-wsl.sh [--skip-docker] [--skip-node] [--skip-python]
 #                          [--skip-postgres] [--skip-redis]
 #                          [--skip-pgadmin] [--skip-minio] [--skip-portainer]
 #                          [--repo-path=/mnt/x/path/to/new-windows-setup]
@@ -10,9 +10,10 @@
 
 set -euo pipefail
 
-# Compute paths once — used for sourcing lib files and REPO_PATH auto-detect
+# Compute paths once — used for sourcing lib files and REPO_PATH auto-detect.
+# This script lives at the repo root; lib/*.sh stays under wsl/.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIB_DIR="$SCRIPT_DIR/lib"
+LIB_DIR="$SCRIPT_DIR/wsl/lib"
 
 # Source library functions (definitions only — nothing executes yet)
 source "$LIB_DIR/logging.sh"
@@ -59,32 +60,40 @@ for arg in "$@"; do
 done
 
 # Fallback: if not passed explicitly (e.g. running this script standalone,
-# outside the setup-wsl.ps1 flow), auto-detect a sibling .gitconfig one
-# directory up (repo root), in case this script is run from a full clone.
+# outside the install-wsl.ps1 flow), auto-detect the repo root's git/.gitconfig,
+# in case this script is run from a full clone.
 if [ -z "$REPO_PATH" ]; then
-  if [ -f "$SCRIPT_DIR/../.gitconfig" ]; then
-    REPO_PATH="$(cd "$SCRIPT_DIR/.." && pwd)"
+  if [ -f "$SCRIPT_DIR/git/.gitconfig" ]; then
+    REPO_PATH="$SCRIPT_DIR"
   fi
 fi
 
 # =============================================================================
 # Execution — ordered call block
+# Each step runs in isolation via run_step: a failure is logged and recorded
+# in FAILED_STEPS, but does not stop the remaining steps from running.
 # =============================================================================
-provision_system_update
-provision_base_deps
-provision_zsh_ohmyzsh
-provision_mise_install
+run_step "system_update" provision_system_update
+run_step "base_deps"     provision_base_deps
+run_step "zsh_ohmyzsh"   provision_zsh_ohmyzsh
+run_step "mise_install"  provision_mise_install
 
-[ "$SKIP_PYTHON" = false ] && provision_python
-[ "$SKIP_NODE" = false ]   && provision_node
+[ "$SKIP_PYTHON" = false ] && run_step "python" provision_python
+[ "$SKIP_NODE" = false ]   && run_step "node"   provision_node
 
-provision_cli_tools
+run_step "cli_tools" provision_cli_tools
 
-[ "$SKIP_DOCKER" = false ] && provision_docker
+[ "$SKIP_DOCKER" = false ] && run_step "docker" provision_docker
 
-provision_git_config
-provision_zshrc_config
+run_step "git_config"    provision_git_config
+run_step "zshrc_config"  provision_zshrc_config
 
-[ "$SKIP_DOCKER" = false ] && provision_providers
+[ "$SKIP_DOCKER" = false ] && run_step "providers" provision_providers
 
 provision_summary
+
+if [ "${#FAILED_STEPS[@]}" -gt 0 ]; then
+  warn "Etapas com falha: ${FAILED_STEPS[*]}"
+  warn "Revise as mensagens acima e rode novamente com as flags --skip-* para pular o que já funcionou."
+  exit 1
+fi

@@ -11,7 +11,7 @@ provision_summary() {
   local STEP=1
   echo "  $STEP. Restart terminal or run: exec zsh"; STEP=$((STEP + 1))
   if [ -z "$GIT_USERNAME" ] || [ -z "$GIT_EMAIL" ]; then
-    echo "  $STEP. Configure Git identity (or set Git.UserName/UserEmail in windows.config.psd1 and re-run setup-wsl.ps1):"; STEP=$((STEP + 1))
+    echo "  $STEP. Configure Git identity (or set Git.UserName/UserEmail in windows/windows.config.psd1 and re-run install-wsl.ps1):"; STEP=$((STEP + 1))
     [ -z "$GIT_USERNAME" ] && echo "       git config --file ~/.gitconfig.local user.name 'Your Name'"
     [ -z "$GIT_EMAIL" ]    && echo "       git config --file ~/.gitconfig.local user.email 'your@email.com'"
   fi
