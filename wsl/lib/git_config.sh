@@ -4,16 +4,16 @@
 provision_git_config() {
   step "Configuring Git"
 
-  if [ -n "$REPO_PATH" ] && [ -f "$REPO_PATH/.gitconfig" ]; then
-    if [ -L "$HOME/.gitconfig" ] && [ "$(readlink -f "$HOME/.gitconfig")" = "$(readlink -f "$REPO_PATH/.gitconfig")" ]; then
+  if [ -n "$REPO_PATH" ] && [ -f "$REPO_PATH/git/.gitconfig" ]; then
+    if [ -L "$HOME/.gitconfig" ] && [ "$(readlink -f "$HOME/.gitconfig")" = "$(readlink -f "$REPO_PATH/git/.gitconfig")" ]; then
       info "~/.gitconfig already symlinked to repo .gitconfig"
     else
       if [ -e "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ]; then
         mv "$HOME/.gitconfig" "$HOME/.gitconfig.bak"
         warn "Existing ~/.gitconfig backed up to ~/.gitconfig.bak"
       fi
-      ln -sf "$REPO_PATH/.gitconfig" "$HOME/.gitconfig"
-      success "~/.gitconfig -> $REPO_PATH/.gitconfig"
+      ln -sf "$REPO_PATH/git/.gitconfig" "$HOME/.gitconfig"
+      success "~/.gitconfig -> $REPO_PATH/git/.gitconfig"
     fi
 
     [ -n "$GIT_USERNAME" ] && git config --file "$HOME/.gitconfig.local" user.name "$GIT_USERNAME"

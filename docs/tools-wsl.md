@@ -1,6 +1,6 @@
 # WSL Tools
 
-Tools installed inside the Ubuntu WSL environment by `provision.sh`. All Docker-based services run here; nothing requires Docker Desktop.
+Tools installed inside the Ubuntu WSL environment by `setup-wsl.sh`. All Docker-based services run here; nothing requires Docker Desktop.
 
 ---
 
@@ -11,7 +11,7 @@ Tools installed inside the Ubuntu WSL environment by `provision.sh`. All Docker-
 | [mise](https://mise.jdx.dev/) | Universal runtime version manager — manages Python, Node.js, Java and more |
 | [SDKMAN](https://sdkman.io/) | JVM SDK manager for Java, Kotlin, Groovy (optional, alongside mise) |
 
-> `mise` is also installed on Windows by `windows.ps1` for use outside WSL.
+> `mise` is also installed on Windows by `setup-windows.ps1` for use outside WSL.
 
 ---
 
@@ -44,7 +44,7 @@ Installed via [mise](https://mise.jdx.dev/) (runtime) and [uv](https://github.co
 | [httpie](https://httpie.io/) | HTTP client for the command line |
 | [pre-commit](https://pre-commit.com/) | Git hooks for pre-commit validation |
 
-> `uv` is also installed on Windows by `windows.ps1`.
+> `uv` is also installed on Windows by `setup-windows.ps1`.
 
 ---
 
@@ -63,7 +63,7 @@ Installed via [mise](https://mise.jdx.dev/) (runtime) and [pnpm](https://pnpm.io
 | [Jest](https://jestjs.io/) | JavaScript testing framework |
 | [Nx](https://nx.dev/) | Monorepo and build tooling for Angular |
 
-> `pnpm` is also installed on Windows by `windows.ps1`.
+> `pnpm` is also installed on Windows by `setup-windows.ps1`.
 
 ---
 
@@ -82,7 +82,7 @@ Installed via [mise](https://mise.jdx.dev/) (runtime) and [pnpm](https://pnpm.io
 | [yq](https://github.com/mikefarah/yq) | YAML processor |
 | [GitHub CLI (gh)](https://cli.github.com/) | Manage GitHub from the command line |
 
-> All of these are also installed on Windows by `windows.ps1`.
+> All of these are also installed on Windows by `setup-windows.ps1`.
 
 ---
 
@@ -98,7 +98,7 @@ direnv reads `.envrc` files when you `cd` into a directory and exports the varia
 - **Switching virtual environments** automatically (`layout python`, `layout node`)
 - **Project-specific `PATH` entries** (e.g. local `bin/` directories)
 
-**Shell hook** (added to `.zshrc` and `.bashrc` by `provision.sh`):
+**Shell hook** (added to `.zshrc` and `.bashrc` by `setup-wsl.sh`):
 ```bash
 eval "$(direnv hook zsh)"
 ```
@@ -145,16 +145,16 @@ Infrastructure services shared across all projects, managed at `~/providers/dock
 | pgAdmin | `dpage/pgadmin4` | 5050 | Web UI for PostgreSQL |
 | Portainer | `portainer/portainer-ce` | 9000 / 9443 | Web UI for managing containers |
 
-Each provider can be individually included or excluded via `--skip-*` flags when running `provision.sh`:
+Each provider can be individually included or excluded via `--skip-*` flags when running `setup-wsl.sh`:
 
 ```bash
-bash provision.sh --skip-postgres        # no PostgreSQL (also skips pgAdmin)
-bash provision.sh --skip-redis           # no Redis
-bash provision.sh --skip-pgadmin         # no pgAdmin
-bash provision.sh --skip-portainer       # no Portainer
+bash setup-wsl.sh --skip-postgres        # no PostgreSQL (also skips pgAdmin)
+bash setup-wsl.sh --skip-redis           # no Redis
+bash setup-wsl.sh --skip-pgadmin         # no pgAdmin
+bash setup-wsl.sh --skip-portainer       # no Portainer
 
 # Example: Docker + only Redis
-bash provision.sh --skip-postgres --skip-pgadmin --skip-portainer
+bash setup-wsl.sh --skip-postgres --skip-pgadmin --skip-portainer
 ```
 
 Re-running with different flags regenerates `docker-compose.yml` and updates the systemd service.

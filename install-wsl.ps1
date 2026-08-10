@@ -1,7 +1,11 @@
 # =============================================================================
-# setup-wsl.ps1 — WSL 2 + Ubuntu installation and configuration
-# Run as Administrator in PowerShell
-# Usage: .\setup-wsl.ps1 [-Distro ubuntu-24.04] [-SkipProvision]
+# install-wsl.ps1 — WSL 2 + Ubuntu installation and configuration
+# Run as Administrator in PowerShell 7.6+, from the repo root
+#
+# Usage:
+#   powershell -ExecutionPolicy Bypass -File .\install-wsl.ps1 [-Distro ubuntu-24.04] [-SkipProvision]
+#
+# See docs/execution-policy.md if you hit a "running scripts is disabled" error.
 # =============================================================================
 
 param(
@@ -34,6 +38,10 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 # Marker file for resuming after restart
 # -----------------------------------------------------------------------------
 $markerFile = Join-Path $env:TEMP "wsl-setup-pending-restart.flag"
+
+# WSL config templates and lib/*.sh live under wsl/; setup-wsl.sh itself sits
+# next to this launcher at the repo root.
+$WslDir = Join-Path $PSScriptRoot "wsl"
 
 # -----------------------------------------------------------------------------
 # 1. Enable required Windows features
@@ -141,7 +149,7 @@ if (-not $isInstalled) {
 # -----------------------------------------------------------------------------
 Write-Step "Installing .wslconfig"
 
-$wslConfigSrc = Join-Path $PSScriptRoot ".wslconfig"
+$wslConfigSrc = Join-Path $WslDir ".wslconfig"
 $wslConfigDst = Join-Path $env:USERPROFILE ".wslconfig"
 
 if (Test-Path $wslConfigSrc) {
@@ -156,7 +164,7 @@ if (Test-Path $wslConfigSrc) {
 # -----------------------------------------------------------------------------
 Write-Step "Configuring wsl.conf in the distro"
 
-$wslConfSrc = Join-Path $PSScriptRoot "wsl.conf"
+$wslConfSrc = Join-Path $WslDir "wsl.conf"
 
 if (Test-Path $wslConfSrc) {
     # Normalize to LF before writing into Linux — CRLF in /etc/wsl.conf causes
@@ -177,7 +185,45 @@ if (Test-Path $wslConfSrc) {
 }
 
 # -----------------------------------------------------------------------------
-# 7. Restart WSL to apply configuration
+# 7. Point Windows Terminal's WSL profiles at the Linux home directory
+# -----------------------------------------------------------------------------
+# Windows Terminal's auto-generated WSL profiles leave startingDirectory empty,
+# which falls back to the Windows user profile folder (via /mnt/c) instead of
+# the Linux home — makes every new WSL tab open in a slow, wrong location.
+Write-Step "Configuring Windows Terminal startingDirectory for $Distro"
+
+$wtSettingsPaths = @(
+    "$env:LOCALAPPDATA\Packages\Microsoft.WindowsTerminal_8wekyb3d8bbwe\LocalState\settings.json",
+    "$env:LOCALAPPDATA\Microsoft\Windows Terminal\settings.json"
+)
+$wtSettingsPath = $wtSettingsPaths | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+if ($wtSettingsPath) {
+    try {
+        $linuxUser = (wsl -d $Distro -- whoami).Trim()
+        $homeDir = "//wsl`$/$Distro/home/$linuxUser"
+
+        $wt = Get-Content $wtSettingsPath -Raw | ConvertFrom-Json
+        $wslProfiles = $wt.profiles.list | Where-Object { $_.source -eq "Microsoft.WSL" -and $_.name -match [regex]::Escape($Distro) }
+
+        if ($wslProfiles) {
+            foreach ($profile in $wslProfiles) {
+                $profile | Add-Member -NotePropertyName startingDirectory -NotePropertyValue $homeDir -Force
+            }
+            $wt | ConvertTo-Json -Depth 20 | Set-Content $wtSettingsPath -Encoding UTF8
+            Write-OK "Windows Terminal: $($wslProfiles.Count) profile(s) -> $homeDir"
+        } else {
+            Write-Warn "No Windows Terminal profile found for $Distro yet - open Windows Terminal once, then rerun"
+        }
+    } catch {
+        Write-Warn "Could not update Windows Terminal settings.json: $_"
+    }
+} else {
+    Write-Warn "Windows Terminal settings.json not found - skipping startingDirectory setup"
+}
+
+# -----------------------------------------------------------------------------
+# 8. Restart WSL to apply configuration
 # -----------------------------------------------------------------------------
 Write-Step "Restarting WSL to apply configuration"
 wsl --shutdown
@@ -185,23 +231,23 @@ Start-Sleep -Seconds 5
 Write-OK "WSL restarted"
 
 # -----------------------------------------------------------------------------
-# 8. Copy and run provision.sh inside WSL
+# 9. Copy and run setup-wsl.sh inside WSL
 # -----------------------------------------------------------------------------
 if (-not $SkipProvision) {
-    Write-Step "Running provision.sh in distro $Distro"
+    Write-Step "Running setup-wsl.sh in distro $Distro"
 
-    $provisionSrc = Join-Path $PSScriptRoot "provision.sh"
-    $libSrcDir    = Join-Path $PSScriptRoot "lib"
+    $provisionSrc = Join-Path $PSScriptRoot "setup-wsl.sh"
+    $libSrcDir    = Join-Path $WslDir "lib"
 
     if (-not (Test-Path $provisionSrc)) {
-        Write-Fail "provision.sh not found at $provisionSrc"
+        Write-Fail "setup-wsl.sh not found at $provisionSrc"
     }
     if (-not (Test-Path $libSrcDir)) {
         Write-Fail "wsl/lib not found at $libSrcDir"
     }
 
-    # Transfer lib/*.sh first (same CRLF-stripping treatment as provision.sh),
-    # preserving the same relative layout provision.sh expects: ~/lib/*.sh next to ~/provision.sh.
+    # Transfer lib/*.sh first (same CRLF-stripping treatment as setup-wsl.sh),
+    # preserving the same relative layout setup-wsl.sh expects: ~/lib/*.sh next to ~/setup-wsl.sh.
     wsl -d $Distro -- bash -c "mkdir -p ~/lib"
     Get-ChildItem -Path $libSrcDir -Filter "*.sh" | ForEach-Object {
         $libContent = (Get-Content $_.FullName -Raw) -replace "`r`n", "`n" -replace "`r", "`n"
@@ -209,27 +255,27 @@ if (-not $SkipProvision) {
     }
     Write-OK "provision lib files copied to ~/lib"
 
-    # Copy provision.sh to the Linux home directory and strip CRLF line endings.
+    # Copy setup-wsl.sh to the Linux home directory and strip CRLF line endings.
     # Running directly from /mnt/c/... is slower (cross-OS filesystem) and breaks
     # if the file was saved with Windows CRLF endings (\r\n causes bash errors).
     $provisionContent = (Get-Content $provisionSrc -Raw) -replace "`r`n", "`n" -replace "`r", "`n"
-    $provisionContent | wsl -d $Distro -- bash -c "cat > ~/provision.sh && chmod +x ~/provision.sh"
+    $provisionContent | wsl -d $Distro -- bash -c "cat > ~/setup-wsl.sh && chmod +x ~/setup-wsl.sh"
 
     # -------------------------------------------------------------------------
-    # Resolve the repo root's WSL mount path, so provision.sh can symlink the
-    # shared .gitconfig (repo root) straight into ~/.gitconfig instead of
-    # keeping a separate copy of the same settings.
+    # Resolve the repo root's WSL mount path, so setup-wsl.sh can symlink the
+    # shared git/.gitconfig straight into ~/.gitconfig instead of keeping a
+    # separate copy of the same settings.
     # -------------------------------------------------------------------------
-    $repoRoot    = Split-Path $PSScriptRoot -Parent
+    $repoRoot    = $PSScriptRoot
     $repoPathWsl = (wsl -d $Distro -- wslpath -a $repoRoot).Trim()
 
     # -------------------------------------------------------------------------
-    # Git identity comes from windows.config.psd1 (single source of truth) so
-    # it's applied automatically on the WSL side too, not just on Windows.
+    # Git identity comes from windows/windows.config.psd1 (single source of
+    # truth) so it's applied automatically on the WSL side too, not just on Windows.
     # -------------------------------------------------------------------------
     $gitUserName  = ""
     $gitUserEmail = ""
-    $winConfigPath = Join-Path $repoRoot "windows.config.psd1"
+    $winConfigPath = Join-Path $repoRoot "windows\windows.config.psd1"
     if (Test-Path $winConfigPath) {
         $winCfg = Import-PowerShellDataFile -Path $winConfigPath
         if ($winCfg.Git) {
@@ -245,9 +291,9 @@ if (-not $SkipProvision) {
     if ($gitUserEmail) { $provisionArgs += " --git-email=`"$gitUserEmail`"" }
 
     # Run from the Linux home directory
-    wsl -d $Distro -- bash -c "bash ~/provision.sh $provisionArgs"
+    wsl -d $Distro -- bash -c "bash ~/setup-wsl.sh $provisionArgs"
 
-    Write-OK "provision.sh executed successfully"
+    Write-OK "setup-wsl.sh executed successfully"
 
     # -------------------------------------------------------------------------
     # First boot of providers — run after provision while Docker is already

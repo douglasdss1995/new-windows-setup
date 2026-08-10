@@ -2,13 +2,15 @@
 # git-clone.ps1 - Clone git repositories from a config file
 #
 # Usage:
-#   .\git-clone.ps1
-#   .\git-clone.ps1 -ConfigFile ".\my-other-config.psd1"
-#   .\git-clone.ps1 -DryRun        # preview without cloning
+#   powershell -ExecutionPolicy Bypass -File .\git-clone.ps1
+#   powershell -ExecutionPolicy Bypass -File .\git-clone.ps1 -ConfigFile ".\my-other-config.psd1"
+#   powershell -ExecutionPolicy Bypass -File .\git-clone.ps1 -DryRun        # preview without cloning
+#
+# See docs/execution-policy.md if you hit a "running scripts is disabled" error.
 # =============================================================================
 [CmdletBinding()]
 param(
-    [string] $ConfigFile = "$PSScriptRoot\git-repos.config.psd1",
+    [string] $ConfigFile = "$PSScriptRoot\git\git-repos.config.psd1",
     [switch] $DryRun
 )
 

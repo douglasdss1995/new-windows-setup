@@ -55,6 +55,7 @@ alias ll='eza -lah --git --icons'
 alias ls='eza --icons'
 alias lt='eza --tree --level=2 --icons'
 alias cat='bat --paging=never'
+alias duh='du -h --max-depth=1 . | sort -rh'
 
 # Git
 alias gs='git status'
@@ -100,6 +101,24 @@ export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'
 # direnv
 eval "$(direnv hook zsh)"
 
+# === mnt guard === (skip mise/direnv inside Windows-mounted paths, e.g. /mnt/c - avoids slow 9P I/O)
+for _fn in _mise_hook_precmd _mise_hook_chpwd _direnv_hook; do
+  if (( ${+functions[$_fn]} )); then
+    functions -c "$_fn" "__${_fn}_orig"
+    eval "${_fn}() { [[ \$PWD == /mnt/* ]] && return; __${_fn}_orig \"\$@\"; }"
+  fi
+done
+unset _fn
+
+EOF
+  fi
+
+  if ! grep -q '# === provision aliases ===' "$HOME/.bashrc" 2>/dev/null; then
+    cat >> "$HOME/.bashrc" << 'EOF'
+
+# === provision aliases ===
+alias duh='du -h --max-depth=1 . | sort -rh'
+alias ll='ls -lah'
 EOF
   fi
 
@@ -107,6 +126,20 @@ EOF
     echo '' >> "$HOME/.bashrc"
     echo '# direnv' >> "$HOME/.bashrc"
     echo 'eval "$(direnv hook bash)"' >> "$HOME/.bashrc"
+  fi
+
+  if ! grep -q '# === mnt guard ===' "$HOME/.bashrc" 2>/dev/null; then
+    cat >> "$HOME/.bashrc" << 'EOF'
+
+# === mnt guard === (skip mise/direnv inside Windows-mounted paths, e.g. /mnt/c - avoids slow 9P I/O)
+for _fn in _mise_hook_prompt_command _mise_hook_chpwd _direnv_hook; do
+  if declare -f "$_fn" >/dev/null 2>&1; then
+    eval "$(declare -f "$_fn" | sed "1s/^$_fn ()/__${_fn}_orig()/")"
+    eval "${_fn}() { [[ \$PWD == /mnt/* ]] && return; __${_fn}_orig \"\$@\"; }"
+  fi
+done
+unset _fn
+EOF
   fi
 
   success ".zshrc configured"

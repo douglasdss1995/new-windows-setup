@@ -1,11 +1,13 @@
 # =============================================================================
-# windows.ps1 - Complete setup for a freshly formatted Windows machine
+# setup-windows.ps1 - Complete setup for a freshly formatted Windows machine
 # Based on ferramentas.md - Dev Django + Angular
 #
 # Usage:
-#   powershell -ExecutionPolicy Bypass -File windows.ps1
+#   powershell -ExecutionPolicy Bypass -File .\setup-windows.ps1
 #
-# Edit windows.config.psd1 to enable/disable tools and configure Git.
+# See docs/execution-policy.md if you hit a "running scripts is disabled" error.
+#
+# Edit windows\windows.config.psd1 to enable/disable tools and configure Git.
 # Requires running as Administrator.
 # Compatible with PowerShell 5.1+
 # =============================================================================
@@ -29,20 +31,25 @@ $script:Failed    = 0
 $script:FailList  = @()
 
 # PowerShell 7's "all hosts" profile, hardcoded rather than read from $PROFILE.
-# windows.ps1 is commonly launched from elevated Windows PowerShell 5.1, whose
+# setup-windows.ps1 is commonly launched from elevated Windows PowerShell 5.1, whose
 # $PROFILE.CurrentUserAllHosts points at Documents\WindowsPowerShell\profile.ps1
 # instead of pwsh's Documents\PowerShell\profile.ps1 - activation lines written
 # there would silently never load in the PS7 shell you actually use day to day.
 $script:Ps7ProfilePath = Join-Path $env:USERPROFILE "Documents\PowerShell\profile.ps1"
 
+# This script lives at the repo root; windows.config.psd1 and themes/ live
+# under windows/.
+$RepoRoot  = $PSScriptRoot
+$WindowsDir = Join-Path $RepoRoot "windows"
+
 # -----------------------------------------------------------------------------
 # Load configuration
 # -----------------------------------------------------------------------------
-$ConfigFile = Join-Path $PSScriptRoot "windows.config.psd1"
+$ConfigFile = Join-Path $WindowsDir "windows.config.psd1"
 
 if (-not (Test-Path $ConfigFile)) {
     Write-Host "[ERROR] Configuration file not found: $ConfigFile" -ForegroundColor Red
-    Write-Host "        Create the windows.config.psd1 file in the same folder as this script." -ForegroundColor Yellow
+    Write-Host "        Create the windows.config.psd1 file in the windows\ folder." -ForegroundColor Yellow
     exit 1
 }
 
@@ -70,7 +77,7 @@ if (-not $isAdmin) {
     Write-Host ""
     Write-Host "[ERROR] Run as Administrator." -ForegroundColor Red
     Write-Host "        Right-click PowerShell > 'Run as administrator'" -ForegroundColor Red
-    Write-Host "        Then run: powershell -ExecutionPolicy Bypass -File windows.ps1" -ForegroundColor Yellow
+    Write-Host "        Then run: powershell -ExecutionPolicy Bypass -File .\setup-windows.ps1" -ForegroundColor Yellow
     Write-Host ""
     exit 1
 }
@@ -296,8 +303,8 @@ if ($cfg.Terminal.Fzf)             { Install-Pkg "fzf"               "junegunn.f
 
 if ($cfg.Terminal.OhMyPosh) {
     # Activate Oh My Posh in the PowerShell profile, pointing at the theme file
-    # kept in themes/ so it can be customized without touching this script.
-    $themeFile = Join-Path $PSScriptRoot "themes\$($cfg.Terminal.OhMyPoshTheme)"
+    # kept in windows/themes/ so it can be customized without touching this script.
+    $themeFile = Join-Path $WindowsDir "themes\$($cfg.Terminal.OhMyPoshTheme)"
 
     if (Test-Path $themeFile) {
         $ompLine     = "oh-my-posh init pwsh --config '$themeFile' | Invoke-Expression"
@@ -359,9 +366,8 @@ Write-Step "Runtimes and Version Managers"
 if ($cfg.Runtimes.Mise) {
     Install-Pkg "mise" "jdx.mise"
 
-    # Configure mise activation in the PowerShell profile so shims are loaded
-    # automatically and `mise use` works per-directory without manually adding
-    # %LOCALAPPDATA%\mise\shims to PATH.
+    # Configure mise activation in the PowerShell profile so `mise use` works
+    # per-directory inside PowerShell sessions.
     $miseLine = 'mise activate pwsh | Out-String | Invoke-Expression'
     $profilePath = $script:Ps7ProfilePath
 
@@ -375,6 +381,20 @@ if ($cfg.Runtimes.Mise) {
         Write-OK "mise activation added to PowerShell profile ($profilePath)"
     } else {
         Write-Skip "mise activation already in PowerShell profile"
+    }
+
+    # Also add the shims directory to the Windows user PATH so mise-managed
+    # tools resolve outside PowerShell too (VS Code integrated terminal,
+    # cmd.exe, GUI apps launched via PATH, etc.) without relying on activation.
+    $miseShims = "$env:LOCALAPPDATA\mise\shims"
+    $userPath  = [Environment]::GetEnvironmentVariable("PATH", "User")
+
+    if ($userPath -notmatch [regex]::Escape($miseShims)) {
+        $userPath = "$miseShims;$userPath"
+        [Environment]::SetEnvironmentVariable("PATH", $userPath, "User")
+        Write-OK "mise shims added to PATH (restart terminal to apply)"
+    } else {
+        Write-Skip "mise shims already in PATH"
     }
 } else {
     Write-Skip "mise (disabled)"
@@ -462,7 +482,7 @@ if ($cfg.Database.SQLiteBrowser) { Install-Pkg "DB Browser SQLite" "DBBrowserFor
 Write-Step "Docker and Infrastructure"
 
 Write-Info "Docker runs via native Docker Engine in WSL - no Docker Desktop needed."
-Write-Info "Run the wsl/provision.sh script inside WSL to install and configure it."
+Write-Info "Run the setup-wsl.sh script inside WSL to install and configure it."
 Write-Info "Benefit: ~50-150 MB RAM vs ~1 GB for Docker Desktop."
 
 # =============================================================================
@@ -530,6 +550,7 @@ if ($cfg.Productivity.Everything) { Install-Pkg "Everything"    "voidtools.Every
 if ($cfg.Productivity.WizTree)    { Install-Pkg "WizTree"       "WizTree.WizTree"            } else { Write-Skip "WizTree (disabled)"     }
 if ($cfg.Productivity.AutoHotkey) { Install-Pkg "AutoHotkey v2" "AutoHotkey.AutoHotkey"      } else { Write-Skip "AutoHotkey (disabled)"  }
 if ($cfg.Productivity.DrawIO)    { Install-Pkg "draw.io"       "JGraph.Draw"                 } else { Write-Skip "draw.io (disabled)"    }
+if ($cfg.Productivity.OBSStudio) { Install-Pkg "OBS Studio"    "OBSProject.OBSStudio"       } else { Write-Skip "OBS Studio (disabled)" }
 
 # =============================================================================
 # 12. BROWSERS
@@ -582,7 +603,7 @@ if (Get-Command code -ErrorAction SilentlyContinue) {
     if ($ext.SpellChecker)     { Install-VSExt "streetsidesoftware.code-spell-checker"  } else { Write-Skip "spell-checker (disabled)"       }
 } else {
     Write-Warn "VS Code not found in PATH - extensions skipped."
-    Write-Warn "Restart the terminal and run: powershell -ExecutionPolicy Bypass -File windows.ps1"
+    Write-Warn "Restart the terminal and run: powershell -ExecutionPolicy Bypass -File .\setup-windows.ps1"
 }
 
 # =============================================================================
@@ -682,8 +703,8 @@ if ($cfg.Utilities.VCRedist) {
 # =============================================================================
 Write-Step "Git Configuration"
 
-# --- Symlink the shared .gitconfig (repo root) to $HOME/.gitconfig ---------
-$repoGitConfig = Join-Path $PSScriptRoot ".gitconfig"
+# --- Symlink the shared .gitconfig (git/) to $HOME/.gitconfig -------------
+$repoGitConfig = Join-Path $RepoRoot "git\.gitconfig"
 $homeGitConfig = Join-Path $env:USERPROFILE ".gitconfig"
 
 if (Test-Path $repoGitConfig) {
@@ -753,6 +774,5 @@ Write-Host "  1. Restart the computer to apply PATH changes"
 Write-Host "  2. Authenticate with GitHub:"
 Write-Host "       gh auth login"
 Write-Host "  3. Configure WSL:"
-Write-Host "       cd wsl"
-Write-Host "       .\setup-wsl.ps1"
+Write-Host "       powershell -ExecutionPolicy Bypass -File .\install-wsl.ps1"
 Write-Host ""
