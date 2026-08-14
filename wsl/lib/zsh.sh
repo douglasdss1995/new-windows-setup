@@ -209,7 +209,14 @@ EOF
 # === wsl startup timer ===
 if [ -z "$WSL_STARTUP_LOGGED" ]; then
     export WSL_STARTUP_LOGGED=1
-    echo "⏱️  WSL iniciado em ${SECONDS}s"
+    if [ -n "$WSL_START_MS" ]; then
+        _wsl_now_ms=$(($(date +%s%N) / 1000000))
+        _wsl_total_ms=$((_wsl_now_ms - WSL_START_MS))
+        echo "⏱️  WSL iniciado em ${_wsl_total_ms}ms (total) / ${SECONDS}s (shell)"
+        unset _wsl_now_ms _wsl_total_ms
+    else
+        echo "⏱️  WSL iniciado em ${SECONDS}s"
+    fi
 fi
 EOF
   fi
@@ -220,7 +227,14 @@ EOF
 # === wsl startup timer ===
 if [ -z "$WSL_STARTUP_LOGGED" ]; then
     export WSL_STARTUP_LOGGED=1
-    echo "⏱️  WSL iniciado em ${SECONDS}s"
+    if [ -n "$WSL_START_MS" ]; then
+        _wsl_now_ms=$(($(date +%s%N) / 1000000))
+        _wsl_total_ms=$((_wsl_now_ms - WSL_START_MS))
+        echo "⏱️  WSL iniciado em ${_wsl_total_ms}ms (total) / ${SECONDS}s (shell)"
+        unset _wsl_now_ms _wsl_total_ms
+    else
+        echo "⏱️  WSL iniciado em ${SECONDS}s"
+    fi
 fi
 EOF
   fi
