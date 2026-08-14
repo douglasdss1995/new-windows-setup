@@ -34,6 +34,14 @@ provision_zsh_ohmyzsh() {
   fi
 }
 
+# Appends $2 to file $1 only if that exact line isn't already there, so
+# reruns of the provisioning script pick up newly-added lines even on
+# machines whose surrounding block marker already exists.
+ensure_line() {
+  local file="$1" line="$2"
+  grep -qF -- "$line" "$file" 2>/dev/null || echo "$line" >> "$file"
+}
+
 provision_zshrc_config() {
   step "Configuring .zshrc"
 
@@ -113,6 +121,54 @@ unset _fn
 EOF
   fi
 
+  # Repair pass: if the marker above was already present from an older
+  # provisioning run, the heredoc is skipped and newly-added lines never
+  # land. Re-check every standalone line individually so the script stays
+  # idempotent even on machines provisioned before a line was introduced.
+  # Keep this list in sync with the heredoc above (everything except the
+  # multi-line "mnt guard" for-loop, which has its own block marker below).
+  local zsh_lines=(
+    "alias ..='cd ..'"
+    "alias ...='cd ../..'"
+    "alias ll='eza -lah --git --icons'"
+    "alias ls='eza --icons'"
+    "alias lt='eza --tree --level=2 --icons'"
+    "alias cat='bat --paging=never'"
+    "alias duh='du -h --max-depth=1 . | sort -rh'"
+    "alias gs='git status'"
+    "alias ga='git add'"
+    "alias gc='git commit'"
+    "alias gp='git push'"
+    "alias gl='git log --oneline --graph --decorate'"
+    "alias gd='git diff'"
+    "alias pm='python manage.py'"
+    "alias pmr='python manage.py runserver'"
+    "alias pmm='python manage.py migrate'"
+    "alias pmmk='python manage.py makemigrations'"
+    "alias pmsh='python manage.py shell'"
+    "alias py='python'"
+    "alias pip='uv pip'"
+    "alias venv='uv venv'"
+    "alias dk='docker'"
+    "alias dkc='docker compose'"
+    "alias dkps='docker ps'"
+    "alias dkpsa='docker ps -a'"
+    "alias pvup='docker container prune -f 2>/dev/null; docker compose -f ~/providers/docker-compose.yml up -d --remove-orphans --force-recreate'"
+    "alias pvdown='docker compose -f ~/providers/docker-compose.yml down --remove-orphans; docker container prune -f 2>/dev/null'"
+    "alias pvlogs='docker compose -f ~/providers/docker-compose.yml logs -f'"
+    "alias pvps='docker compose -f ~/providers/docker-compose.yml ps'"
+    "alias pvrestart='docker compose -f ~/providers/docker-compose.yml restart'"
+    'eval "$(zoxide init zsh)"'
+    '[ -f ~/.fzf.zsh ] && source ~/.fzf.zsh'
+    "export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'"
+    "export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'"
+    'eval "$(direnv hook zsh)"'
+  )
+  local line
+  for line in "${zsh_lines[@]}"; do
+    ensure_line "$ZSHRC" "$line"
+  done
+
   if ! grep -q '# === provision aliases ===' "$HOME/.bashrc" 2>/dev/null; then
     cat >> "$HOME/.bashrc" << 'EOF'
 
@@ -122,11 +178,16 @@ alias ll='ls -lah'
 EOF
   fi
 
-  if ! grep -q 'direnv hook bash' "$HOME/.bashrc" 2>/dev/null; then
-    echo '' >> "$HOME/.bashrc"
-    echo '# direnv' >> "$HOME/.bashrc"
-    echo 'eval "$(direnv hook bash)"' >> "$HOME/.bashrc"
-  fi
+  local bash_lines=(
+    "alias duh='du -h --max-depth=1 . | sort -rh'"
+    "alias ll='ls -lah'"
+  )
+  for line in "${bash_lines[@]}"; do
+    ensure_line "$HOME/.bashrc" "$line"
+  done
+
+  ensure_line "$HOME/.bashrc" '# direnv'
+  ensure_line "$HOME/.bashrc" 'eval "$(direnv hook bash)"'
 
   if ! grep -q '# === mnt guard ===' "$HOME/.bashrc" 2>/dev/null; then
     cat >> "$HOME/.bashrc" << 'EOF'
