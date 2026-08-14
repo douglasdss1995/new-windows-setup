@@ -204,14 +204,25 @@ if ($wtSettingsPath) {
         $homeDir = "//wsl`$/$Distro/home/$linuxUser"
 
         $wt = Get-Content $wtSettingsPath -Raw | ConvertFrom-Json
-        $wslProfiles = $wt.profiles.list | Where-Object { $_.source -eq "Microsoft.WSL" -and $_.name -match [regex]::Escape($Distro) }
+        # Not every profile has a "source" property (built-in PowerShell/cmd
+        # profiles don't) - guard the lookup so Set-StrictMode doesn't throw.
+        $wslProfiles = $wt.profiles.list | Where-Object {
+            ($_.PSObject.Properties.Name -contains 'source') -and
+            ($_.source -eq "Microsoft.WSL") -and
+            ($_.name -match [regex]::Escape($Distro))
+        }
 
         if ($wslProfiles) {
+            # Wrap wsl.exe in a PowerShell one-liner that stamps a start time and
+            # forwards it via WSLENV, so .zshrc/.bashrc can report total launch
+            # time (Windows command -> WSL prompt), not just shell-init time.
+            $startupCmd = "powershell.exe -NoLogo -NoProfile -Command `"`$env:WSL_START_MS=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds(); `$env:WSLENV='WSL_START_MS:'+`$env:WSLENV; wsl.exe -d $Distro`""
             foreach ($profile in $wslProfiles) {
                 $profile | Add-Member -NotePropertyName startingDirectory -NotePropertyValue $homeDir -Force
+                $profile | Add-Member -NotePropertyName commandline -NotePropertyValue $startupCmd -Force
             }
             $wt | ConvertTo-Json -Depth 20 | Set-Content $wtSettingsPath -Encoding UTF8
-            Write-OK "Windows Terminal: $($wslProfiles.Count) profile(s) -> $homeDir"
+            Write-OK "Windows Terminal: $($wslProfiles.Count) profile(s) -> $homeDir (+ startup timer)"
         } else {
             Write-Warn "No Windows Terminal profile found for $Distro yet - open Windows Terminal once, then rerun"
         }
@@ -267,7 +278,12 @@ if (-not $SkipProvision) {
     # separate copy of the same settings.
     # -------------------------------------------------------------------------
     $repoRoot    = $PSScriptRoot
-    $repoPathWsl = (wsl -d $Distro -- wslpath -a $repoRoot).Trim()
+    # -e/--exec bypasses the distro's default shell (zsh here) so backslashes
+    # in the Windows path aren't eaten as escape characters before wslpath sees them.
+    $repoPathWsl = (wsl -d $Distro -e wslpath -a $repoRoot).Trim()
+    if (-not $repoPathWsl) {
+        Write-Fail "wslpath could not resolve '$repoRoot' inside $Distro"
+    }
 
     # -------------------------------------------------------------------------
     # Git identity comes from windows/windows.config.psd1 (single source of
