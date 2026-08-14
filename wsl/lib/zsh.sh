@@ -142,5 +142,27 @@ unset _fn
 EOF
   fi
 
+  if ! grep -q '# === wsl startup timer ===' "$ZSHRC" 2>/dev/null; then
+    cat >> "$ZSHRC" << 'EOF'
+
+# === wsl startup timer ===
+if [ -z "$WSL_STARTUP_LOGGED" ]; then
+    export WSL_STARTUP_LOGGED=1
+    echo "⏱️  WSL iniciado em ${SECONDS}s"
+fi
+EOF
+  fi
+
+  if ! grep -q '# === wsl startup timer ===' "$HOME/.bashrc" 2>/dev/null; then
+    cat >> "$HOME/.bashrc" << 'EOF'
+
+# === wsl startup timer ===
+if [ -z "$WSL_STARTUP_LOGGED" ]; then
+    export WSL_STARTUP_LOGGED=1
+    echo "⏱️  WSL iniciado em ${SECONDS}s"
+fi
+EOF
+  fi
+
   success ".zshrc configured"
 }

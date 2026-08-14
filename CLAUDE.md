@@ -66,3 +66,13 @@ Any new tool category should be added as a new `modules/steps/Install-<Category>
 ### WSL providers
 
 `wsl/providers/docker-compose.yml` runs PostgreSQL, Redis, pgAdmin, and Portainer. `setup-wsl.sh` copies this to `~/providers/` inside WSL and registers a systemd service for auto-start. Credentials live in `~/providers/.env` (not committed; see `.env.example`).
+
+### WSL startup timer
+
+The `setup-wsl.sh` provisioning script automatically adds a startup timer to both `.zshrc` (default shell) and `.bashrc`. When you open WSL from Windows Terminal (e.g. `wsl` command), you'll see:
+
+```
+⏱️  WSL iniciado em 3s
+```
+
+This is implemented via the built-in `$SECONDS` variable in bash/zsh, which counts seconds since shell initialization. The timer is added during the `provision_zshrc_config()` step in `wsl/lib/zsh.sh` and only displays once per session (guarded by `WSL_STARTUP_LOGGED` environment variable).
