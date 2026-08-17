@@ -1,17 +1,17 @@
 # =============================================================================
-# install-wsl.ps1 — WSL 2 + Ubuntu installation and configuration
+# install-wsl.ps1 — WSL 2 + Debian installation and configuration
 # Run as Administrator in PowerShell 7.6+, from the repo root
 #
 # Usage:
-#   powershell -ExecutionPolicy Bypass -File .\install-wsl.ps1 [-Distro ubuntu-24.04] [-SkipProvision]
+#   powershell -ExecutionPolicy Bypass -File .\install-wsl.ps1 [-Distro Debian] [-SkipProvision]
 #
 # See docs/execution-policy.md if you hit a "running scripts is disabled" error.
 # =============================================================================
 
 param(
-    # "ubuntu" tracks the latest Ubuntu LTS automatically (recommended).
-    # Use "Ubuntu-24.04" to pin to a specific release.
-    [string]$Distro        = "ubuntu",
+    # "Debian" tracks the current Debian release from the Microsoft Store
+    # (Debian 13 "trixie" as of writing).
+    [string]$Distro        = "Debian",
     [bool]  $SkipProvision = $false
 )
 

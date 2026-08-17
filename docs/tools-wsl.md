@@ -1,6 +1,6 @@
 # WSL Tools
 
-Tools installed inside the Ubuntu WSL environment by `setup-wsl.sh`. All Docker-based services run here; nothing requires Docker Desktop.
+Tools installed inside the Debian WSL environment by `setup-wsl.sh`. All Docker-based services run here; nothing requires Docker Desktop.
 
 ---
 

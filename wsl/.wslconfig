@@ -39,7 +39,7 @@ firewall=true
 
 # Caminho do disco virtual principal (padrão usado pelo WSL)
 # Descomente apenas se quiser mover o VHDX para outro local
-# vhdxPath=D:\\WSL\\Ubuntu-24.04\\ext4.vhdx
+# vhdxPath=D:\\WSL\\Debian\\ext4.vhdx
 
 # Tamanho máximo do disco virtual (expande conforme uso, até este limite)
 # Aumentar se precisar de mais espaço em disco para o WSL

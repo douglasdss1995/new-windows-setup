@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Automation for setting up a Windows development machine from scratch, targeting Django (Python) and Angular (TypeScript) workflows. Two independent halves:
 
 - **Windows side** (`setup-windows.ps1`, `windows/windows.config.psd1`) — installs tools on Windows via winget/Chocolatey
-- **WSL side** (`setup-wsl.sh`, `install-wsl.ps1`) — provisions the Ubuntu dev environment inside WSL 2, run from the repo root
+- **WSL side** (`setup-wsl.sh`, `install-wsl.ps1`) — provisions the Debian dev environment inside WSL 2, run from the repo root
 
 There are no build steps, no tests, and no linting pipeline. These are standalone scripts run manually.
 
@@ -21,11 +21,11 @@ powershell -ExecutionPolicy Bypass -File setup-windows.ps1
 **WSL setup** (PowerShell 7.6+ as Administrator, from repo root):
 ```powershell
 .\install-wsl.ps1                        # full setup
-.\install-wsl.ps1 -Distro Ubuntu-22.04   # different distro
+.\install-wsl.ps1 -Distro Debian         # explicit distro (also the default)
 .\install-wsl.ps1 -SkipProvision:$true   # skip setup-wsl.sh
 ```
 
-**WSL provisioning** (inside Ubuntu):
+**WSL provisioning** (inside Debian):
 ```bash
 bash setup-wsl.sh                  # everything
 bash setup-wsl.sh --skip-docker    # without Docker

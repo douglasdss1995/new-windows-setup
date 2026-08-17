@@ -75,6 +75,7 @@ fi
 # =============================================================================
 run_step "system_update" provision_system_update
 run_step "base_deps"     provision_base_deps
+run_step "locale"        provision_locale
 run_step "zsh_ohmyzsh"   provision_zsh_ohmyzsh
 run_step "mise_install"  provision_mise_install
 

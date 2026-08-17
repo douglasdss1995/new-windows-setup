@@ -1,6 +1,6 @@
 # setup-wsl.sh
 
-Provisions the development environment inside Ubuntu. See [`docs/tools-wsl.md`](./tools-wsl.md) for the full tool catalog.
+Provisions the development environment inside Debian. See [`docs/tools-wsl.md`](./tools-wsl.md) for the full tool catalog.
 
 **What it installs:**
 
