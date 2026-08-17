@@ -1,10 +1,17 @@
 # =============================================================================
 # docker-compose.yml — Providers (Serviços Compartilhados)
-# Serviços: PostgreSQL, Redis, pgAdmin, Portainer, MinIO
+# Serviços: PostgreSQL, Redis, Portainer, MinIO (automáticos)
+# pgAdmin e MailHog são manuais — ver profiles
 #
 # Este arquivo é copiado para ~/providers/ pelo provision.sh.
 # Para uso manual: cp -r wsl/providers ~/providers
 # =============================================================================
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 services:
 
@@ -12,6 +19,7 @@ services:
     image: postgres:18-alpine
     container_name: postgres
     restart: unless-stopped
+    logging: *default-logging
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -35,11 +43,18 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 256m
 
   redis:
     image: redis:7-alpine
     container_name: redis
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
@@ -53,11 +68,22 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 320m
+        reservations:
+          memory: 128m
 
+  # Não sobe automaticamente com `docker compose up -d`.
+  # Para iniciar manualmente: docker compose --profile pgadmin up -d pgadmin
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pgadmin
     restart: unless-stopped
+    profiles:
+      - pgadmin
+    logging: *default-logging
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}
@@ -72,11 +98,18 @@ services:
         condition: service_healthy
     networks:
       - shared-network
+    deploy:
+      resources:
+        limits:
+          memory: 256m
+        reservations:
+          memory: 128m
 
   minio:
     image: minio/minio:latest
     container_name: minio
     restart: unless-stopped
+    logging: *default-logging
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
@@ -94,11 +127,18 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 256m
 
   portainer:
     image: portainer/portainer-ce:latest
     container_name: portainer
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "${PORTAINER_HTTP_PORT:-8001}:9000"
       - "${PORTAINER_HTTPS_PORT:-8443}:8000"
@@ -107,6 +147,33 @@ services:
       - portainer_data:/data
     networks:
       - shared-network
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+        reservations:
+          memory: 64m
+
+  # Não sobe automaticamente com `docker compose up -d`.
+  # Para iniciar manualmente: docker compose --profile mailhog up -d mailhog
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    restart: unless-stopped
+    profiles:
+      - mailhog
+    logging: *default-logging
+    ports:
+      - "${MAILHOG_SMTP_PORT:-1025}:1025"
+      - "${MAILHOG_UI_PORT:-8025}:8025"
+    networks:
+      - shared-network
+    deploy:
+      resources:
+        limits:
+          memory: 128m
+        reservations:
+          memory: 64m
 
 networks:
   shared-network:
