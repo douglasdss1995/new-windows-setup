@@ -21,26 +21,26 @@ Provisions the development environment inside Debian. See [`docs/tools-wsl.md`](
 **Flags:**
 
 ```bash
-bash setup-wsl.sh                        # everything
-bash setup-wsl.sh --skip-docker          # without Docker (also skips all providers)
-bash setup-wsl.sh --skip-python          # without Python
-bash setup-wsl.sh --skip-node            # without Node
+bash wsl/setup-wsl.sh                        # everything
+bash wsl/setup-wsl.sh --skip-docker          # without Docker (also skips all providers)
+bash wsl/setup-wsl.sh --skip-python          # without Python
+bash wsl/setup-wsl.sh --skip-node            # without Node
 
 # Individual provider flags (requires Docker)
-bash setup-wsl.sh --skip-postgres        # without PostgreSQL (also skips pgAdmin)
-bash setup-wsl.sh --skip-redis           # without Redis
-bash setup-wsl.sh --skip-pgadmin         # without pgAdmin
-bash setup-wsl.sh --skip-portainer       # without Portainer
+bash wsl/setup-wsl.sh --skip-postgres        # without PostgreSQL (also skips pgAdmin)
+bash wsl/setup-wsl.sh --skip-redis           # without Redis
+bash wsl/setup-wsl.sh --skip-pgadmin         # without pgAdmin
+bash wsl/setup-wsl.sh --skip-portainer       # without Portainer
 ```
 
 Flags can be combined freely:
 
 ```bash
 # Docker + only Redis (no Postgres, pgAdmin or Portainer)
-bash setup-wsl.sh --skip-postgres --skip-pgadmin --skip-portainer
+bash wsl/setup-wsl.sh --skip-postgres --skip-pgadmin --skip-portainer
 
 # Everything except Docker and its providers
-bash setup-wsl.sh --skip-docker
+bash wsl/setup-wsl.sh --skip-docker
 ```
 
 > Re-running `setup-wsl.sh` with different flags regenerates the `docker-compose.yml` and updates the systemd service. The `.env` file is **never overwritten** — existing credentials are preserved.

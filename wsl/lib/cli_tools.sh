@@ -5,11 +5,11 @@ provision_cli_tools() {
   step "Installing CLI tools"
 
   if ! command -v rg &>/dev/null; then
-    sudo apt-get install -y -qq ripgrep
+    sudo apt-get install -y -q ripgrep
   fi
 
   if ! command -v fd &>/dev/null; then
-    sudo apt-get install -y -qq fd-find
+    sudo apt-get install -y -q fd-find
     if ! command -v fd &>/dev/null; then
       mkdir -p "$HOME/.local/bin"
       ln -sf "$(which fdfind)" "$HOME/.local/bin/fd"
@@ -17,7 +17,7 @@ provision_cli_tools() {
   fi
 
   if ! command -v bat &>/dev/null; then
-    sudo apt-get install -y -qq bat
+    sudo apt-get install -y -q bat
     if ! command -v bat &>/dev/null && command -v batcat &>/dev/null; then
       mkdir -p "$HOME/.local/bin"
       ln -sf "$(which batcat)" "$HOME/.local/bin/bat"
@@ -41,15 +41,15 @@ provision_cli_tools() {
   fi
 
   if ! command -v eza &>/dev/null; then
-    sudo apt-get install -y -qq gpg
+    sudo apt-get install -y -q gpg
     wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | sudo gpg --dearmor -o /etc/apt/keyrings/gierens.gpg
     echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list > /dev/null
     sudo chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list
-    sudo apt-get update -qq && sudo apt-get install -y -qq eza
+    sudo apt-get update -q && sudo apt-get install -y -q eza
   fi
 
   if ! command -v jq &>/dev/null; then
-    sudo apt-get install -y -qq jq
+    sudo apt-get install -y -q jq
   fi
 
   if ! command -v yq &>/dev/null; then
@@ -62,11 +62,11 @@ provision_cli_tools() {
     curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
     sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-    sudo apt-get update -qq && sudo apt-get install -y -qq gh
+    sudo apt-get update -q && sudo apt-get install -y -q gh
   fi
 
   if ! command -v direnv &>/dev/null; then
-    sudo apt-get install -y -qq direnv
+    sudo apt-get install -y -q direnv
   fi
 
   success "CLI tools installed"

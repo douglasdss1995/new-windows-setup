@@ -17,8 +17,9 @@ provision_gitkraken() {
   fi
 
   local deb_path="/tmp/gitkraken-amd64.deb"
-  curl -fsSL -o "$deb_path" "$GITKRAKEN_DEB_URL"
-  sudo apt-get install -y -qq "$deb_path" || sudo apt-get --fix-broken install -y -qq
+  info "Downloading GitKraken (~150 MB) - this can take a few minutes on a slow connection..."
+  curl -fSL -o "$deb_path" "$GITKRAKEN_DEB_URL"
+  sudo apt-get install -y -q "$deb_path" || sudo apt-get --fix-broken install -y -q
   rm -f "$deb_path"
 
   success "GitKraken installed - launch from WSL with: gitkraken"

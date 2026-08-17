@@ -1,9 +1,9 @@
 # =============================================================================
-# install-wsl.ps1 — WSL 2 + Debian installation and configuration
+# setup-wsl.ps1 — WSL 2 + Debian installation and configuration
 # Run as Administrator in PowerShell 7.6+, from the repo root
 #
 # Usage:
-#   powershell -ExecutionPolicy Bypass -File .\install-wsl.ps1 [-Distro Debian] [-SkipProvision]
+#   powershell -ExecutionPolicy Bypass -File .\setup-wsl.ps1 [-Distro Debian] [-SkipProvision]
 #
 # See docs/execution-policy.md if you hit a "running scripts is disabled" error.
 # =============================================================================
@@ -26,6 +26,34 @@ function Write-OK    { param($msg) Write-Host "[OK] $msg"   -ForegroundColor Gre
 function Write-Warn  { param($msg) Write-Host "[WARN] $msg" -ForegroundColor Yellow }
 function Write-Fail  { param($msg) Write-Host "[ERROR] $msg" -ForegroundColor Red; exit 1 }
 
+# Writes LF-normalized text content into a WSL distro without going through
+# PowerShell's pipe-to-native-stdin redirection, which silently reintroduces a
+# stray trailing `\r` (confirmed via `cat -A`) even when the source string only
+# contains `\n`. Instead, the content is written to a Windows temp file and read
+# back by bash's own `cat` via the file's /mnt/... path, so no PowerShell stdin
+# encoding is involved.
+function Copy-TextFileToWsl {
+    param(
+        [string]$Content,
+        [string]$Distro,
+        [string]$DestPath
+    )
+    $tempFile = [System.IO.Path]::GetTempFileName()
+    try {
+        [System.IO.File]::WriteAllText($tempFile, $Content, [System.Text.UTF8Encoding]::new($false))
+        $wslTempPath = (wsl -d $Distro -e wslpath -a $tempFile).Trim()
+        if (-not $wslTempPath) {
+            Write-Fail "wslpath could not resolve temp file '$tempFile' inside $Distro"
+        }
+        wsl -d $Distro -- bash -c "cat '$wslTempPath' > $DestPath"
+        if ($LASTEXITCODE -ne 0) {
+            Write-Fail "Failed to write $DestPath inside $Distro"
+        }
+    } finally {
+        Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+    }
+}
+
 # -----------------------------------------------------------------------------
 # Check Administrator
 # -----------------------------------------------------------------------------
@@ -39,8 +67,7 @@ if (-not ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdent
 # -----------------------------------------------------------------------------
 $markerFile = Join-Path $env:TEMP "wsl-setup-pending-restart.flag"
 
-# WSL config templates and lib/*.sh live under wsl/; setup-wsl.sh itself sits
-# next to this launcher at the repo root.
+# WSL config templates, lib/*.sh, and setup-wsl.sh itself all live under wsl/.
 $WslDir = Join-Path $PSScriptRoot "wsl"
 
 # -----------------------------------------------------------------------------
@@ -135,11 +162,27 @@ $isInstalled = $installedDistros -match [regex]::Escape($Distro)
 if (-not $isInstalled) {
     Write-Host "  Installing $Distro..." -ForegroundColor Yellow
     wsl --install -d $Distro --no-launch
+    $installExitCode = $LASTEXITCODE
+
+    # `wsl --install` can print a network error (e.g. 0x80072eff) yet still
+    # exit 0, so don't trust the exit code alone - verify the distro actually
+    # shows up in `wsl --list` before declaring success.
+    $installedDistros = (wsl --list --quiet 2>$null) -replace "`0", ""
+    $isInstalled = $installedDistros -match [regex]::Escape($Distro)
+
+    if ($installExitCode -ne 0 -or -not $isInstalled) {
+        Write-Fail "$Distro installation failed (exit code $installExitCode). This is usually a network issue - check your connection/VPN/firewall and rerun the script. You can also try 'wsl --install -d $Distro --no-launch' manually to see the raw error."
+    }
+
     Write-OK "$Distro installed"
-    Write-Warn "First run requires creating a user. Launch it manually once before continuing."
-    Write-Host "`n  Run: wsl -d $Distro" -ForegroundColor Cyan
-    Write-Host "  Create your user and password, then run this script again.`n" -ForegroundColor Cyan
-    exit 0
+
+    # First boot needs an interactive TTY to create the Linux user/password,
+    # which this script can't feed non-interactively. Open it in its own
+    # console window and wait here instead of making the user rerun the script.
+    Write-Warn "First run requires creating a user."
+    Write-Host "  Opening $Distro in a new window - create your username and password there..." -ForegroundColor Cyan
+    Start-Process wsl.exe -ArgumentList "-d", $Distro
+    Read-Host "`n  Press Enter here once you've finished creating your user in the $Distro window"
 } else {
     Write-OK "$Distro already installed"
 }
@@ -171,13 +214,15 @@ if (Test-Path $wslConfSrc) {
     # silent parse failures in systemd and automount.
     $wslConfContent = (Get-Content $wslConfSrc -Raw) -replace "`r`n", "`n" -replace "`r", "`n"
 
-    # Step 1: write to a temp file in the user home via pipe (no sudo — stdin is
-    #         occupied by the pipe so sudo would hang waiting for the password).
-    $wslConfContent | wsl -d $Distro -- bash -c "cat > ~/wsl.conf.tmp"
+    # Step 1: write to a temp file in the user home (no sudo — that's step 2).
+    Copy-TextFileToWsl -Content $wslConfContent -Distro $Distro -DestPath "~/wsl.conf.tmp"
 
     # Step 2: move to /etc/wsl.conf with sudo in a separate call that has a TTY,
     #         so the password prompt works if the user hasn't cached credentials.
-    wsl -d $Distro -- sudo mv ~/wsl.conf.tmp /etc/wsl.conf
+    # Wrapped in `bash -c` (not passed raw to `wsl --`) so `~` is expanded by a
+    # known bash process instead of whatever shell WSL picks for bare argv, which
+    # can resolve it inconsistently.
+    wsl -d $Distro -- bash -c "sudo mv ~/wsl.conf.tmp /etc/wsl.conf"
 
     Write-OK "wsl.conf configured at /etc/wsl.conf"
 } else {
@@ -247,7 +292,7 @@ Write-OK "WSL restarted"
 if (-not $SkipProvision) {
     Write-Step "Running setup-wsl.sh in distro $Distro"
 
-    $provisionSrc = Join-Path $PSScriptRoot "setup-wsl.sh"
+    $provisionSrc = Join-Path $WslDir "setup-wsl.sh"
     $libSrcDir    = Join-Path $WslDir "lib"
 
     if (-not (Test-Path $provisionSrc)) {
@@ -258,19 +303,20 @@ if (-not $SkipProvision) {
     }
 
     # Transfer lib/*.sh first (same CRLF-stripping treatment as setup-wsl.sh),
-    # preserving the same relative layout setup-wsl.sh expects: ~/lib/*.sh next to ~/setup-wsl.sh.
-    wsl -d $Distro -- bash -c "mkdir -p ~/lib"
+    # preserving the same relative layout setup-wsl.sh expects: ~/wsl/lib/*.sh next to ~/wsl/setup-wsl.sh.
+    wsl -d $Distro -- bash -c "mkdir -p ~/wsl/lib"
     Get-ChildItem -Path $libSrcDir -Filter "*.sh" | ForEach-Object {
         $libContent = (Get-Content $_.FullName -Raw) -replace "`r`n", "`n" -replace "`r", "`n"
-        $libContent | wsl -d $Distro -- bash -c "cat > ~/lib/$($_.Name)"
+        Copy-TextFileToWsl -Content $libContent -Distro $Distro -DestPath "~/wsl/lib/$($_.Name)"
     }
-    Write-OK "provision lib files copied to ~/lib"
+    Write-OK "provision lib files copied to ~/wsl/lib"
 
-    # Copy setup-wsl.sh to the Linux home directory and strip CRLF line endings.
+    # Copy setup-wsl.sh next to ~/wsl/lib and strip CRLF line endings.
     # Running directly from /mnt/c/... is slower (cross-OS filesystem) and breaks
     # if the file was saved with Windows CRLF endings (\r\n causes bash errors).
     $provisionContent = (Get-Content $provisionSrc -Raw) -replace "`r`n", "`n" -replace "`r", "`n"
-    $provisionContent | wsl -d $Distro -- bash -c "cat > ~/setup-wsl.sh && chmod +x ~/setup-wsl.sh"
+    Copy-TextFileToWsl -Content $provisionContent -Distro $Distro -DestPath "~/wsl/setup-wsl.sh"
+    wsl -d $Distro -- bash -c "chmod +x ~/wsl/setup-wsl.sh"
 
     # -------------------------------------------------------------------------
     # Resolve the repo root's WSL mount path, so setup-wsl.sh can symlink the
@@ -307,7 +353,10 @@ if (-not $SkipProvision) {
     if ($gitUserEmail) { $provisionArgs += " --git-email=`"$gitUserEmail`"" }
 
     # Run from the Linux home directory
-    wsl -d $Distro -- bash -c "bash ~/setup-wsl.sh $provisionArgs"
+    wsl -d $Distro -- bash -c "bash ~/wsl/setup-wsl.sh $provisionArgs"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Fail "setup-wsl.sh failed inside $Distro (exit code $LASTEXITCODE) - see output above"
+    }
 
     Write-OK "setup-wsl.sh executed successfully"
 

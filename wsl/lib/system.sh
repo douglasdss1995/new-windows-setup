@@ -3,7 +3,7 @@
 
 provision_system_update() {
   step "Updating system packages"
-  sudo apt-get update -qq && sudo apt-get upgrade -y -qq
+  sudo apt-get update -q && sudo apt-get upgrade -y -q
   success "System updated"
 }
 
@@ -15,7 +15,7 @@ provision_system_update() {
 provision_locale() {
   step "Configuring locale (en_US.UTF-8)"
   if ! locale -a 2>/dev/null | grep -qi 'en_US.utf8'; then
-    sudo apt-get install -y -qq locales
+    sudo apt-get install -y -q locales
     sudo sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
     sudo locale-gen en_US.UTF-8
     sudo update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
@@ -27,7 +27,7 @@ provision_locale() {
 
 provision_base_deps() {
   step "Installing base dependencies"
-  sudo apt-get install -y -qq \
+  sudo apt-get install -y -q \
     build-essential \
     curl \
     wget \
@@ -37,7 +37,6 @@ provision_base_deps() {
     ca-certificates \
     gnupg \
     lsb-release \
-    software-properties-common \
     apt-transport-https \
     libssl-dev \
     libffi-dev \
@@ -54,5 +53,23 @@ provision_base_deps() {
     llvm \
     make \
     gpg
+
+  # Every later step (mise, python, node, cli_tools, docker...) assumes curl,
+  # wget and git are on PATH. apt-get can exit 0 yet still be missing some of
+  # these — e.g. an unresolvable package aborting the whole transaction (seen
+  # with the now-removed software-properties-common), or the install getting
+  # interrupted (Ctrl+C) without apt surfacing it as a failure. Verify
+  # explicitly instead of trusting apt's exit code, so a broken base install
+  # is reported as a failed step (and retried on rerun) instead of silently
+  # cascading into "command not found" across every later step.
+  local missing=()
+  for bin in curl wget git; do
+    command -v "$bin" &>/dev/null || missing+=("$bin")
+  done
+  if [ "${#missing[@]}" -gt 0 ]; then
+    warn "Base dependencies reported success but missing: ${missing[*]} - rerun the script"
+    return 1
+  fi
+
   success "Base dependencies installed"
 }
