@@ -35,17 +35,16 @@ firewall=true
 
 # --- Armazenamento ------------------------------------------------------------
 
-# --- Armazenamento ------------------------------------------------------------
-
 # Caminho do disco virtual principal (padrão usado pelo WSL)
 # Descomente apenas se quiser mover o VHDX para outro local
 # vhdxPath=D:\\WSL\\Debian\\ext4.vhdx
 
-# Tamanho máximo do disco virtual
+# Tamanho máximo do disco virtual (só se aplica na CRIAÇÃO do VHD; não redimensiona
+# uma distro já instalada — use "wsl --manage <Distro> --resize <tamanho>" para isso)
 # O comportamento é expandir conforme uso, até este limite
 # O WSL 2 não suporta encolher o disco virtual, então escolha um tamanho adequado
 # Fixado em 256 GB para evitar que o WSL consuma espaço indefinidamente
-diskSizeGB=256
+defaultVhdSize=256GB
 
 # --- Debug (desabilitado em produção) -----------------------------------------
 # debugConsole=false

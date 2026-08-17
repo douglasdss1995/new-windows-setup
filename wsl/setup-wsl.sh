@@ -13,9 +13,9 @@
 set -euo pipefail
 
 # Compute paths once — used for sourcing lib files and REPO_PATH auto-detect.
-# This script lives at the repo root; lib/*.sh stays under wsl/.
+# This script lives under wsl/, alongside lib/*.sh.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIB_DIR="$SCRIPT_DIR/wsl/lib"
+LIB_DIR="$SCRIPT_DIR/lib"
 
 # Source library functions (definitions only — nothing executes yet)
 source "$LIB_DIR/logging.sh"
@@ -71,11 +71,13 @@ for arg in "$@"; do
 done
 
 # Fallback: if not passed explicitly (e.g. running this script standalone,
-# outside the install-wsl.ps1 flow), auto-detect the repo root's git/.gitconfig,
-# in case this script is run from a full clone.
+# outside the setup-wsl.ps1 flow), auto-detect the repo root's git/.gitconfig,
+# in case this script is run from a full clone (repo root is one level up from
+# this script's wsl/ directory).
 if [ -z "$REPO_PATH" ]; then
-  if [ -f "$SCRIPT_DIR/git/.gitconfig" ]; then
-    REPO_PATH="$SCRIPT_DIR"
+  REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+  if [ -f "$REPO_ROOT/git/.gitconfig" ]; then
+    REPO_PATH="$REPO_ROOT"
   fi
 fi
 

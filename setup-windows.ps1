@@ -482,7 +482,7 @@ if ($cfg.Database.SQLiteBrowser) { Install-Pkg "DB Browser SQLite" "DBBrowserFor
 Write-Step "Docker and Infrastructure"
 
 Write-Info "Docker runs via native Docker Engine in WSL - no Docker Desktop needed."
-Write-Info "Run the setup-wsl.sh script inside WSL to install and configure it."
+Write-Info "Run setup-wsl.ps1 to install and configure it."
 Write-Info "Benefit: ~50-150 MB RAM vs ~1 GB for Docker Desktop."
 
 # =============================================================================
@@ -774,5 +774,5 @@ Write-Host "  1. Restart the computer to apply PATH changes"
 Write-Host "  2. Authenticate with GitHub:"
 Write-Host "       gh auth login"
 Write-Host "  3. Configure WSL:"
-Write-Host "       powershell -ExecutionPolicy Bypass -File .\install-wsl.ps1"
+Write-Host "       powershell -ExecutionPolicy Bypass -File .\setup-wsl.ps1"
 Write-Host ""

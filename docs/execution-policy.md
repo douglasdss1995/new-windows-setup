@@ -14,7 +14,7 @@ Choose **one** of the options below.
 powershell -ExecutionPolicy Bypass -File .\setup-windows.ps1
 ```
 
-Use this for every script in the repo (`install-wsl.ps1`, `git-clone.ps1`, etc.) by swapping the file name. It only affects the process that runs the command — nothing changes on the machine, so there's nothing to remember to revert.
+Use this for every script in the repo (`setup-wsl.ps1`, `git-clone.ps1`, etc.) by swapping the file name. It only affects the process that runs the command — nothing changes on the machine, so there's nothing to remember to revert.
 
 ## Option B — Current user only (permanent)
 

@@ -3,7 +3,7 @@
 
 provision_zsh_ohmyzsh() {
   step "Installing Zsh + Oh My Zsh"
-  sudo apt-get install -y -qq zsh
+  sudo apt-get install -y -q zsh
 
   if [ ! -d "$HOME/.oh-my-zsh" ]; then
     RUNZSH=no CHSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"

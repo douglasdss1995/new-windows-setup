@@ -10,8 +10,7 @@ Automation for setting up a Windows development machine from scratch, focused on
 new-windows-setup/
 ├── ferramentas.md              # Complete catalog of recommended tools
 ├── setup-windows.ps1           # Installs all tools on Windows via winget/choco
-├── install-wsl.ps1             # Enables and configures WSL 2 + Debian
-├── setup-wsl.sh                # Provisions the dev environment inside Debian
+├── setup-wsl.ps1               # Enables and configures WSL 2 + Debian
 ├── git-clone.ps1               # Batch-clones repos listed in git/git-repos.config.psd1
 ├── docs/                       # Per-file/config explanations (see Documentation below)
 ├── windows/
@@ -26,6 +25,7 @@ new-windows-setup/
 └── wsl/
     ├── .wslconfig              # Global WSL configuration (memory, CPU, network)
     ├── wsl.conf                # Internal distro Linux configuration
+    ├── setup-wsl.sh            # Provisions the dev environment inside Debian
     ├── lib/                    # setup-wsl.sh step implementations
     └── providers/              # Shared services compose reference
         ├── docker-compose.yml
@@ -43,7 +43,7 @@ new-windows-setup/
 - Windows 10 (21H2+) or Windows 11
 - PowerShell running as **Administrator**
   - `setup-windows.ps1` — Windows PowerShell 5.1 or PowerShell 7
-  - `install-wsl.ps1` — **PowerShell 7.6** or later (required)
+  - `setup-wsl.ps1` — **PowerShell 7.6** or later (required)
 - Internet connection
 
 ---
@@ -61,7 +61,7 @@ Copy-Item git\git-repos.config.psd1.example git\git-repos.config.psd1
 
 Controls which tools are installed on Windows. Set each flag to `$true` (install) or `$false` (skip).
 
-Start by filling in your Git identity. This is the **single source of truth** for your Git identity — `setup-windows.ps1` applies it on Windows, and `install-wsl.ps1` reads the same file and passes it through to `setup-wsl.sh` so it's applied inside WSL too (see [.gitconfig](./docs/gitconfig.md)):
+Start by filling in your Git identity. This is the **single source of truth** for your Git identity — `setup-windows.ps1` applies it on Windows, and `setup-wsl.ps1` reads the same file and passes it through to `setup-wsl.sh` so it's applied inside WSL too (see [.gitconfig](./docs/gitconfig.md)):
 
 ```powershell
 Git = @{
@@ -143,7 +143,7 @@ Next steps:
   2. Authenticate with GitHub:
        gh auth login
   3. Configure WSL:
-       powershell -ExecutionPolicy Bypass -File .\install-wsl.ps1
+       powershell -ExecutionPolicy Bypass -File .\setup-wsl.ps1
 ```
 
 See [docs/setup-windows.md](./docs/setup-windows.md) for the full list of what gets installed.
@@ -154,21 +154,19 @@ See [docs/setup-windows.md](./docs/setup-windows.md) for the full list of what g
 
 ```powershell
 # PowerShell 7.6 as Administrator, from the repo root
-powershell -ExecutionPolicy Bypass -File .\install-wsl.ps1
+powershell -ExecutionPolicy Bypass -File .\setup-wsl.ps1
 ```
 
-**If Debian is not yet installed**, the script installs the distro and pauses:
+**If Debian is not yet installed**, the script installs the distro, then automatically opens it in its own window and pauses:
 
 ```
-[WARN] First run requires creating a user. Launch it manually once before continuing.
-
-  Run: wsl -d Debian
-  Create your user and password, then run this script again.
+[WARN] First run requires creating a user.
+  Opening Debian in a new window - create your username and password there...
 ```
 
-Open a new terminal, run `wsl -d Debian`, enter a username and password when prompted, then exit WSL and run the install command again to complete the setup.
+Create your username and password in that new window, then return to the original window and press Enter to let the script continue — no need to rerun it.
 
-On the second run, the script applies the configuration and automatically runs `setup-wsl.sh` inside WSL. Details in [docs/install-wsl.md](./docs/install-wsl.md) and [docs/setup-wsl.md](./docs/setup-wsl.md).
+The script then applies the rest of the configuration and automatically runs `wsl/setup-wsl.sh` inside WSL. Details in [docs/setup-wsl-on-windows.md](./docs/setup-wsl-on-windows.md) and [docs/setup-wsl.md](./docs/setup-wsl.md).
 
 ### Step 3 — Clone repositories
 
@@ -198,8 +196,8 @@ Detailed explanations of each script and config file live in [`docs/`](./docs/):
 | --- | --- |
 | [execution-policy.md](./docs/execution-policy.md) | Working around Windows' script execution block |
 | [setup-windows.md](./docs/setup-windows.md) | What `setup-windows.ps1` installs and its "Next steps" output |
-| [install-wsl.md](./docs/install-wsl.md) | What `install-wsl.ps1` does and its first-run flow |
-| [setup-wsl.md](./docs/setup-wsl.md) | What `setup-wsl.sh` provisions and its `--skip-*` flags |
+| [setup-wsl-on-windows.md](./docs/setup-wsl-on-windows.md) | What `setup-wsl.ps1` does and its first-run flow |
+| [setup-wsl.md](./docs/setup-wsl.md) | What `wsl/setup-wsl.sh` provisions and its `--skip-*` flags |
 | [gitconfig.md](./docs/gitconfig.md) | How the shared `.gitconfig` and identity are applied on both OSes |
 | [wslconfig.md](./docs/wslconfig.md) | `.wslconfig` (memory/CPU/network) settings |
 | [wsl-conf.md](./docs/wsl-conf.md) | `/etc/wsl.conf` settings inside the distro |

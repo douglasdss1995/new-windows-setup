@@ -148,13 +148,13 @@ Infrastructure services shared across all projects, managed at `~/providers/dock
 Each provider can be individually included or excluded via `--skip-*` flags when running `setup-wsl.sh`:
 
 ```bash
-bash setup-wsl.sh --skip-postgres        # no PostgreSQL (also skips pgAdmin)
-bash setup-wsl.sh --skip-redis           # no Redis
-bash setup-wsl.sh --skip-pgadmin         # no pgAdmin
-bash setup-wsl.sh --skip-portainer       # no Portainer
+bash wsl/setup-wsl.sh --skip-postgres        # no PostgreSQL (also skips pgAdmin)
+bash wsl/setup-wsl.sh --skip-redis           # no Redis
+bash wsl/setup-wsl.sh --skip-pgadmin         # no pgAdmin
+bash wsl/setup-wsl.sh --skip-portainer       # no Portainer
 
 # Example: Docker + only Redis
-bash setup-wsl.sh --skip-postgres --skip-pgadmin --skip-portainer
+bash wsl/setup-wsl.sh --skip-postgres --skip-pgadmin --skip-portainer
 ```
 
 Re-running with different flags regenerates `docker-compose.yml` and updates the systemd service.
