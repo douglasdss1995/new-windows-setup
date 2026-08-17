@@ -16,6 +16,9 @@ provision_summary() {
     [ -z "$GIT_EMAIL" ]    && echo "       git config --file ~/.gitconfig.local user.email 'your@email.com'"
   fi
   echo "  $STEP. Authenticate with GitHub: gh auth login"; STEP=$((STEP + 1))
+  if [ "$SKIP_GITKRAKEN" = false ]; then
+    echo "  $STEP. Launch GitKraken (WSL repos only - use the Windows install for /mnt/c repos): gitkraken"; STEP=$((STEP + 1))
+  fi
   if [ "$SKIP_DOCKER" = false ]; then
     echo "  $STEP. For Docker without sudo: restart WSL session (wsl --shutdown in PowerShell)"; STEP=$((STEP + 1))
     if [ -n "${ENABLED_PROVIDERS:-}" ]; then

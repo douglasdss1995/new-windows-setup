@@ -41,9 +41,11 @@ firewall=true
 # Descomente apenas se quiser mover o VHDX para outro local
 # vhdxPath=D:\\WSL\\Debian\\ext4.vhdx
 
-# Tamanho máximo do disco virtual (expande conforme uso, até este limite)
-# Aumentar se precisar de mais espaço em disco para o WSL
-# diskSizeGB=256
+# Tamanho máximo do disco virtual
+# O comportamento é expandir conforme uso, até este limite
+# O WSL 2 não suporta encolher o disco virtual, então escolha um tamanho adequado
+# Fixado em 256 GB para evitar que o WSL consuma espaço indefinidamente
+diskSizeGB=256
 
 # --- Debug (desabilitado em produção) -----------------------------------------
 # debugConsole=false
