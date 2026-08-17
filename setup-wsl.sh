@@ -4,6 +4,8 @@
 # Usage: bash setup-wsl.sh [--skip-docker] [--skip-node] [--skip-python]
 #                          [--skip-postgres] [--skip-redis]
 #                          [--skip-pgadmin] [--skip-minio] [--skip-portainer]
+#                          [--skip-gitkraken] [--skip-keyboard]
+#                          [--keyboard-layout=br] [--keyboard-variant=abnt2]
 #                          [--repo-path=/mnt/x/path/to/new-windows-setup]
 #                          [--git-username="Your Name"] [--git-email=you@example.com]
 # =============================================================================
@@ -24,6 +26,7 @@ source "$LIB_DIR/python.sh"
 source "$LIB_DIR/node.sh"
 source "$LIB_DIR/cli_tools.sh"
 source "$LIB_DIR/docker.sh"
+source "$LIB_DIR/gitkraken.sh"
 source "$LIB_DIR/git_config.sh"
 source "$LIB_DIR/providers.sh"
 source "$LIB_DIR/summary.sh"
@@ -39,23 +42,31 @@ SKIP_REDIS=false
 SKIP_PGADMIN=false
 SKIP_PORTAINER=false
 SKIP_MINIO=false
+SKIP_GITKRAKEN=false
+SKIP_KEYBOARD=false
+KEYBOARD_LAYOUT="br"
+KEYBOARD_VARIANT="abnt2"
 REPO_PATH=""
 GIT_USERNAME=""
 GIT_EMAIL=""
 
 for arg in "$@"; do
   case $arg in
-    --skip-docker)      SKIP_DOCKER=true ;;
-    --skip-node)        SKIP_NODE=true ;;
-    --skip-python)      SKIP_PYTHON=true ;;
-    --skip-postgres)    SKIP_POSTGRES=true ;;
-    --skip-redis)       SKIP_REDIS=true ;;
-    --skip-pgadmin)     SKIP_PGADMIN=true ;;
-    --skip-portainer)   SKIP_PORTAINER=true ;;
-    --skip-minio)       SKIP_MINIO=true ;;
-    --repo-path=*)      REPO_PATH="${arg#*=}" ;;
-    --git-username=*)   GIT_USERNAME="${arg#*=}" ;;
-    --git-email=*)      GIT_EMAIL="${arg#*=}" ;;
+    --skip-docker)          SKIP_DOCKER=true ;;
+    --skip-node)            SKIP_NODE=true ;;
+    --skip-python)          SKIP_PYTHON=true ;;
+    --skip-postgres)        SKIP_POSTGRES=true ;;
+    --skip-redis)           SKIP_REDIS=true ;;
+    --skip-pgadmin)         SKIP_PGADMIN=true ;;
+    --skip-portainer)       SKIP_PORTAINER=true ;;
+    --skip-minio)           SKIP_MINIO=true ;;
+    --skip-gitkraken)       SKIP_GITKRAKEN=true ;;
+    --skip-keyboard)        SKIP_KEYBOARD=true ;;
+    --keyboard-layout=*)    KEYBOARD_LAYOUT="${arg#*=}" ;;
+    --keyboard-variant=*)   KEYBOARD_VARIANT="${arg#*=}" ;;
+    --repo-path=*)          REPO_PATH="${arg#*=}" ;;
+    --git-username=*)       GIT_USERNAME="${arg#*=}" ;;
+    --git-email=*)          GIT_EMAIL="${arg#*=}" ;;
   esac
 done
 
@@ -85,6 +96,9 @@ run_step "mise_install"  provision_mise_install
 run_step "cli_tools" provision_cli_tools
 
 [ "$SKIP_DOCKER" = false ] && run_step "docker" provision_docker
+
+[ "$SKIP_GITKRAKEN" = false ] && run_step "gitkraken"       provision_gitkraken
+[ "$SKIP_KEYBOARD" = false ]  && run_step "keyboard_layout" provision_keyboard_layout
 
 run_step "git_config"    provision_git_config
 run_step "zshrc_config"  provision_zshrc_config
