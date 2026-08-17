@@ -10,8 +10,8 @@ Automation for setting up a Windows development machine from scratch, focused on
 new-windows-setup/
 ├── ferramentas.md              # Complete catalog of recommended tools
 ├── setup-windows.ps1           # Installs all tools on Windows via winget/choco
-├── install-wsl.ps1             # Enables and configures WSL 2 + Ubuntu
-├── setup-wsl.sh                # Provisions the dev environment inside Ubuntu
+├── install-wsl.ps1             # Enables and configures WSL 2 + Debian
+├── setup-wsl.sh                # Provisions the dev environment inside Debian
 ├── git-clone.ps1               # Batch-clones repos listed in git/git-repos.config.psd1
 ├── docs/                       # Per-file/config explanations (see Documentation below)
 ├── windows/
@@ -157,16 +157,16 @@ See [docs/setup-windows.md](./docs/setup-windows.md) for the full list of what g
 powershell -ExecutionPolicy Bypass -File .\install-wsl.ps1
 ```
 
-**If Ubuntu is not yet installed**, the script installs the distro and pauses:
+**If Debian is not yet installed**, the script installs the distro and pauses:
 
 ```
 [WARN] First run requires creating a user. Launch it manually once before continuing.
 
-  Run: wsl -d ubuntu
+  Run: wsl -d Debian
   Create your user and password, then run this script again.
 ```
 
-Open a new terminal, run `wsl -d ubuntu`, enter a username and password when prompted, then exit WSL and run the install command again to complete the setup.
+Open a new terminal, run `wsl -d Debian`, enter a username and password when prompted, then exit WSL and run the install command again to complete the setup.
 
 On the second run, the script applies the configuration and automatically runs `setup-wsl.sh` inside WSL. Details in [docs/install-wsl.md](./docs/install-wsl.md) and [docs/setup-wsl.md](./docs/setup-wsl.md).
 
