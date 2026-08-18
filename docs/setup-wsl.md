@@ -14,7 +14,7 @@ Provisions the development environment inside Debian. See [`docs/tools-wsl.md`](
 | CLI          | ripgrep, fd, bat, eza, fzf, zoxide, delta, jq, yq, gh                                    |
 | direnv       | Per-directory environment variable loading (`.envrc` files)                              |
 | Docker       | Native daemon (no Docker Desktop) + systemd enable (auto-start)                          |
-| Providers    | PostgreSQL, Redis, pgAdmin, Portainer via compose at `~/providers/` (see [Providers](./providers.md)) |
+| Providers    | Redis, Portainer via compose at `~/providers/`; PostgreSQL and pgAdmin are opt-in (see [Providers](./providers.md)) |
 | Git          | Shared `.gitconfig` symlinked from the repo (see [.gitconfig](./gitconfig.md))           |
 | Shell config | `.zshrc` with aliases for Django, Git, Docker, Python, Providers (`pvup`, `pvdown`...)  |
 
@@ -27,17 +27,20 @@ bash wsl/setup-wsl.sh --skip-python          # without Python
 bash wsl/setup-wsl.sh --skip-node            # without Node
 
 # Individual provider flags (requires Docker)
-bash wsl/setup-wsl.sh --skip-postgres        # without PostgreSQL (also skips pgAdmin)
+bash wsl/setup-wsl.sh --with-postgres        # also install PostgreSQL (opt-in)
+bash wsl/setup-wsl.sh --with-pgadmin         # also install pgAdmin (requires --with-postgres)
 bash wsl/setup-wsl.sh --skip-redis           # without Redis
-bash wsl/setup-wsl.sh --skip-pgadmin         # without pgAdmin
 bash wsl/setup-wsl.sh --skip-portainer       # without Portainer
 ```
 
 Flags can be combined freely:
 
 ```bash
-# Docker + only Redis (no Postgres, pgAdmin or Portainer)
-bash wsl/setup-wsl.sh --skip-postgres --skip-pgadmin --skip-portainer
+# Docker + Redis only (the default — PostgreSQL and pgAdmin are opt-in)
+bash wsl/setup-wsl.sh
+
+# Docker + Redis + PostgreSQL + pgAdmin
+bash wsl/setup-wsl.sh --with-postgres --with-pgadmin
 
 # Everything except Docker and its providers
 bash wsl/setup-wsl.sh --skip-docker

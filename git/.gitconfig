@@ -63,3 +63,5 @@
     br = branch
     lg = log --graph --oneline --decorate --all
 	pushf = push --force-with-lease
+[credential]
+	helper = /mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe

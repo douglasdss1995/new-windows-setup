@@ -2,8 +2,8 @@
 # =============================================================================
 # setup-wsl.sh — WSL environment provisioning for Django + Angular dev
 # Usage: bash setup-wsl.sh [--skip-docker] [--skip-node] [--skip-python]
-#                          [--skip-postgres] [--skip-redis]
-#                          [--skip-pgadmin] [--skip-minio] [--skip-portainer]
+#                          [--with-postgres] [--skip-redis]
+#                          [--with-pgadmin] [--skip-minio] [--skip-portainer]
 #                          [--skip-gitkraken] [--skip-keyboard]
 #                          [--keyboard-layout=br] [--keyboard-variant=abnt2]
 #                          [--repo-path=/mnt/x/path/to/new-windows-setup]
@@ -37,9 +37,11 @@ source "$LIB_DIR/summary.sh"
 SKIP_DOCKER=false
 SKIP_NODE=false
 SKIP_PYTHON=false
-SKIP_POSTGRES=false
+# PostgreSQL and pgAdmin are opt-in (not needed by every project) — enable
+# with --with-postgres / --with-pgadmin. All other providers default on.
+SKIP_POSTGRES=true
 SKIP_REDIS=false
-SKIP_PGADMIN=false
+SKIP_PGADMIN=true
 SKIP_PORTAINER=false
 SKIP_MINIO=false
 SKIP_GITKRAKEN=false
@@ -55,9 +57,9 @@ for arg in "$@"; do
     --skip-docker)          SKIP_DOCKER=true ;;
     --skip-node)            SKIP_NODE=true ;;
     --skip-python)          SKIP_PYTHON=true ;;
-    --skip-postgres)        SKIP_POSTGRES=true ;;
+    --with-postgres)        SKIP_POSTGRES=false ;;
     --skip-redis)           SKIP_REDIS=true ;;
-    --skip-pgadmin)         SKIP_PGADMIN=true ;;
+    --with-pgadmin)         SKIP_PGADMIN=false ;;
     --skip-portainer)       SKIP_PORTAINER=true ;;
     --skip-minio)           SKIP_MINIO=true ;;
     --skip-gitkraken)       SKIP_GITKRAKEN=true ;;
