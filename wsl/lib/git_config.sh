@@ -19,7 +19,7 @@ provision_git_config() {
     [ -n "$GIT_USERNAME" ] && git config --file "$HOME/.gitconfig.local" user.name "$GIT_USERNAME"
     [ -n "$GIT_EMAIL" ]    && git config --file "$HOME/.gitconfig.local" user.email "$GIT_EMAIL"
 
-    local GCM_PATH="/mnt/c/Program Files/Git/mingw64/libexec/git-core/git-credential-manager.exe"
+    local GCM_PATH="/mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe"
     if [ -f "$GCM_PATH" ]; then
       git config --file "$HOME/.gitconfig.local" credential.helper "$GCM_PATH"
       info "Git Credential Manager (Windows) configured"
@@ -54,7 +54,7 @@ provision_git_config() {
     [ -n "$GIT_USERNAME" ] && git config --global user.name "$GIT_USERNAME"
     [ -n "$GIT_EMAIL" ]    && git config --global user.email "$GIT_EMAIL"
 
-    local GCM_PATH="/mnt/c/Program Files/Git/mingw64/libexec/git-core/git-credential-manager.exe"
+    local GCM_PATH="/mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe"
     if [ -f "$GCM_PATH" ]; then
       git config --global credential.helper "$GCM_PATH"
       info "Git Credential Manager (Windows) configured"
