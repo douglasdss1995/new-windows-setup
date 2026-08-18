@@ -140,21 +140,21 @@ Infrastructure services shared across all projects, managed at `~/providers/dock
 
 | Service | Image | Port | Description |
 |---|---|---|---|
-| PostgreSQL | `postgres:15-alpine` | 5432 | Primary relational database |
+| PostgreSQL | `postgres:15-alpine` | 5432 | Primary relational database (opt-in) |
 | Redis | `redis:7-alpine` | 6379 | Cache, queues (Celery) and sessions |
-| pgAdmin | `dpage/pgadmin4` | 5050 | Web UI for PostgreSQL |
+| pgAdmin | `dpage/pgadmin4` | 5050 | Web UI for PostgreSQL (opt-in) |
 | Portainer | `portainer/portainer-ce` | 9000 / 9443 | Web UI for managing containers |
 
-Each provider can be individually included or excluded via `--skip-*` flags when running `setup-wsl.sh`:
+PostgreSQL and pgAdmin are **not installed by default** — enable them explicitly with `--with-postgres` / `--with-pgadmin`. Every other provider can be excluded via `--skip-*` flags when running `setup-wsl.sh`:
 
 ```bash
-bash wsl/setup-wsl.sh --skip-postgres        # no PostgreSQL (also skips pgAdmin)
+bash wsl/setup-wsl.sh --with-postgres        # also install PostgreSQL
+bash wsl/setup-wsl.sh --with-postgres --with-pgadmin   # PostgreSQL + pgAdmin (pgAdmin requires PostgreSQL)
 bash wsl/setup-wsl.sh --skip-redis           # no Redis
-bash wsl/setup-wsl.sh --skip-pgadmin         # no pgAdmin
 bash wsl/setup-wsl.sh --skip-portainer       # no Portainer
 
-# Example: Docker + only Redis
-bash wsl/setup-wsl.sh --skip-postgres --skip-pgadmin --skip-portainer
+# Example: Docker + only Redis (the default — no flags needed)
+bash wsl/setup-wsl.sh
 ```
 
 Re-running with different flags regenerates `docker-compose.yml` and updates the systemd service.
