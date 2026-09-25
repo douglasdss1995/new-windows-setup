@@ -186,7 +186,7 @@ function Install-JetBrainsTool {
             try {
                 $lockData = Get-Content $portFile -Raw -ErrorAction Stop | ConvertFrom-Json
                 $apiPort  = $lockData.port
-            } catch { }
+            } catch { Write-Verbose "Toolbox lock file unreadable: $_" }
         }
 
         # Fallback: scan common Toolbox port range (63342-63352)
@@ -195,7 +195,7 @@ function Install-JetBrainsTool {
                 try {
                     $r = Invoke-RestMethod "http://localhost:$p/api/about" -TimeoutSec 1 -ErrorAction Stop
                     if ($r) { $apiPort = $p; break }
-                } catch { }
+                } catch { Write-Verbose "Toolbox API not on port ${p}: $_" }
             }
         }
 

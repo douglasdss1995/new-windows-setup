@@ -6,13 +6,16 @@ provision_git_config() {
 
   if [ -n "$REPO_PATH" ] && [ -f "$REPO_PATH/git/.gitconfig" ]; then
     if [ -L "$HOME/.gitconfig" ] && [ "$(readlink -f "$HOME/.gitconfig")" = "$(readlink -f "$REPO_PATH/git/.gitconfig")" ]; then
+      # shellcheck disable=SC2088  # literal ~ in a message, not a path
       info "~/.gitconfig already symlinked to repo .gitconfig"
     else
       if [ -e "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ]; then
         mv "$HOME/.gitconfig" "$HOME/.gitconfig.bak"
+        # shellcheck disable=SC2088  # literal ~ in a message, not a path
         warn "Existing ~/.gitconfig backed up to ~/.gitconfig.bak"
       fi
       ln -sf "$REPO_PATH/git/.gitconfig" "$HOME/.gitconfig"
+      # shellcheck disable=SC2088  # literal ~ in a message, not a path
       success "~/.gitconfig -> $REPO_PATH/git/.gitconfig"
     fi
 

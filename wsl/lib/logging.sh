@@ -26,9 +26,16 @@ run_step() {
   local step_name="$1"
   shift
   # Run in a subshell with its own explicit `set -e` so a failing command
-  # still stops that step immediately (fail-fast within the step), while the
-  # `if` here keeps the failure from tripping the outer script's errexit.
-  if ( set -e; "$@" ); then
+  # still stops that step immediately (fail-fast within the step). errexit is
+  # ignored anywhere inside an `if`/`||` condition, so the subshell must NOT be
+  # one: disable errexit around it instead, capture the status, and restore.
+  local rc restore_errexit=false
+  case $- in *e*) restore_errexit=true ;; esac
+  set +e
+  ( set -e; "$@" )
+  rc=$?
+  [ "$restore_errexit" = true ] && set -e
+  if [ "$rc" -eq 0 ]; then
     return 0
   fi
   warn "Etapa '$step_name' falhou — continuando com as próximas etapas"

@@ -34,7 +34,8 @@ provision_cli_tools() {
   fi
 
   if ! command -v delta &>/dev/null; then
-    local DELTA_VERSION=$(curl -s https://api.github.com/repos/dandavison/delta/releases/latest | grep tag_name | cut -d'"' -f4)
+    local DELTA_VERSION
+    DELTA_VERSION=$(curl -s https://api.github.com/repos/dandavison/delta/releases/latest | grep tag_name | cut -d'"' -f4)
     curl -sLo /tmp/delta.deb "https://github.com/dandavison/delta/releases/download/${DELTA_VERSION}/git-delta_${DELTA_VERSION}_amd64.deb"
     sudo dpkg -i /tmp/delta.deb
     rm /tmp/delta.deb
@@ -53,7 +54,8 @@ provision_cli_tools() {
   fi
 
   if ! command -v yq &>/dev/null; then
-    local YQ_VERSION=$(curl -s https://api.github.com/repos/mikefarah/yq/releases/latest | grep tag_name | cut -d'"' -f4)
+    local YQ_VERSION
+    YQ_VERSION=$(curl -s https://api.github.com/repos/mikefarah/yq/releases/latest | grep tag_name | cut -d'"' -f4)
     sudo wget -qO /usr/local/bin/yq "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64"
     sudo chmod +x /usr/local/bin/yq
   fi

@@ -16,7 +16,8 @@
     # -------------------------------------------------------------------------
     # Base directory where all repositories will be cloned
     # -------------------------------------------------------------------------
-    CloneBaseDir = "$HOME\projects"
+    # Use a literal path: Import-PowerShellDataFile rejects variables like $HOME.
+    CloneBaseDir = "C:\Users\youruser\projects"
 
     # -------------------------------------------------------------------------
     # Credential providers - matched by hostname

@@ -86,7 +86,7 @@ Controls which repositories are cloned automatically when you run `git-clone.ps1
 **1. Set the base clone directory:**
 
 ```powershell
-CloneBaseDir = "$HOME\projects"
+CloneBaseDir = "C:\Users\youruser\projects"   # literal path: .psd1 files cannot use $HOME
 ```
 
 **2. Configure a credential provider** (choose Token for HTTPS or SSHKey for SSH):
@@ -99,7 +99,7 @@ Providers = @{
     }
     GitLab = @{
         Host   = "gitlab.mycompany.com"
-        SSHKey = "$HOME\.ssh\id_rsa_gitlab"
+        SSHKey = "C:\Users\youruser\.ssh\id_rsa_gitlab"
     }
 }
 ```

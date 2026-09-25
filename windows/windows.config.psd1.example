@@ -128,6 +128,7 @@
     # -------------------------------------------------------------------------
     Productivity     = @{
         Obsidian   = $true
+        OBSStudio  = $false   # screen/video recording and live streaming
         Notion     = $false   # optional
         Slack      = $false   # install if used at work
         Discord    = $false   # install if used

@@ -10,6 +10,7 @@
 #                          [--git-username="Your Name"] [--git-email=you@example.com]
 # =============================================================================
 
+# shellcheck disable=SC2034  # flags are consumed by the provision_* functions in lib/
 set -euo pipefail
 
 # Compute paths once — used for sourcing lib files and REPO_PATH auto-detect.

@@ -262,9 +262,9 @@ if ($wtSettingsPath) {
             # forwards it via WSLENV, so .zshrc/.bashrc can report total launch
             # time (Windows command -> WSL prompt), not just shell-init time.
             $startupCmd = "powershell.exe -NoLogo -NoProfile -Command `"`$env:WSL_START_MS=[DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds(); `$env:WSLENV='WSL_START_MS:'+`$env:WSLENV; wsl.exe -d $Distro`""
-            foreach ($profile in $wslProfiles) {
-                $profile | Add-Member -NotePropertyName startingDirectory -NotePropertyValue $homeDir -Force
-                $profile | Add-Member -NotePropertyName commandline -NotePropertyValue $startupCmd -Force
+            foreach ($wslProfile in $wslProfiles) {
+                $wslProfile | Add-Member -NotePropertyName startingDirectory -NotePropertyValue $homeDir -Force
+                $wslProfile | Add-Member -NotePropertyName commandline -NotePropertyValue $startupCmd -Force
             }
             $wt | ConvertTo-Json -Depth 20 | Set-Content $wtSettingsPath -Encoding UTF8
             Write-OK "Windows Terminal: $($wslProfiles.Count) profile(s) -> $homeDir (+ startup timer)"

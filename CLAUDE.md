@@ -9,7 +9,22 @@ Automation for setting up a Windows development machine from scratch, targeting 
 - **Windows side** (`setup-windows.ps1`, `windows/windows.config.psd1`) — installs tools on Windows via winget/Chocolatey
 - **WSL side** (`wsl/setup-wsl.sh`, `setup-wsl.ps1`) — provisions the Debian dev environment inside WSL 2, run from the repo root
 
-There are no build steps, no tests, and no linting pipeline. These are standalone scripts run manually.
+There is no build step. The setup scripts are standalone and run manually, but the repo has a lint and test pipeline (see below).
+
+## Lint and Tests
+
+```powershell
+pwsh -File lint.ps1    # PSScriptAnalyzer (PowerShell) + shellcheck (bash)
+pwsh -File test.ps1    # Pester 5+ (tests/pester) + plain bash tests (tests/bash)
+```
+
+One-time tool install: `Install-Module Pester -MinimumVersion 5.5 -Scope CurrentUser -Force -SkipPublisherCheck`, `Install-Module PSScriptAnalyzer -Scope CurrentUser`, `scoop install shellcheck` (or `apt install shellcheck` in WSL). CI (`.github/workflows/ci.yml`) runs both on every push/PR.
+
+- Lint rules live in `PSScriptAnalyzerSettings.psd1` and `.shellcheckrc`; each excluded rule has a comment saying why. Prefer fixing over excluding.
+- `setup-windows.ps1` and `git-clone.ps1` run their main flow on load, so tests extract function definitions via the AST (see `tests/pester/GitClone.Tests.ps1`) instead of dot-sourcing the whole script.
+- `Config.Tests.ps1` checks that every `$cfg.X.Y` read by `setup-windows.ps1` exists in `windows.config.psd1.example`. Adding a new flag means adding it to the example too.
+- `.psd1` files are loaded with `Import-PowerShellDataFile`, which rejects variables such as `$HOME`. Use literal paths in config examples.
+- Add new bash tests as `tests/bash/*.test.sh`; they are picked up automatically.
 
 ## Running the Scripts
 
