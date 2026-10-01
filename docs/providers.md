@@ -57,3 +57,28 @@ pvlogs      # docker compose logs -f
 pvps        # docker compose ps
 pvrestart   # docker compose restart
 ```
+
+## Reaching the Windows host from a container
+
+These providers run in WSL, so `localhost` from Windows reaches them
+normally (see [wslconfig.md](./wslconfig.md) for why `networkingMode=nat` is
+required for that to be fast). The other direction — a container reaching a
+service on Windows (e.g. a database that isn't one of these providers) — is
+different: `localhost` inside a container is the container itself.
+
+`$WINDOWS_HOST_IP` is exported automatically in new shells (set up by
+`provision_zshrc_config` in `wsl/lib/zsh.sh`) and points at the WSL VM's
+default-route gateway, which Windows answers on. Use it in your own
+`docker-compose.yml`:
+
+```yaml
+services:
+  app:
+    extra_hosts:
+      - "windows-host:${WINDOWS_HOST_IP}"
+    environment:
+      DB_HOST: windows-host
+```
+
+The Windows-side service also needs to listen outside loopback and have a
+matching inbound Windows Firewall rule.

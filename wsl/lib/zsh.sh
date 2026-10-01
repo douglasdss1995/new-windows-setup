@@ -203,6 +203,22 @@ unset _fn
 EOF
   fi
 
+  if ! grep -q '# === windows host ip ===' "$ZSHRC" 2>/dev/null; then
+    cat >> "$ZSHRC" << 'EOF'
+
+# === windows host ip === (reach Windows from a container via extra_hosts: windows-host:$WINDOWS_HOST_IP)
+export WINDOWS_HOST_IP="$(ip route show default 2>/dev/null | awk '{print $3; exit}')"
+EOF
+  fi
+
+  if ! grep -q '# === windows host ip ===' "$HOME/.bashrc" 2>/dev/null; then
+    cat >> "$HOME/.bashrc" << 'EOF'
+
+# === windows host ip === (reach Windows from a container via extra_hosts: windows-host:$WINDOWS_HOST_IP)
+export WINDOWS_HOST_IP="$(ip route show default 2>/dev/null | awk '{print $3; exit}')"
+EOF
+  fi
+
   if ! grep -q '# === wsl startup timer ===' "$ZSHRC" 2>/dev/null; then
     cat >> "$ZSHRC" << 'EOF'
 

@@ -88,6 +88,15 @@
     }
 
     # -------------------------------------------------------------------------
+    # Infrastructure
+    # -------------------------------------------------------------------------
+    Infrastructure   = @{
+        WSL                    = $true   # Windows Subsystem for Linux
+        # Prefer IPv4 for "localhost" (netsh prefix policy) - see docs/wslconfig.md
+        IPv4LoopbackPreference = $true
+    }
+
+    # -------------------------------------------------------------------------
     # API and HTTP Testing
     # -------------------------------------------------------------------------
     API              = @{

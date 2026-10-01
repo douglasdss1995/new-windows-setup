@@ -23,14 +23,23 @@ swap=4GB
 
 # --- Rede ---------------------------------------------------------------------
 
-# Modo de rede: "NAT" (padrão) ou "mirrored" (espelha interfaces do Windows)
-# "mirrored" permite acessar serviços WSL via localhost do Windows mais facilmente
-networkingMode=mirrored
+# Modo de rede: "nat" (padrão, recomendado) ou "mirrored" (espelha interfaces do Windows)
+# NAT: o wslrelay do Windows escuta tanto em 127.0.0.1 quanto em ::1 nas portas
+# publicadas pelo WSL, então localhost funciona rápido nos dois protocolos.
+# "mirrored" NÃO suporta ::1 (limitação documentada pela Microsoft) — o Windows
+# resolve localhost como [::1, 127.0.0.1], tenta ::1 primeiro, espera ~21s de
+# timeout e só então cai para 127.0.0.1. Isso já causou ~21s por conexão em
+# clientes (Python, curl) acessando containers Docker do WSL via localhost.
+# Se precisar de mirrored (ex.: espelhar IP da LAN), aplique a correção em
+# docs/wslconfig.md (prefix policy do IPv6) ou prefira 127.0.0.1 a localhost
+# nos clientes.
+networkingMode=nat
 
 # Resolver DNS automaticamente via /etc/resolv.conf gerado pelo WSL
 # dnsTunneling=true  # habilitar se tiver problemas de DNS com mirrored
 
-# Firewall do Windows aplicado ao WSL (recomendado com networkingMode=mirrored)
+# Firewall do Windows aplicado ao WSL (necessário com networkingMode=mirrored;
+# opcional em NAT)
 firewall=true
 
 # --- Armazenamento ------------------------------------------------------------

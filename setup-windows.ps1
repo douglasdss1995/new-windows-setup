@@ -485,6 +485,29 @@ Write-Info "Docker runs via native Docker Engine in WSL - no Docker Desktop need
 Write-Info "Run setup-wsl.ps1 to install and configure it."
 Write-Info "Benefit: ~50-150 MB RAM vs ~1 GB for Docker Desktop."
 
+# Prefer IPv4 for "localhost" (netsh prefix policy). Without this, Windows
+# resolves localhost as [::1, 127.0.0.1] and tries ::1 first - harmless
+# normally, but with .wslconfig's networkingMode=mirrored, ::1 is unsupported
+# for WSL-published ports and the connection has to time out (~21s) before
+# falling back to 127.0.0.1. Safe to apply with the default networkingMode=nat
+# too (wslrelay listens on both there, so this is a no-op in practice).
+# See docs/wslconfig.md.
+if ($cfg.Infrastructure.IPv4LoopbackPreference) {
+    $prefixPolicy = netsh interface ipv6 show prefixpolicies | Select-String '::ffff:0:0/96'
+    if ($prefixPolicy -match '\s100\s') {
+        Write-Skip "IPv4 loopback preference already applied"
+    } else {
+        netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 100 4 | Out-Null
+        if ($LASTEXITCODE -eq 0) {
+            Write-OK "IPv4 loopback preference applied (netsh prefix policy)"
+        } else {
+            Write-Warn "Failed to set IPv6 prefix policy - run manually: netsh interface ipv6 set prefixpolicy ::ffff:0:0/96 100 4"
+        }
+    }
+} else {
+    Write-Skip "IPv4 loopback preference (disabled)"
+}
+
 # =============================================================================
 # 8. API AND HTTP TESTING
 # =============================================================================
