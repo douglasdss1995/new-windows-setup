@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 # git_config.sh — Git global configuration and credentials setup
 
+# Resolve the Windows Git Credential Manager executable dynamically instead
+# of hardcoding its folder. Git for Windows has changed MinGW toolchain
+# subfolder (mingw64 -> ucrt64) at least once, and each time it did, the
+# previously hardcoded path here silently broke credential.helper (git
+# falls back to another helper if one is configured, or starts prompting
+# for a password, with no obvious error pointing at this file).
+_git_config_resolve_gcm() {
+  find "/mnt/c/Program Files/Git" -maxdepth 3 -iname 'git-credential-manager.exe' 2>/dev/null | head -n1
+}
+
 provision_git_config() {
   step "Configuring Git"
 
@@ -22,10 +32,16 @@ provision_git_config() {
     [ -n "$GIT_USERNAME" ] && git config --file "$HOME/.gitconfig.local" user.name "$GIT_USERNAME"
     [ -n "$GIT_EMAIL" ]    && git config --file "$HOME/.gitconfig.local" user.email "$GIT_EMAIL"
 
-    local GCM_PATH="/mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe"
-    if [ -f "$GCM_PATH" ]; then
-      git config --file "$HOME/.gitconfig.local" credential.helper "$GCM_PATH"
-      info "Git Credential Manager (Windows) configured"
+    local GCM_PATH
+    GCM_PATH="$(_git_config_resolve_gcm)"
+    if [ -n "$GCM_PATH" ]; then
+      # credential.helper runs through a shell when its value contains a
+      # space, so the space in "Program Files" must be escaped or the shell
+      # splits it into separate words and the helper is never found.
+      git config --file "$HOME/.gitconfig.local" credential.helper "${GCM_PATH// /\\ }"
+      info "Git Credential Manager (Windows) configured: $GCM_PATH"
+    else
+      warn "git-credential-manager.exe not found under /mnt/c/Program Files/Git - credential helper not configured"
     fi
 
     success "Git configured (shared .gitconfig)"
@@ -57,10 +73,16 @@ provision_git_config() {
     [ -n "$GIT_USERNAME" ] && git config --global user.name "$GIT_USERNAME"
     [ -n "$GIT_EMAIL" ]    && git config --global user.email "$GIT_EMAIL"
 
-    local GCM_PATH="/mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe"
-    if [ -f "$GCM_PATH" ]; then
-      git config --global credential.helper "$GCM_PATH"
-      info "Git Credential Manager (Windows) configured"
+    local GCM_PATH
+    GCM_PATH="$(_git_config_resolve_gcm)"
+    if [ -n "$GCM_PATH" ]; then
+      # credential.helper runs through a shell when its value contains a
+      # space, so the space in "Program Files" must be escaped or the shell
+      # splits it into separate words and the helper is never found.
+      git config --global credential.helper "${GCM_PATH// /\\ }"
+      info "Git Credential Manager (Windows) configured: $GCM_PATH"
+    else
+      warn "git-credential-manager.exe not found under /mnt/c/Program Files/Git - credential helper not configured"
     fi
 
     success "Git configured"
