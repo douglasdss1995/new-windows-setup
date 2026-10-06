@@ -1,15 +1,20 @@
 # =============================================================================
-# .gitconfig - Shared Git configuration (Windows + WSL)
+# .gitconfig - Shared Git defaults (Windows + WSL), READ-ONLY by convention
 #
-# Symlinked to $HOME/.gitconfig by windows.ps1 (Windows) and provision.sh
-# (WSL) so both environments read the exact same file. Personal identity
-# (user.name / user.email) is NEVER written here - it lives in the untracked
-# ~/.gitconfig.local, included below, so this tracked file never picks up
-# personal data as a side effect of running the setup scripts.
+# This file is NOT ~/.gitconfig. The setup scripts generate a real, untracked
+# ~/.gitconfig on each machine whose first lines are:
+#
+#     [include]
+#         path = <repo>/git/.gitconfig
+#
+# so `git config --global ...` writes to that local file and can never modify
+# this tracked one. Machine/person-specific values therefore NEVER belong
+# here - the tests fail if a user or credential section shows up in this
+# file:
+#   - user.name / user.email  -> set from windows.config.psd1 (Git block)
+#   - credential.helper       -> resolved per machine (WSL: Windows GCM path)
+# Local values override these defaults because the include comes first.
 # =============================================================================
-
-[include]
-    path = ~/.gitconfig.local
 
 [core]
     autocrlf = input
@@ -63,5 +68,3 @@
     br = branch
     lg = log --graph --oneline --decorate --all
 	pushf = push --force-with-lease
-[credential]
-	helper = /mnt/c/Program Files/Git/mingw64/bin/git-credential-manager.exe

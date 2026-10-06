@@ -15,7 +15,7 @@ Provisions the development environment inside Debian. See [`docs/tools-wsl.md`](
 | direnv       | Per-directory environment variable loading (`.envrc` files)                              |
 | Docker       | Native daemon (no Docker Desktop) + systemd enable (auto-start)                          |
 | Providers    | Redis, Portainer via compose at `~/providers/`; PostgreSQL and pgAdmin are opt-in (see [Providers](./providers.md)) |
-| Git          | Shared `.gitconfig` symlinked from the repo (see [.gitconfig](./gitconfig.md))           |
+| Git          | Local `~/.gitconfig` that includes the repo's shared defaults (see [.gitconfig](./gitconfig.md)) |
 | Shell config | `.zshrc` with aliases for Django, Git, Docker, Python, Providers (`pvup`, `pvdown`...)  |
 
 **Flags:**

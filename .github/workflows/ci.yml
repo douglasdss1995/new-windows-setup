@@ -27,3 +27,18 @@ jobs:
       - name: Test
         shell: pwsh
         run: ./test.ps1
+
+  # The bash tests that exercise real Linux behavior (symlinks, git include
+  # paths) skip themselves under Git Bash on Windows, so run them on Linux too.
+  bash-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bash tests
+        run: |
+          set -e
+          for t in tests/bash/*.test.sh; do
+            echo "== $t =="
+            bash "$t"
+          done

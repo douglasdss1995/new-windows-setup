@@ -319,9 +319,9 @@ if (-not $SkipProvision) {
     wsl -d $Distro -- bash -c "chmod +x ~/wsl/setup-wsl.sh"
 
     # -------------------------------------------------------------------------
-    # Resolve the repo root's WSL mount path, so setup-wsl.sh can symlink the
-    # shared git/.gitconfig straight into ~/.gitconfig instead of keeping a
-    # separate copy of the same settings.
+    # Resolve the repo root's WSL mount path, so setup-wsl.sh can make the
+    # local ~/.gitconfig [include] the shared git/.gitconfig instead of keeping
+    # a separate copy of the same settings.
     # -------------------------------------------------------------------------
     $repoRoot    = $PSScriptRoot
     # -e/--exec bypasses the distro's default shell (zsh here) so backslashes

@@ -252,6 +252,62 @@ function Install-VSExt {
     }
 }
 
+# -----------------------------------------------------------------------------
+# Function: make $LocalConfigPath a REAL file that [include]s the shared config
+#
+# ~/.gitconfig used to be a symlink to the tracked git/.gitconfig, so every
+# `git config --global` (by hand, by an IDE, by another tool) wrote into the
+# repository. Now the local file is a real one whose FIRST section is the
+# include, so anything defined locally afterwards overrides the shared
+# defaults, and --global writes can never reach the tracked file.
+#
+# Returns @{ Status = Created|Updated|Unchanged|ReplacedSymlink; Backup = path|$null }
+# -----------------------------------------------------------------------------
+function Set-GitConfigInclude {
+    param(
+        [Parameter(Mandatory)][string]$SharedConfigPath,
+        [Parameter(Mandatory)][string]$LocalConfigPath
+    )
+
+    $include  = $SharedConfigPath.Replace('\', '/')
+    $block    = "[include]`n`tpath = $include`n"
+    $utf8     = New-Object System.Text.UTF8Encoding($false)
+    $existing = Get-Item -LiteralPath $LocalConfigPath -Force -ErrorAction SilentlyContinue
+
+    # Legacy: a symlink into the repo. Replace it by a real file, carrying over
+    # any identity that was written into the old target.
+    if ($existing -and $existing.LinkType -eq 'SymbolicLink') {
+        $target = @($existing.Target)[0]
+        $name = $null; $email = $null
+        if ((Get-Command git -ErrorAction SilentlyContinue) -and $target -and (Test-Path -LiteralPath $target)) {
+            $name  = git config --file $target --get user.name  2>$null
+            $email = git config --file $target --get user.email 2>$null
+        }
+        Remove-Item -LiteralPath $LocalConfigPath -Force
+        [System.IO.File]::WriteAllText($LocalConfigPath, $block, $utf8)
+        if ($name)  { git config --file $LocalConfigPath user.name  $name }
+        if ($email) { git config --file $LocalConfigPath user.email $email }
+        return @{ Status = 'ReplacedSymlink'; Backup = $null }
+    }
+
+    if (-not $existing) {
+        [System.IO.File]::WriteAllText($LocalConfigPath, $block, $utf8)
+        return @{ Status = 'Created'; Backup = $null }
+    }
+
+    $text = [System.IO.File]::ReadAllText($LocalConfigPath)
+    if ($text -match ('(?im)^\s*path\s*=\s*"?' + [regex]::Escape($include) + '"?\s*$')) {
+        return @{ Status = 'Unchanged'; Backup = $null }
+    }
+
+    $backup = "$LocalConfigPath.pre-include.bak"
+    if (-not (Test-Path -LiteralPath $backup)) {
+        Copy-Item -LiteralPath $LocalConfigPath -Destination $backup
+    }
+    [System.IO.File]::WriteAllText($LocalConfigPath, $block + $text, $utf8)
+    return @{ Status = 'Updated'; Backup = $backup }
+}
+
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "  Windows Setup - Dev Django + Angular" -ForegroundColor Cyan
@@ -726,43 +782,49 @@ if ($cfg.Utilities.VCRedist) {
 # =============================================================================
 Write-Step "Git Configuration"
 
-# --- Symlink the shared .gitconfig (git/) to $HOME/.gitconfig -------------
+# --- ~/.gitconfig = real, per-machine file that [include]s git/.gitconfig ------
 $repoGitConfig = Join-Path $RepoRoot "git\.gitconfig"
 $homeGitConfig = Join-Path $env:USERPROFILE ".gitconfig"
 
 if (Test-Path $repoGitConfig) {
-    $existing = Get-Item -Path $homeGitConfig -Force -ErrorAction SilentlyContinue
-    $isCorrectSymlink = $existing -and $existing.LinkType -eq "SymbolicLink" -and
-        ($existing.Target -contains $repoGitConfig)
-
-    if ($isCorrectSymlink) {
-        Write-Skip "$homeGitConfig already symlinked to repo .gitconfig"
-    } else {
-        if ($existing) {
-            $backupPath = "$homeGitConfig.bak"
-            Move-Item -Path $homeGitConfig -Destination $backupPath -Force
-            Write-Warn "Existing .gitconfig backed up to $backupPath"
-        }
-        New-Item -ItemType SymbolicLink -Path $homeGitConfig -Target $repoGitConfig -Force | Out-Null
-        Write-OK "$homeGitConfig -> $repoGitConfig"
+    $gitInclude = Set-GitConfigInclude -SharedConfigPath $repoGitConfig -LocalConfigPath $homeGitConfig
+    switch ($gitInclude.Status) {
+        'Created'         { Write-OK "$homeGitConfig created (includes $repoGitConfig)" }
+        'Updated'         { Write-OK "$homeGitConfig now includes $repoGitConfig (backup: $($gitInclude.Backup))" }
+        'ReplacedSymlink' { Write-Warn "$homeGitConfig was a symlink to the repo - replaced by a local file that includes it" }
+        default           { Write-Skip "$homeGitConfig already includes the shared .gitconfig" }
     }
 } else {
-    Write-Warn "Repo .gitconfig not found at $repoGitConfig - skipping symlink"
+    Write-Warn "Repo .gitconfig not found at $repoGitConfig - skipping"
 }
 
-# --- Identity: written to the untracked ~/.gitconfig.local, never to the ---
-# --- tracked/symlinked .gitconfig above -------------------------------------
-if ($cfg.Git.UserName -ne "" -or $cfg.Git.UserEmail -ne "") {
-    $gitConfigLocal = Join-Path $env:USERPROFILE ".gitconfig.local"
-
-    if (Get-Command git -ErrorAction SilentlyContinue) {
-        if ($cfg.Git.UserName -ne "") {
-            git config --file $gitConfigLocal user.name $cfg.Git.UserName
-            Write-OK "git user.name = $($cfg.Git.UserName)"
+# --- Identity: written to the local ~/.gitconfig, never to the tracked file. ---
+# --- Existing values are kept: re-running the setup must not clobber them. ----
+$legacyLocal = Join-Path $env:USERPROFILE ".gitconfig.local"
+if ((Test-Path $legacyLocal) -and (Get-Command git -ErrorAction SilentlyContinue)) {
+    # Identity from the previous design (untracked ~/.gitconfig.local) moves here.
+    foreach ($key in "user.name", "user.email") {
+        $old     = git config --file $legacyLocal --get $key 2>$null
+        $already = git config --file $homeGitConfig --get $key 2>$null
+        if ($old -and -not $already) {
+            git config --file $homeGitConfig $key $old
+            Write-OK "git $key migrated from .gitconfig.local"
         }
-        if ($cfg.Git.UserEmail -ne "") {
-            git config --file $gitConfigLocal user.email $cfg.Git.UserEmail
-            Write-OK "git user.email = $($cfg.Git.UserEmail)"
+    }
+}
+
+if ($cfg.Git.UserName -ne "" -or $cfg.Git.UserEmail -ne "") {
+    if (Get-Command git -ErrorAction SilentlyContinue) {
+        $identity = @{ "user.name" = $cfg.Git.UserName; "user.email" = $cfg.Git.UserEmail }
+        foreach ($key in $identity.Keys) {
+            if (-not $identity[$key]) { continue }
+            $current = git config --file $homeGitConfig --get $key 2>$null
+            if ($current) {
+                Write-Skip "git $key already set ($current) - kept"
+            } else {
+                git config --file $homeGitConfig $key $identity[$key]
+                Write-OK "git $key = $($identity[$key])"
+            }
         }
     } else {
         Write-Warn "git not found in PATH - configure manually after restarting the terminal"

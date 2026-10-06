@@ -59,6 +59,14 @@ bash wsl/setup-wsl.sh --skip-node      # without Node
 
 All tool installs are controlled by `windows/windows.config.psd1` (Windows) — a PowerShell data file (`@{ Key = $true/$false }`) loaded with `Import-PowerShellDataFile`. `git/git-repos.config.psd1` uses the same format for repository credentials and clone targets.
 
+### Git config: a local `~/.gitconfig` that includes the tracked one
+
+`git/.gitconfig` holds shared defaults only and is **never** `~/.gitconfig`. Each machine gets a real, untracked `~/.gitconfig` whose first section `[include]`s it (`Set-GitConfigInclude` in `setup-windows.ps1`, `provision_git_config` in `wsl/lib/git_config.sh`). It used to be a symlink, which made every `git config --global` (hand-typed, IDEs, other Claude sessions, stale setup copies) write into the repo — see `docs/gitconfig.md`.
+
+- Never put `[user]`, `[credential]` or `[include]` in `git/.gitconfig`; `tests/pester/GitConfig.Tests.ps1` fails if you do. Identity and the credential helper are per machine and live in the local file.
+- Never recreate the symlink, and never hardcode the Git Credential Manager path (`mingw64`/`ucrt64` has already changed once) — resolve it with `_git_config_resolve_gcm`.
+- `tests/bash/git_config.test.sh` needs real Linux (it skips itself under Git Bash); run it with `wsl bash tests/bash/git_config.test.sh`. CI runs it on ubuntu.
+
 ### Pending refactor (`REFACTORING_PLAN.md`)
 
 `setup-windows.ps1` is a ~580-line monolith scheduled for a SOLID refactor into:

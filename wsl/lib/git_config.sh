@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2088  # "~" appears literally in user-facing messages, never as a path
 # git_config.sh — Git global configuration and credentials setup
+#
+# Model: ~/.gitconfig is a REAL, untracked, per-machine file whose first lines
+# [include] the shared defaults tracked in the repo (git/.gitconfig). It used
+# to be a symlink to that tracked file, which made every `git config --global`
+# (typed by hand, run by an IDE, a Claude session, a stale setup copy...) write
+# straight into the repository. With the include, --global writes land in the
+# local file and the tracked one stays read-only in practice.
 
 # Resolve the Windows Git Credential Manager executable dynamically instead
 # of hardcoding its folder. Git for Windows has changed MinGW toolchain
@@ -11,42 +19,111 @@ _git_config_resolve_gcm() {
   find "/mnt/c/Program Files/Git" -maxdepth 3 -iname 'git-credential-manager.exe' 2>/dev/null | head -n1
 }
 
+# Set <key> in <file> only when it has no value yet, so re-running the setup
+# never clobbers an identity the user already chose.
+_git_config_set_if_unset() { # <file> <key> <value>
+  local file="$1" key="$2" value="$3"
+  [ -n "$value" ] || return 0
+  if [ -n "$(git config --file "$file" --get "$key" 2>/dev/null)" ]; then
+    info "git $key already set in ${file/#$HOME/\~} - kept"
+  else
+    git config --file "$file" "$key" "$value"
+    success "git $key set in ${file/#$HOME/\~}"
+  fi
+}
+
+# Point credential.helper at the Windows GCM. Only writes when the key is unset
+# or holds a stale /mnt/c path (e.g. the old mingw64 one); custom helpers such
+# as `store` or `cache` are left alone.
+_git_config_set_gcm() { # <file>
+  local file="$1" gcm current
+  gcm="$(_git_config_resolve_gcm)"
+  if [ -z "$gcm" ]; then
+    warn "git-credential-manager.exe not found under /mnt/c/Program Files/Git - credential helper not configured"
+    return 0
+  fi
+  current="$(git config --file "$file" --get credential.helper 2>/dev/null)"
+  # credential.helper runs through a shell when its value contains a space, so
+  # the space in "Program Files" must be escaped or the shell splits it into
+  # separate words and the helper is never found.
+  if [ -z "$current" ] || { [[ "$current" == /mnt/* ]] && [ ! -e "${current//\\ / }" ]; }; then
+    git config --file "$file" credential.helper "${gcm// /\\ }"
+    info "Git Credential Manager (Windows) configured: $gcm"
+  else
+    info "credential.helper already set - kept"
+  fi
+}
+
+# Turn a legacy ~/.gitconfig symlink (old model) into a regular file, carrying
+# over the identity that may have been written into the tracked target.
+# Echoes nothing; leaves $HOME/.gitconfig as a real (possibly empty) file.
+_git_config_desymlink() {
+  local cfg="$HOME/.gitconfig" target name email
+  [ -L "$cfg" ] || return 0
+  target="$(readlink -f "$cfg")"
+  name="$(git config --file "$target" --get user.name 2>/dev/null)"
+  email="$(git config --file "$target" --get user.email 2>/dev/null)"
+  rm "$cfg"
+  : > "$cfg"
+  [ -n "$name" ]  && git config --file "$cfg" user.name "$name"
+  [ -n "$email" ] && git config --file "$cfg" user.email "$email"
+  warn "~/.gitconfig was a symlink to the repo - replaced by a local file (writes no longer reach the repo)"
+}
+
+# Guarantee ~/.gitconfig is a real file whose FIRST section includes the shared
+# defaults (first, so anything defined locally afterwards wins).
+_git_config_link_shared() { # <shared .gitconfig path>
+  local shared="$1" cfg="$HOME/.gitconfig" tmp
+
+  _git_config_desymlink
+
+  if [ ! -e "$cfg" ]; then
+    printf '[include]\n\tpath = %s\n' "$shared" > "$cfg"
+    success "~/.gitconfig created (includes $shared)"
+    return 0
+  fi
+
+  if git config --file "$cfg" --get-all include.path 2>/dev/null | grep -qxF "$shared"; then
+    info "~/.gitconfig already includes the shared .gitconfig"
+    return 0
+  fi
+
+  [ -e "$HOME/.gitconfig.pre-include.bak" ] || cp "$cfg" "$HOME/.gitconfig.pre-include.bak"
+  tmp="$(mktemp)"
+  { printf '[include]\n\tpath = %s\n' "$shared"; cat "$cfg"; } > "$tmp"
+  cat "$tmp" > "$cfg"
+  rm -f "$tmp"
+  success "~/.gitconfig now includes the shared .gitconfig (backup: ~/.gitconfig.pre-include.bak)"
+}
+
 provision_git_config() {
   step "Configuring Git"
 
   if [ -n "$REPO_PATH" ] && [ -f "$REPO_PATH/git/.gitconfig" ]; then
-    if [ -L "$HOME/.gitconfig" ] && [ "$(readlink -f "$HOME/.gitconfig")" = "$(readlink -f "$REPO_PATH/git/.gitconfig")" ]; then
-      # shellcheck disable=SC2088  # literal ~ in a message, not a path
-      info "~/.gitconfig already symlinked to repo .gitconfig"
-    else
-      if [ -e "$HOME/.gitconfig" ] && [ ! -L "$HOME/.gitconfig" ]; then
-        mv "$HOME/.gitconfig" "$HOME/.gitconfig.bak"
-        # shellcheck disable=SC2088  # literal ~ in a message, not a path
-        warn "Existing ~/.gitconfig backed up to ~/.gitconfig.bak"
-      fi
-      ln -sf "$REPO_PATH/git/.gitconfig" "$HOME/.gitconfig"
-      # shellcheck disable=SC2088  # literal ~ in a message, not a path
-      success "~/.gitconfig -> $REPO_PATH/git/.gitconfig"
+    local shared
+    shared="$(readlink -f "$REPO_PATH/git/.gitconfig")"
+    _git_config_link_shared "$shared"
+
+    # Identity from the pre-include design lived in ~/.gitconfig.local.
+    if [ -f "$HOME/.gitconfig.local" ]; then
+      local old_name old_email
+      old_name="$(git config --file "$HOME/.gitconfig.local" --get user.name 2>/dev/null)"
+      old_email="$(git config --file "$HOME/.gitconfig.local" --get user.email 2>/dev/null)"
+      _git_config_set_if_unset "$HOME/.gitconfig" user.name  "$old_name"
+      _git_config_set_if_unset "$HOME/.gitconfig" user.email "$old_email"
     fi
 
-    [ -n "$GIT_USERNAME" ] && git config --file "$HOME/.gitconfig.local" user.name "$GIT_USERNAME"
-    [ -n "$GIT_EMAIL" ]    && git config --file "$HOME/.gitconfig.local" user.email "$GIT_EMAIL"
+    _git_config_set_if_unset "$HOME/.gitconfig" user.name  "$GIT_USERNAME"
+    _git_config_set_if_unset "$HOME/.gitconfig" user.email "$GIT_EMAIL"
+    _git_config_set_gcm "$HOME/.gitconfig"
 
-    local GCM_PATH
-    GCM_PATH="$(_git_config_resolve_gcm)"
-    if [ -n "$GCM_PATH" ]; then
-      # credential.helper runs through a shell when its value contains a
-      # space, so the space in "Program Files" must be escaped or the shell
-      # splits it into separate words and the helper is never found.
-      git config --file "$HOME/.gitconfig.local" credential.helper "${GCM_PATH// /\\ }"
-      info "Git Credential Manager (Windows) configured: $GCM_PATH"
-    else
-      warn "git-credential-manager.exe not found under /mnt/c/Program Files/Git - credential helper not configured"
-    fi
-
-    success "Git configured (shared .gitconfig)"
+    success "Git configured (local ~/.gitconfig + shared defaults from the repo)"
   else
     warn "Shared .gitconfig not found - applying defaults inline (pass --repo-path to use the repo's .gitconfig)"
+
+    # Never let the inline --global writes below reach a repo file through a
+    # legacy symlink.
+    _git_config_desymlink
 
     git config --global core.pager delta
     git config --global interactive.diffFilter "delta --color-only"
@@ -70,20 +147,9 @@ provision_git_config() {
     git config --global commit.verbose true
     git config --global alias.pushf "push --force-with-lease"
 
-    [ -n "$GIT_USERNAME" ] && git config --global user.name "$GIT_USERNAME"
-    [ -n "$GIT_EMAIL" ]    && git config --global user.email "$GIT_EMAIL"
-
-    local GCM_PATH
-    GCM_PATH="$(_git_config_resolve_gcm)"
-    if [ -n "$GCM_PATH" ]; then
-      # credential.helper runs through a shell when its value contains a
-      # space, so the space in "Program Files" must be escaped or the shell
-      # splits it into separate words and the helper is never found.
-      git config --global credential.helper "${GCM_PATH// /\\ }"
-      info "Git Credential Manager (Windows) configured: $GCM_PATH"
-    else
-      warn "git-credential-manager.exe not found under /mnt/c/Program Files/Git - credential helper not configured"
-    fi
+    _git_config_set_if_unset "$HOME/.gitconfig" user.name  "$GIT_USERNAME"
+    _git_config_set_if_unset "$HOME/.gitconfig" user.email "$GIT_EMAIL"
+    _git_config_set_gcm "$HOME/.gitconfig"
 
     success "Git configured"
   fi

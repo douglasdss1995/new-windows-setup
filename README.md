@@ -19,7 +19,7 @@ new-windows-setup/
 │   └── themes/
 │       └── amro.omp.json           # Oh My Posh prompt theme (default) - edit to customize
 ├── git/
-│   ├── .gitconfig                    # Shared Git config, symlinked to $HOME/.gitconfig (Windows + WSL)
+│   ├── .gitconfig                    # Shared Git defaults, [include]d by the local ~/.gitconfig (Windows + WSL)
 │   ├── git-repos.config.psd1.example # Repo-clone config template (copy to git-repos.config.psd1)
 │   └── git-repos.config.psd1         # Your local configuration (gitignored, created by you)
 └── wsl/
