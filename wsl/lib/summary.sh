@@ -26,8 +26,10 @@ provision_summary() {
       [ "$SKIP_POSTGRES"  = false ] && echo "     - PostgreSQL:     localhost:5433"
       [ "$SKIP_REDIS"     = false ] && echo "     - Redis:          localhost:6379"
       [ "$SKIP_PGADMIN"   = false ] && echo "     - pgAdmin:        http://localhost:5050  (admin@admin.com / admin)"
-      [ "$SKIP_MINIO"     = false ] && echo "     - MinIO API:      http://localhost:9000"
+      [ "$SKIP_MINIO"     = false ] && echo "     - MinIO API:      http://localhost:9000   (manual: docker compose --profile minio up -d minio)"
       [ "$SKIP_MINIO"     = false ] && echo "     - MinIO Console:  http://localhost:9001  (minioadmin / minioadmin)"
+      [ "$SKIP_SEAWEEDFS" = false ] && echo "     - SeaweedFS S3:   http://localhost:8333   (seaweedadmin / seaweedadmin; manual: docker compose --profile seaweedfs up -d seaweedfs)"
+      [ "$SKIP_SEAWEEDFS" = false ] && echo "     - SeaweedFS UI:   http://localhost:8888 (filer), http://localhost:9333 (master)"
       [ "$SKIP_PORTAINER" = false ] && echo "     - Portainer:      http://localhost:8001"
     fi
   fi

@@ -29,8 +29,21 @@ bash wsl/setup-wsl.sh --skip-node            # without Node
 # Individual provider flags (requires Docker)
 bash wsl/setup-wsl.sh --with-postgres        # also install PostgreSQL (opt-in)
 bash wsl/setup-wsl.sh --with-pgadmin         # also install pgAdmin (requires --with-postgres)
+bash wsl/setup-wsl.sh --with-minio           # add MinIO to the compose file (opt-in, discontinued; never auto-starts)
+bash wsl/setup-wsl.sh --with-seaweedfs       # add SeaweedFS to the compose file (opt-in; never auto-starts)
 bash wsl/setup-wsl.sh --skip-redis           # without Redis
 bash wsl/setup-wsl.sh --skip-portainer       # without Portainer
+```
+
+MinIO and SeaweedFS are S3-compatible object storage, opt-in, and run as Docker Compose
+**profiles**: `docker compose up -d` (and therefore the `providers.service` that runs at boot)
+does not start them. Start them on demand:
+
+```bash
+cd ~/providers
+docker compose --profile seaweedfs up -d seaweedfs   # S3 :8333, filer :8888, master :9333
+docker compose --profile minio up -d minio           # S3 :9000, console :9001
+docker compose --profile seaweedfs stop seaweedfs    # stop again
 ```
 
 Flags can be combined freely:

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# providers.sh — Providers configuration (PostgreSQL, Redis, pgAdmin, MinIO, Portainer)
+# providers.sh — Providers configuration (PostgreSQL, Redis, pgAdmin, MinIO, SeaweedFS, Portainer)
 
 provision_providers() {
   if [ "$SKIP_DOCKER" = false ]; then
@@ -14,6 +14,7 @@ provision_providers() {
     [ "$SKIP_REDIS"     = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }Redis"
     [ "$SKIP_PGADMIN"   = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }pgAdmin"
     [ "$SKIP_MINIO"     = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }MinIO"
+    [ "$SKIP_SEAWEEDFS" = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }SeaweedFS"
     [ "$SKIP_PORTAINER" = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }Portainer"
 
     if [ -z "$ENABLED_PROVIDERS" ]; then
@@ -25,6 +26,7 @@ provision_providers() {
       mkdir -p "$PROVIDERS_DIR/providers/postgres/init"
       mkdir -p "$PROVIDERS_DIR/providers/redis"
       mkdir -p "$PROVIDERS_DIR/providers/pgadmin"
+      mkdir -p "$PROVIDERS_DIR/providers/seaweedfs"
 
       _providers_write_compose "$PROVIDERS_DIR"
       _providers_write_configs "$PROVIDERS_DIR"
@@ -32,7 +34,10 @@ provision_providers() {
 
       success "Providers configured at: $PROVIDERS_DIR ($ENABLED_PROVIDERS)"
       [ "$SKIP_PGADMIN"   = false ] && info "pgAdmin   -> http://localhost:5050  (admin@admin.com / admin)"
-      [ "$SKIP_MINIO"     = false ] && info "MinIO     -> http://localhost:9001  (minioadmin / minioadmin)"
+      # MinIO and SeaweedFS are compose profiles: they do NOT start with the
+      # machine (providers.service only runs `docker compose up -d`).
+      [ "$SKIP_MINIO"     = false ] && info "MinIO     -> http://localhost:9001  (minioadmin / minioadmin) - start: docker compose --profile minio up -d minio"
+      [ "$SKIP_SEAWEEDFS" = false ] && info "SeaweedFS -> S3 http://localhost:8333, filer http://localhost:8888 (seaweedadmin / seaweedadmin) - start: docker compose --profile seaweedfs up -d seaweedfs"
       [ "$SKIP_PORTAINER" = false ] && info "Portainer -> http://localhost:8001"
     fi
   fi
@@ -140,10 +145,15 @@ PGADMIN_SVC
   if [ "$SKIP_MINIO" = false ]; then
     cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'MINIO_SVC'
 
+  # Opt-in and manual: not started by `docker compose up -d` nor on boot.
+  # Start with: docker compose --profile minio up -d minio
+  # (The community image is discontinued - prefer SeaweedFS for new projects.)
   minio:
     image: minio/minio:latest
     container_name: minio
-    restart: unless-stopped
+    restart: "no"
+    profiles:
+      - minio
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
@@ -162,6 +172,39 @@ PGADMIN_SVC
       timeout: 5s
       retries: 5
 MINIO_SVC
+  fi
+
+  if [ "$SKIP_SEAWEEDFS" = false ]; then
+    cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'SEAWEEDFS_SVC'
+
+  # Opt-in and manual: not started by `docker compose up -d` nor on boot.
+  # Start with: docker compose --profile seaweedfs up -d seaweedfs
+  # Single-container mode: master (9333) + volume + filer (8888) + S3 gateway (8333).
+  # S3 credentials live in ./providers/seaweedfs/s3.json
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    container_name: seaweedfs
+    restart: "no"
+    profiles:
+      - seaweedfs
+    environment:
+      TZ: ${TZ:-America/Sao_Paulo}
+    ports:
+      - "${SEAWEEDFS_S3_PORT:-8333}:8333"
+      - "${SEAWEEDFS_FILER_PORT:-8888}:8888"
+      - "${SEAWEEDFS_MASTER_PORT:-9333}:9333"
+    volumes:
+      - seaweedfs_data:/data
+      - ./providers/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+    command: server -dir=/data -filer -s3 -s3.config=/etc/seaweedfs/s3.json -ip.bind=0.0.0.0 -master.volumeSizeLimitMB=1024 -volume.max=0
+    networks:
+      - shared-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+SEAWEEDFS_SVC
   fi
 
   if [ "$SKIP_PORTAINER" = false ]; then
@@ -196,6 +239,7 @@ COMPOSE_FOOTER
   [ "$SKIP_REDIS"     = false ] && echo "  redis_data:"     >> "$PROVIDERS_DIR/docker-compose.yml"
   [ "$SKIP_PGADMIN"   = false ] && echo "  pgadmin_data:"   >> "$PROVIDERS_DIR/docker-compose.yml"
   [ "$SKIP_MINIO"     = false ] && echo "  minio_data:"     >> "$PROVIDERS_DIR/docker-compose.yml"
+  [ "$SKIP_SEAWEEDFS" = false ] && echo "  seaweedfs_data:" >> "$PROVIDERS_DIR/docker-compose.yml"
   [ "$SKIP_PORTAINER" = false ] && echo "  portainer_data:" >> "$PROVIDERS_DIR/docker-compose.yml"
 }
 
@@ -222,11 +266,17 @@ PGADMIN_EMAIL=admin@admin.com
 PGADMIN_PASSWORD=admin
 PGADMIN_PORT=5050
 
-# MinIO - S3 API and Console
+# MinIO (opt-in, discontinued) - S3 API and Console
 MINIO_ROOT_USER=minioadmin
 MINIO_ROOT_PASSWORD=minioadmin
 MINIO_PORT_API=9000
 MINIO_PORT_CONSOLE=9001
+
+# SeaweedFS (opt-in) - S3 API, filer UI and master UI
+# S3 credentials: providers/seaweedfs/s3.json
+SEAWEEDFS_S3_PORT=8333
+SEAWEEDFS_FILER_PORT=8888
+SEAWEEDFS_MASTER_PORT=9333
 
 # Portainer - http://localhost:8001
 PORTAINER_HTTP_PORT=8001
@@ -290,6 +340,26 @@ END $$;
 SQL_EOF
   fi
 
+  # Kept if it already exists so edited credentials survive a re-run.
+  if [ "$SKIP_SEAWEEDFS" = false ] && [ ! -f "$PROVIDERS_DIR/providers/seaweedfs/s3.json" ]; then
+    cat > "$PROVIDERS_DIR/providers/seaweedfs/s3.json" << 'S3_EOF'
+{
+    "identities": [
+        {
+            "name": "admin",
+            "credentials": [
+                {
+                    "accessKey": "seaweedadmin",
+                    "secretKey": "seaweedadmin"
+                }
+            ],
+            "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+        }
+    ]
+}
+S3_EOF
+  fi
+
   if [ "$SKIP_PGADMIN" = false ]; then
     cat > "$PROVIDERS_DIR/providers/pgadmin/servers.json" << 'JSON_EOF'
 {
@@ -327,7 +397,7 @@ WorkingDirectory=$PROVIDERS_DIR
 ExecStartPre=/bin/bash -c 'i=0; until docker info >/dev/null 2>&1; do i=\$((i+1)); [ \$i -ge 30 ] && exit 1; sleep 2; done'
 ExecStartPre=-/usr/bin/docker container prune -f
 ExecStart=/usr/bin/docker compose up -d --remove-orphans --force-recreate
-ExecStop=/usr/bin/docker compose down --remove-orphans
+ExecStop=/usr/bin/docker compose --profile "*" down --remove-orphans
 ExecStopPost=-/usr/bin/docker container prune -f
 TimeoutStartSec=180
 User=$USER

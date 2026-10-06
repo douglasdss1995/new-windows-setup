@@ -3,7 +3,8 @@
 # setup-wsl.sh — WSL environment provisioning for Django + Angular dev
 # Usage: bash setup-wsl.sh [--skip-docker] [--skip-node] [--skip-python]
 #                          [--with-postgres] [--skip-redis]
-#                          [--with-pgadmin] [--skip-minio] [--skip-portainer]
+#                          [--with-pgadmin] [--with-minio] [--with-seaweedfs]
+#                          [--skip-portainer]
 #                          [--skip-gitkraken] [--skip-keyboard]
 #                          [--keyboard-layout=br] [--keyboard-variant=abnt2]
 #                          [--repo-path=/mnt/x/path/to/new-windows-setup]
@@ -38,13 +39,16 @@ source "$LIB_DIR/summary.sh"
 SKIP_DOCKER=false
 SKIP_NODE=false
 SKIP_PYTHON=false
-# PostgreSQL and pgAdmin are opt-in (not needed by every project) — enable
-# with --with-postgres / --with-pgadmin. All other providers default on.
+# PostgreSQL, pgAdmin, MinIO and SeaweedFS are opt-in (not needed by every
+# project) — enable with --with-postgres / --with-pgadmin / --with-minio /
+# --with-seaweedfs. MinIO and SeaweedFS are also compose profiles: they never
+# start with the machine, only on demand. All other providers default on.
 SKIP_POSTGRES=true
 SKIP_REDIS=false
 SKIP_PGADMIN=true
 SKIP_PORTAINER=false
-SKIP_MINIO=false
+SKIP_MINIO=true
+SKIP_SEAWEEDFS=true
 SKIP_GITKRAKEN=false
 SKIP_KEYBOARD=false
 KEYBOARD_LAYOUT="br"
@@ -62,7 +66,9 @@ for arg in "$@"; do
     --skip-redis)           SKIP_REDIS=true ;;
     --with-pgadmin)         SKIP_PGADMIN=false ;;
     --skip-portainer)       SKIP_PORTAINER=true ;;
-    --skip-minio)           SKIP_MINIO=true ;;
+    --with-minio)           SKIP_MINIO=false ;;
+    --with-seaweedfs)       SKIP_SEAWEEDFS=false ;;
+    --skip-minio)           SKIP_MINIO=true ;;   # kept for backward compatibility (now the default)
     --skip-gitkraken)       SKIP_GITKRAKEN=true ;;
     --skip-keyboard)        SKIP_KEYBOARD=true ;;
     --keyboard-layout=*)    KEYBOARD_LAYOUT="${arg#*=}" ;;

@@ -1,7 +1,7 @@
 # =============================================================================
 # docker-compose.yml — Providers (Serviços Compartilhados)
-# Serviços: PostgreSQL, Redis, Portainer, MinIO (automáticos)
-# pgAdmin e MailHog são manuais — ver profiles
+# Serviços: PostgreSQL, Redis, Portainer (automáticos)
+# pgAdmin, MailHog, MinIO e SeaweedFS são manuais — ver profiles
 #
 # Este arquivo é copiado para ~/providers/ pelo provision.sh.
 # Para uso manual: cp -r wsl/providers ~/providers
@@ -105,10 +105,15 @@ services:
         reservations:
           memory: 128m
 
+  # Opcional e manual — não sobe com `docker compose up -d` nem com a máquina.
+  # Para iniciar: docker compose --profile minio up -d minio
+  # (A imagem community do MinIO foi descontinuada — prefira o SeaweedFS.)
   minio:
     image: minio/minio:latest
     container_name: minio
-    restart: unless-stopped
+    restart: "no"
+    profiles:
+      - minio
     logging: *default-logging
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
@@ -133,6 +138,41 @@ services:
           memory: 512m
         reservations:
           memory: 256m
+
+  # Opcional e manual — não sobe com `docker compose up -d` nem com a máquina.
+  # Para iniciar: docker compose --profile seaweedfs up -d seaweedfs
+  # Modo single-container: master (9333) + volume + filer (8888) + gateway S3 (8333).
+  # Credenciais S3 em ./providers/seaweedfs/s3.json
+  seaweedfs:
+    image: chrislusf/seaweedfs:latest
+    container_name: seaweedfs
+    restart: "no"
+    profiles:
+      - seaweedfs
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/Manaus}
+    ports:
+      - "${SEAWEEDFS_S3_PORT:-8333}:8333"
+      - "${SEAWEEDFS_FILER_PORT:-8888}:8888"
+      - "${SEAWEEDFS_MASTER_PORT:-9333}:9333"
+    volumes:
+      - seaweedfs_data:/data
+      - ./providers/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+    command: server -dir=/data -filer -s3 -s3.config=/etc/seaweedfs/s3.json -ip.bind=0.0.0.0 -master.volumeSizeLimitMB=1024 -volume.max=0
+    networks:
+      - shared-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8888/ >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 128m
 
   portainer:
     image: portainer/portainer-ce:latest
@@ -185,4 +225,5 @@ volumes:
   redis_data:
   pgadmin_data:
   minio_data:
+  seaweedfs_data:
   portainer_data:

@@ -47,6 +47,17 @@ TZ=America/Sao_Paulo
 | Redis      | `localhost:6379`      | —                            |
 | pgAdmin    | http://localhost:5050 | `admin@admin.com` / `admin` |
 | Portainer  | http://localhost:9000 | (set on first access)        |
+| SeaweedFS  | S3 `localhost:8333`, filer http://localhost:8888 | `seaweedadmin` / `seaweedadmin` (`providers/seaweedfs/s3.json`) |
+| MinIO      | S3 `localhost:9000`, console http://localhost:9001 | `minioadmin` / `minioadmin` |
+
+SeaweedFS and MinIO are **opt-in** (`--with-seaweedfs` / `--with-minio`) and run as Compose
+profiles, so they never start with the machine. Start them on demand:
+
+```bash
+cd ~/providers
+docker compose --profile seaweedfs up -d seaweedfs
+docker compose --profile minio up -d minio
+```
 
 ## Shell aliases available after provisioning
 
