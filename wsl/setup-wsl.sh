@@ -4,7 +4,7 @@
 # Usage: bash setup-wsl.sh [--skip-docker] [--skip-node] [--skip-python]
 #                          [--with-postgres] [--skip-redis]
 #                          [--with-pgadmin] [--with-minio] [--with-seaweedfs]
-#                          [--skip-portainer]
+#                          [--skip-portainer] [--with-nvidia]
 #                          [--skip-gitkraken] [--skip-keyboard]
 #                          [--keyboard-layout=br] [--keyboard-variant=abnt2]
 #                          [--repo-path=/mnt/x/path/to/new-windows-setup]
@@ -28,6 +28,7 @@ source "$LIB_DIR/python.sh"
 source "$LIB_DIR/node.sh"
 source "$LIB_DIR/cli_tools.sh"
 source "$LIB_DIR/docker.sh"
+source "$LIB_DIR/nvidia.sh"
 source "$LIB_DIR/gitkraken.sh"
 source "$LIB_DIR/git_config.sh"
 source "$LIB_DIR/providers.sh"
@@ -49,6 +50,9 @@ SKIP_PGADMIN=true
 SKIP_PORTAINER=false
 SKIP_MINIO=true
 SKIP_SEAWEEDFS=true
+# NVIDIA Container Toolkit is opt-in (needs an NVIDIA GPU + Windows driver) —
+# enable with --with-nvidia. Ignored when --skip-docker is set.
+SKIP_NVIDIA=true
 SKIP_GITKRAKEN=false
 SKIP_KEYBOARD=false
 KEYBOARD_LAYOUT="br"
@@ -68,7 +72,8 @@ for arg in "$@"; do
     --skip-portainer)       SKIP_PORTAINER=true ;;
     --with-minio)           SKIP_MINIO=false ;;
     --with-seaweedfs)       SKIP_SEAWEEDFS=false ;;
-    --skip-minio)           SKIP_MINIO=true ;;   # kept for backward compatibility (now the default)
+    --with-nvidia)          SKIP_NVIDIA=false ;;
+    --skip-minio)          SKIP_MINIO=true ;;   # kept for backward compatibility (now the default)
     --skip-gitkraken)       SKIP_GITKRAKEN=true ;;
     --skip-keyboard)        SKIP_KEYBOARD=true ;;
     --keyboard-layout=*)    KEYBOARD_LAYOUT="${arg#*=}" ;;
@@ -107,6 +112,7 @@ run_step "mise_install"  provision_mise_install
 run_step "cli_tools" provision_cli_tools
 
 [ "$SKIP_DOCKER" = false ] && run_step "docker" provision_docker
+[ "$SKIP_DOCKER" = false ] && [ "$SKIP_NVIDIA" = false ] && run_step "nvidia_container_toolkit" provision_nvidia_container_toolkit
 
 [ "$SKIP_GITKRAKEN" = false ] && run_step "gitkraken"       provision_gitkraken
 [ "$SKIP_KEYBOARD" = false ]  && run_step "keyboard_layout" provision_keyboard_layout

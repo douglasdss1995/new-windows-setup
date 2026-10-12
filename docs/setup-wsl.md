@@ -23,6 +23,7 @@ Provisions the development environment inside Debian. See [`docs/tools-wsl.md`](
 ```bash
 bash wsl/setup-wsl.sh                        # everything
 bash wsl/setup-wsl.sh --skip-docker          # without Docker (also skips all providers)
+bash wsl/setup-wsl.sh --with-nvidia          # NVIDIA Container Toolkit for `docker --gpus` (opt-in; needs Docker + Windows NVIDIA driver)
 bash wsl/setup-wsl.sh --skip-python          # without Python
 bash wsl/setup-wsl.sh --skip-node            # without Node
 
