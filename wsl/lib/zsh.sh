@@ -42,6 +42,56 @@ ensure_line() {
   grep -qF -- "$line" "$file" 2>/dev/null || echo "$line" >> "$file"
 }
 
+# Wraps bare `source <(TOOL completion ...)` lines (what `ng completion` and
+# similar CLIs append to .zshrc themselves) in a guard that only runs them when
+# TOOL is a native Linux binary. With appendWindowsPath=true, a Windows shim from
+# /mnt/c can win the PATH lookup inside WSL and hang the shell before the
+# prompt. Idempotent: an already-guarded (indented) line no longer matches.
+guard_windows_shim_completions() {
+  local file="$1" tmp line tool changed=false
+  local re='^source <\(([A-Za-z0-9_.-]+) completion [^)]*\)$'
+  [ -f "$file" ] || return 0
+
+  tmp="$(mktemp)"
+  while IFS= read -r line || [ -n "$line" ]; do
+    if [[ "$line" =~ $re ]]; then
+      tool="${BASH_REMATCH[1]}"
+      printf '%s\n' \
+        "# Only for a native Linux '$tool': the Windows shim leaked via PATH (/mnt/*) hangs shell startup." \
+        "if (( \$+commands[$tool] )) && [[ \${commands[$tool]} != /mnt/* ]]; then" \
+        "  $line" \
+        "fi" >> "$tmp"
+      info "Guarded '$tool completion' in $file against the Windows shim"
+      changed=true
+    else
+      printf '%s\n' "$line" >> "$tmp"
+    fi
+  done < "$file"
+
+  if [ "$changed" = true ]; then
+    cat "$tmp" > "$file"
+  fi
+  rm -f "$tmp"
+}
+
+# A shell that hangs at startup is invisible to every other check here (the
+# setup itself never opens an interactive zsh), so open one with a deadline.
+# Only a timeout (124) fails: `zsh -ic exit` would otherwise return the status of
+# the last rc-file command, so ask for an explicit `exit 0`.
+verify_zsh_startup() {
+  command -v zsh &>/dev/null || return 0
+
+  info "Checking that zsh starts (15s limit)..."
+  local rc=0
+  WSL_STARTUP_LOGGED=1 timeout 15 zsh -ic 'exit 0' </dev/null >/dev/null 2>&1 || rc=$?
+  if [ "$rc" -eq 124 ]; then
+    warn "zsh did not start within 15s - something in ~/.zshrc blocks startup."
+    warn "Usually a CLI run at startup (completion/init/eval) resolving to a Windows shim in /mnt/c: check 'type -a <tool>'."
+    return 1
+  fi
+  success "zsh starts normally"
+}
+
 provision_zshrc_config() {
   step "Configuring .zshrc"
 
@@ -254,6 +304,11 @@ if [ -z "$WSL_STARTUP_LOGGED" ]; then
 fi
 EOF
   fi
+
+  # Tools like `ng` append their own completion line to .zshrc the first time
+  # they are run. Guard those before checking that the shell still starts.
+  guard_windows_shim_completions "$ZSHRC"
+  verify_zsh_startup
 
   success ".zshrc configured"
 }
