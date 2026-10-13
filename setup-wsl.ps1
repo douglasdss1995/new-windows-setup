@@ -18,6 +18,9 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+# ConvertTo-WslProvisionArgs (wsl.config.psd1 -> setup-wsl.sh flags)
+. (Join-Path $PSScriptRoot "scripts\SetupConfig.ps1")
+
 # -----------------------------------------------------------------------------
 # Helpers
 # -----------------------------------------------------------------------------
@@ -351,6 +354,20 @@ if (-not $SkipProvision) {
     $provisionArgs = "--repo-path=`"$repoPathWsl`""
     if ($gitUserName)  { $provisionArgs += " --git-username=`"$gitUserName`"" }
     if ($gitUserEmail) { $provisionArgs += " --git-email=`"$gitUserEmail`"" }
+
+    # -------------------------------------------------------------------------
+    # Provisioning choices (Docker, NVIDIA, providers...) come from
+    # wsl/wsl.config.psd1, created by `make setup`. Without it setup-wsl.sh
+    # runs with its own defaults.
+    # -------------------------------------------------------------------------
+    $wslConfigPath = Join-Path $repoRoot "wsl\wsl.config.psd1"
+    if (Test-Path $wslConfigPath) {
+        $wslFlags = ConvertTo-WslProvisionArgs -Config (Import-PowerShellDataFile -Path $wslConfigPath)
+        if ($wslFlags) { $provisionArgs += " $wslFlags" }
+        Write-OK "wsl.config.psd1 loaded (flags: $(if ($wslFlags) { $wslFlags } else { 'defaults' }))"
+    } else {
+        Write-Warn "wsl.config.psd1 not found - using setup-wsl.sh defaults (run 'make setup' to choose)"
+    }
 
     # Run from the Linux home directory
     wsl -d $Distro -- bash -c "bash ~/wsl/setup-wsl.sh $provisionArgs"

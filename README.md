@@ -50,11 +50,20 @@ new-windows-setup/
 
 ## Configuration
 
-Both config files below are **gitignored** — only the `.example` templates are versioned. Before running any script, copy each template and fill it in:
+The config files below are **gitignored** — only the `.example` templates are versioned. The quickest way to create them is:
+
+```powershell
+make setup
+```
+
+`make setup` copies the missing templates (never overwriting), then asks simple yes/no questions: Docker, NVIDIA Container Toolkit, providers (PostgreSQL, Redis, ...), Python, Node, GitKraken, keyboard layout, and your Git name/e-mail. Press **Enter** to accept the default shown in capitals; `y`/`yes`/`1` mean yes and `n`/`no`/`0` mean no. The answers are saved in `wsl/wsl.config.psd1` (read by `setup-wsl.ps1`) and re-running uses them as the new defaults. It only prepares configuration and prints the next commands; the installers need Administrator and are never started for you.
+
+Without `make` (`scoop install make`), run `pwsh -File scripts\setup-wizard.ps1` instead, or copy the templates by hand:
 
 ```powershell
 Copy-Item windows\windows.config.psd1.example windows\windows.config.psd1
 Copy-Item git\git-repos.config.psd1.example git\git-repos.config.psd1
+Copy-Item wsl\wsl.config.psd1.example wsl\wsl.config.psd1
 ```
 
 ### windows/windows.config.psd1

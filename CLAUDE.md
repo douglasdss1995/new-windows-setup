@@ -26,6 +26,14 @@ One-time tool install: `Install-Module Pester -MinimumVersion 5.5 -Scope Current
 - `.psd1` files are loaded with `Import-PowerShellDataFile`, which rejects variables such as `$HOME`. Use literal paths in config examples.
 - Add new bash tests as `tests/bash/*.test.sh`; they are picked up automatically.
 
+## First-run setup (`make setup`)
+
+`make setup` runs `scripts/setup-wizard.ps1`: copies the missing `*.example` configs (never overwrites), asks yes/no questions (Enter = default, `y`/`yes`/`1` and `n`/`no`/`0`), and prints the next commands. It never launches the installers (they need Administrator). `make config` only copies files; `make setup WIZARD_ARGS=-UseDefaults` skips the prompts.
+
+- `scripts/SetupConfig.ps1` is the single source of truth for the WSL options (`Get-WslOptions`): key, default, `setup-wsl.sh` flag, dependencies, question. The wizard, `wsl/wsl.config.psd1(.example)` and `ConvertTo-WslProvisionArgs` (used by `setup-wsl.ps1`) all derive from it.
+- Adding a WSL option = one entry in `Get-WslOptions` + the flag in `wsl/setup-wsl.sh` + regenerate `wsl/wsl.config.psd1.example` (`tests/pester/SetupConfig.Tests.ps1` fails if the example, the flag or the `SKIP_*` default drift).
+- Makefile recipes must only call `pwsh` and avoid shell syntax (parentheses, pipes, globs in `echo`), because GNU make on Windows may run them under `sh` or `cmd.exe`.
+
 ## Running the Scripts
 
 **Windows tools install** (PowerShell as Administrator):
