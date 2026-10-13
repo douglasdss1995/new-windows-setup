@@ -5,3 +5,4 @@ wsl/providers/.env
 git-repos.config.psd1
 windows.config.psd1
 wsl.config.psd1
+windows/*.psd1.bak

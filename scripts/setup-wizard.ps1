@@ -38,6 +38,26 @@ foreach ($file in Copy-ConfigExamples -RepoRoot $RepoRoot) {
         Write-Host "[SKIP] $($file.Path) already exists" -ForegroundColor DarkGray
     }
 }
+
+# Keys added to the example after this machine's config was created (new tools,
+# renamed flags) would otherwise be silently read as "disabled".
+$syncPairs = @(
+    @{ Config = 'windows/windows.config.psd1'; Example = 'windows/windows.config.psd1.example' }
+)
+foreach ($pair in $syncPairs) {
+    $config = Join-Path $RepoRoot $pair.Config
+    $sync = Sync-ConfigKeys -ExamplePath (Join-Path $RepoRoot $pair.Example) -ConfigPath $config
+    if ($sync.Added.Count -gt 0) {
+        Write-Host "[OK]   $($pair.Config): added new keys from the example: $($sync.Added -join ', ')" -ForegroundColor Green
+        Write-Host '       (defaults from the example; previous file kept as .bak)' -ForegroundColor DarkGray
+    }
+    if ($sync.Unknown.Count -gt 0) {
+        Write-Host "[WARN] $($pair.Config): keys not in the example (renamed or removed?): $($sync.Unknown -join ', ')" -ForegroundColor Yellow
+    }
+    if ($sync.Manual.Count -gt 0) {
+        Write-Host "[WARN] $($pair.Config): add manually (multi-line or inline): $($sync.Manual -join ', ')" -ForegroundColor Yellow
+    }
+}
 if ($ConfigOnly) { return }
 
 # -----------------------------------------------------------------------------

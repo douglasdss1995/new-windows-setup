@@ -241,3 +241,111 @@ function Set-GitIdentityInConfig {
     }
     Write-Utf8NoBom -Path $Path -Content $text
 }
+
+# -----------------------------------------------------------------------------
+# Keeping a local config in step with its .example
+# -----------------------------------------------------------------------------
+
+# Line-based map of a psd1 shaped like windows.config.psd1: a root @{ } holding
+# one level of `Section = @{ ... }` blocks with `Key = value` lines.
+# Returns Section -> @{ Start; End; Keys = Key -> line index }.
+function Get-PsdSectionMap {
+    param([Parameter(Mandatory)][AllowEmptyString()][string[]]$Lines)
+    $sections = [ordered]@{}
+    $current = $null
+    $depth = 0
+    for ($i = 0; $i -lt $Lines.Count; $i++) {
+        if ($Lines[$i].TrimStart().StartsWith('#')) { continue }
+        $code = ($Lines[$i] -replace '\s+#.*$', '')
+        $delta = ([regex]::Matches($code, '@\{')).Count - ([regex]::Matches($code, '\}')).Count
+
+        if ($depth -eq 1 -and $code -match '^\s*([A-Za-z][A-Za-z0-9]*)\s*=\s*@\{') {
+            $current = @{ Name = $Matches[1]; Start = $i; End = -1; Keys = [ordered]@{}; Inline = ($delta -eq 0) }
+            $sections[$current.Name] = $current
+        } elseif ($depth -eq 2 -and $current -and $code -match '^\s*([A-Za-z][A-Za-z0-9]*)\s*=') {
+            $current.Keys[$Matches[1]] = $i
+        }
+
+        $depth += $delta
+        if ($current -and $depth -eq 1 -and $current.End -lt 0) {
+            $current.End = $i
+            $current = $null
+        }
+    }
+    $sections
+}
+
+# Adds to $ConfigPath the keys (and whole sections) that exist in $ExamplePath
+# but not yet in the config, using the example's value and trailing comment, and
+# leaves everything else (your values, comments, order) untouched. Never removes
+# anything: keys the example no longer knows are only reported (usually a rename).
+# Idempotent. Writes a .bak next to the config only when it changes something.
+function Sync-ConfigKeys {
+    param(
+        [Parameter(Mandatory)][string]$ExamplePath,
+        [Parameter(Mandatory)][string]$ConfigPath
+    )
+    $added = [System.Collections.Generic.List[string]]::new()
+    $unknown = [System.Collections.Generic.List[string]]::new()
+    $manual = [System.Collections.Generic.List[string]]::new()
+
+    $exampleRaw = [System.IO.File]::ReadAllText($ExamplePath)
+    $configRaw  = [System.IO.File]::ReadAllText($ConfigPath)
+    $nl = if ($configRaw.Contains("`r`n")) { "`r`n" } else { "`n" }
+    $ex = [System.Collections.Generic.List[string]]::new([string[]]($exampleRaw -split "`r?`n"))
+    $cf = [System.Collections.Generic.List[string]]::new([string[]]($configRaw -split "`r?`n"))
+
+    $exMap = Get-PsdSectionMap -Lines $ex.ToArray()
+    foreach ($name in $exMap.Keys) {
+        $exSec = $exMap[$name]
+        $cfMap = Get-PsdSectionMap -Lines $cf.ToArray()
+
+        if (-not $cfMap.Contains($name)) {
+            # Whole section missing: copy its banner comments + block before the root's closing brace.
+            $from = $exSec.Start
+            while ($from -gt 0 -and $ex[$from - 1].TrimStart().StartsWith('#')) { $from-- }
+            $block = @('') + $ex.GetRange($from, $exSec.End - $from + 1)
+            $rootEnd = -1
+            for ($i = $cf.Count - 1; $i -ge 0; $i--) { if ($cf[$i].Trim() -eq '}') { $rootEnd = $i; break } }
+            if ($rootEnd -lt 0) { $manual.Add($name); continue }
+            $cf.InsertRange($rootEnd, [string[]]$block)
+            foreach ($k in $exSec.Keys.Keys) { $added.Add("$name.$k") }
+            continue
+        }
+
+        $cfSec = $cfMap[$name]
+        if ($cfSec.Inline -or $exSec.Inline) { $manual.Add($name); continue }
+
+        $previous = $null
+        foreach ($key in $exSec.Keys.Keys) {
+            $cfSec = (Get-PsdSectionMap -Lines $cf.ToArray())[$name]
+            if ($cfSec.Keys.Contains($key)) { $previous = $key; continue }
+
+            $line = $ex[$exSec.Keys[$key]]
+            $code = $line -replace '\s+#.*$', ''
+            if (([regex]::Matches($code, '@\{|@\(|\(')).Count -ne ([regex]::Matches($code, '\)|\}')).Count) {
+                $manual.Add("$name.$key")   # multi-line value: not safe to copy line by line
+                continue
+            }
+            $at = if ($previous) { $cfSec.Keys[$previous] + 1 } else { $cfSec.Start + 1 }
+            $cf.Insert($at, $line)
+            $added.Add("$name.$key")
+            $previous = $key
+        }
+    }
+
+    # Keys only the config has: report, never delete.
+    $cfMap = Get-PsdSectionMap -Lines $cf.ToArray()
+    foreach ($name in $cfMap.Keys) {
+        if (-not $exMap.Contains($name)) { $unknown.Add($name); continue }
+        foreach ($k in $cfMap[$name].Keys.Keys) {
+            if (-not $exMap[$name].Keys.Contains($k)) { $unknown.Add("$name.$k") }
+        }
+    }
+
+    if ($added.Count -gt 0) {
+        Copy-Item -LiteralPath $ConfigPath -Destination "$ConfigPath.bak" -Force
+        Write-Utf8NoBom -Path $ConfigPath -Content ($cf -join $nl)
+    }
+    [pscustomobject]@{ Added = $added.ToArray(); Unknown = $unknown.ToArray(); Manual = $manual.ToArray() }
+}

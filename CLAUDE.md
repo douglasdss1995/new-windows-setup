@@ -32,6 +32,7 @@ One-time tool install: `Install-Module Pester -MinimumVersion 5.5 -Scope Current
 
 - `scripts/SetupConfig.ps1` is the single source of truth for the WSL options (`Get-WslOptions`): key, default, `setup-wsl.sh` flag, dependencies, question. The wizard, `wsl/wsl.config.psd1(.example)` and `ConvertTo-WslProvisionArgs` (used by `setup-wsl.ps1`) all derive from it.
 - Adding a WSL option = one entry in `Get-WslOptions` + the flag in `wsl/setup-wsl.sh` + regenerate `wsl/wsl.config.psd1.example` (`tests/pester/SetupConfig.Tests.ps1` fails if the example, the flag or the `SKIP_*` default drift).
+- On every run the wizard (also `make config`) runs `Sync-ConfigKeys`: keys/sections present in `windows/windows.config.psd1.example` but missing from the local `windows.config.psd1` are inserted with the example's default and comment (a missing key is otherwise silently read as disabled). It never changes your values and never deletes: keys only your file has are reported as probably renamed. A `.bak` is written only when something is added.
 - Makefile recipes must only call `pwsh` and avoid shell syntax (parentheses, pipes, globs in `echo`), because GNU make on Windows may run them under `sh` or `cmd.exe`.
 
 ## Running the Scripts

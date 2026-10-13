@@ -187,3 +187,123 @@ Describe 'setup-wizard.ps1' {
         (Import-PowerShellDataFile (Join-Path $script:root 'wsl' 'wsl.config.psd1')).NvidiaContainerToolkit | Should -BeTrue
     }
 }
+
+Describe 'Sync-ConfigKeys' {
+    BeforeEach {
+        $script:dir = Join-Path ([System.IO.Path]::GetTempPath()) ("sync-" + [guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory -Path $script:dir | Out-Null
+        $script:example = Join-Path $script:dir 'example.psd1'
+        $script:config  = Join-Path $script:dir 'config.psd1'
+        @'
+@{
+    # Editors
+    Editors = @{
+        Code    = $true    # main editor
+        Vim     = $false
+        Cursor  = $true    # new in the example
+    }
+
+    # -------------------------------------------------------------------------
+    # Browsers
+    # -------------------------------------------------------------------------
+    Browsers = @{
+        Chrome = $true
+    }
+}
+'@ | Set-Content $script:example -NoNewline
+    }
+    AfterEach { Remove-Item $script:dir -Recurse -Force }
+
+    It 'adds a missing key after its predecessor, keeping the example comment and every local value' {
+        @'
+@{
+    # my own comment
+    Editors = @{
+        Code = $false   # I changed this
+        Vim  = $true
+    }
+
+    Browsers = @{
+        Chrome = $false
+    }
+}
+'@ | Set-Content $script:config -NoNewline
+        $r = Sync-ConfigKeys -ExamplePath $script:example -ConfigPath $script:config
+        $r.Added | Should -Be @('Editors.Cursor')
+        $text = Get-Content $script:config -Raw
+        $text | Should -Match 'Cursor  = \$true    # new in the example'
+        $text | Should -Match '# my own comment'
+        $cfg = Import-PowerShellDataFile $script:config
+        $cfg.Editors.Code | Should -BeFalse
+        $cfg.Editors.Vim  | Should -BeTrue
+        $cfg.Editors.Cursor | Should -BeTrue
+        $cfg.Browsers.Chrome | Should -BeFalse
+    }
+    It 'keeps the example order: the new key lands right after the last known predecessor' {
+        "@{`n    Editors = @{`n        Code = `$true`n        Vim  = `$true`n    }`n    Browsers = @{`n        Chrome = `$true`n    }`n}`n" | Set-Content $script:config -NoNewline
+        Sync-ConfigKeys -ExamplePath $script:example -ConfigPath $script:config | Out-Null
+        $lines = Get-Content $script:config
+        $vim = [array]::FindIndex($lines, [Predicate[string]]{ param($l) $l -match 'Vim' })
+        $lines[$vim + 1] | Should -Match 'Cursor'
+    }
+    It 'adds a whole missing section with its banner comment' {
+        "@{`n    Editors = @{`n        Code = `$true`n        Vim = `$false`n        Cursor = `$true`n    }`n}`n" | Set-Content $script:config -NoNewline
+        $r = Sync-ConfigKeys -ExamplePath $script:example -ConfigPath $script:config
+        $r.Added | Should -Be @('Browsers.Chrome')
+        (Get-Content $script:config -Raw) | Should -Match '# Browsers'
+        (Import-PowerShellDataFile $script:config).Browsers.Chrome | Should -BeTrue
+    }
+    It 'is idempotent and writes a .bak only when something changed' {
+        "@{`n    Editors = @{`n        Code = `$true`n    }`n    Browsers = @{`n        Chrome = `$true`n    }`n}`n" | Set-Content $script:config -NoNewline
+        (Sync-ConfigKeys -ExamplePath $script:example -ConfigPath $script:config).Added.Count | Should -Be 2
+        Test-Path "$($script:config).bak" | Should -BeTrue
+        Remove-Item "$($script:config).bak"
+        $before = Get-Content $script:config -Raw
+        (Sync-ConfigKeys -ExamplePath $script:example -ConfigPath $script:config).Added | Should -BeNullOrEmpty
+        Get-Content $script:config -Raw | Should -BeExactly $before
+        Test-Path "$($script:config).bak" | Should -BeFalse
+    }
+    It 'reports keys the example no longer has and never deletes them' {
+        "@{`n    Editors = @{`n        Code = `$true`n        Vim = `$false`n        Cursor = `$true`n        OldEditor = `$true`n    }`n    Browsers = @{`n        Chrome = `$true`n    }`n}`n" | Set-Content $script:config -NoNewline
+        $r = Sync-ConfigKeys -ExamplePath $script:example -ConfigPath $script:config
+        $r.Unknown | Should -Be @('Editors.OldEditor')
+        (Import-PowerShellDataFile $script:config).Editors.OldEditor | Should -BeTrue
+    }
+    It 'preserves CRLF line endings' {
+        [System.IO.File]::WriteAllText($script:config, "@{`r`n    Editors = @{`r`n        Code = `$true`r`n    }`r`n    Browsers = @{`r`n        Chrome = `$true`r`n    }`r`n}`r`n")
+        Sync-ConfigKeys -ExamplePath $script:example -ConfigPath $script:config | Out-Null
+        $raw = [System.IO.File]::ReadAllText($script:config)
+        ($raw -replace "`r`n", '').Contains("`n") | Should -BeFalse
+    }
+    It 'brings the previous real config (PostgreSQL16, no Opera/RemoteWSL) in line with the real example' {
+        # Same shape as the file that sat unsynced on a real machine.
+        $oldConfig = (Get-Content (Join-Path $repoRoot 'windows' 'windows.config.psd1.example') -Raw) `
+            -replace '(?m)^\s*Opera\s*=.*\r?\n', '' `
+            -replace '(?m)^\s*RemoteWSL\s*=.*\r?\n', '' `
+            -replace 'PostgreSQL18', 'PostgreSQL16'
+        Set-Content $script:config $oldConfig -NoNewline
+        $realExample = Join-Path $repoRoot 'windows' 'windows.config.psd1.example'
+        $r = Sync-ConfigKeys -ExamplePath $realExample -ConfigPath $script:config
+        $r.Added | Should -Contain 'Database.PostgreSQL18'
+        $r.Added | Should -Contain 'Browsers.Opera'
+        $r.Added | Should -Contain 'VSCodeExtensions.RemoteWSL'
+        $r.Unknown | Should -Be @('Database.PostgreSQL16')
+        $r.Manual | Should -BeNullOrEmpty
+        $a = Import-PowerShellDataFile $script:config
+        $e = Import-PowerShellDataFile $realExample
+        foreach ($s in $e.Keys) { foreach ($k in $e[$s].Keys) { $a[$s].ContainsKey($k) | Should -BeTrue -Because "$s.$k" } }
+    }
+}
+
+Describe 'setup-wizard.ps1 config sync' {
+    It 'adds new example keys to an existing windows.config.psd1' {
+        $root = New-FakeRepo
+        try {
+            $win = Join-Path $root 'windows' 'windows.config.psd1'
+            (Get-Content "$win.example" -Raw) -replace '(?m)^\s*Opera\s*=.*\r?\n', '' | Set-Content $win -NoNewline
+            (Import-PowerShellDataFile $win).Browsers.ContainsKey('Opera') | Should -BeFalse
+            & (Join-Path $repoRoot 'scripts' 'setup-wizard.ps1') -RepoRoot $root -ConfigOnly *>$null
+            (Import-PowerShellDataFile $win).Browsers.ContainsKey('Opera') | Should -BeTrue
+        } finally { Remove-Item $root -Recurse -Force }
+    }
+}
