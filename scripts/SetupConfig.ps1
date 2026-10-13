@@ -9,25 +9,99 @@
 # =============================================================================
 
 function Get-WslOptions {
-    # Default  = what setup-wsl.sh does when the flag is absent.
-    # Flag     = the setup-wsl.sh flag emitted when the value differs from Default.
+    # Default   = what setup-wsl.sh does when the flag is absent.
+    # Flag      = the setup-wsl.sh flag emitted when the value differs from Default.
     # DependsOn = options that must be $true for this one to be asked/applied.
+    # Help      = what the option installs and what it needs. "Requires" and
+    #             "Skipped when turned off" lines are derived by Get-WslOptionHelp.
     @(
-        [pscustomobject]@{ Key = 'Docker';                Default = $true;  Flag = '--skip-docker';    DependsOn = @();                      Question = 'Install Docker (native daemon, no Docker Desktop)?' }
-        [pscustomobject]@{ Key = 'NvidiaContainerToolkit'; Default = $false; Flag = '--with-nvidia';    DependsOn = @('Docker');              Question = 'Install NVIDIA Container Toolkit (GPU in containers; needs an NVIDIA GPU)?' }
-        [pscustomobject]@{ Key = 'PostgreSQL';            Default = $false; Flag = '--with-postgres';  DependsOn = @('Docker');              Question = 'Add PostgreSQL provider?' }
-        [pscustomobject]@{ Key = 'PgAdmin';               Default = $false; Flag = '--with-pgadmin';   DependsOn = @('Docker', 'PostgreSQL'); Question = 'Add pgAdmin provider?' }
-        [pscustomobject]@{ Key = 'Redis';                 Default = $true;  Flag = '--skip-redis';     DependsOn = @('Docker');              Question = 'Add Redis provider?' }
-        [pscustomobject]@{ Key = 'Portainer';             Default = $true;  Flag = '--skip-portainer'; DependsOn = @('Docker');              Question = 'Add Portainer provider?' }
-        [pscustomobject]@{ Key = 'MinIO';                 Default = $false; Flag = '--with-minio';     DependsOn = @('Docker');              Question = 'Add MinIO provider (manual start)?' }
-        [pscustomobject]@{ Key = 'SeaweedFS';             Default = $false; Flag = '--with-seaweedfs'; DependsOn = @('Docker');              Question = 'Add SeaweedFS provider (manual start)?' }
-        [pscustomobject]@{ Key = 'Python';                Default = $true;  Flag = '--skip-python';    DependsOn = @();                      Question = 'Install Python tooling?' }
-        [pscustomobject]@{ Key = 'Node';                  Default = $true;  Flag = '--skip-node';      DependsOn = @();                      Question = 'Install Node tooling?' }
-        [pscustomobject]@{ Key = 'GitKraken';             Default = $true;  Flag = '--skip-gitkraken'; DependsOn = @();                      Question = 'Install GitKraken?' }
-        [pscustomobject]@{ Key = 'KeyboardLayout';        Default = $true;  Flag = '--skip-keyboard';  DependsOn = @();                      Question = 'Configure the keyboard layout (br / abnt2)?' }
+        [pscustomobject]@{
+            Key = 'Docker'; Default = $true; Flag = '--skip-docker'; DependsOn = @()
+            Question = 'Install Docker (native daemon, no Docker Desktop)?'
+            Help = @('Installs the Docker engine inside WSL and enables it through systemd.',
+                     'Needs systemd=true in /etc/wsl.conf (already set by this repo).')
+        }
+        [pscustomobject]@{
+            Key = 'NvidiaContainerToolkit'; Default = $false; Flag = '--with-nvidia'; DependsOn = @('Docker')
+            Question = 'Install NVIDIA Container Toolkit (GPU in containers)?'
+            Help = @('Lets containers use the GPU (docker run --gpus all).',
+                     'Needs an NVIDIA GPU and the regular NVIDIA driver installed on WINDOWS (with WSL support).',
+                     'Never install a Linux NVIDIA driver inside WSL; nvidia-smi must already work there.',
+                     'If no GPU is visible at install time the step is skipped with a warning.')
+        }
+        [pscustomobject]@{
+            Key = 'PostgreSQL'; Default = $false; Flag = '--with-postgres'; DependsOn = @('Docker')
+            Question = 'Add PostgreSQL provider?'
+            Help = @('Container on localhost:5433, started with the other providers.')
+        }
+        [pscustomobject]@{
+            Key = 'PgAdmin'; Default = $false; Flag = '--with-pgadmin'; DependsOn = @('Docker', 'PostgreSQL')
+            Question = 'Add pgAdmin provider?'
+            Help = @('Web UI for PostgreSQL on http://localhost:5050.')
+        }
+        [pscustomobject]@{
+            Key = 'Redis'; Default = $true; Flag = '--skip-redis'; DependsOn = @('Docker')
+            Question = 'Add Redis provider?'
+            Help = @('Container on localhost:6379.')
+        }
+        [pscustomobject]@{
+            Key = 'Portainer'; Default = $true; Flag = '--skip-portainer'; DependsOn = @('Docker')
+            Question = 'Add Portainer provider?'
+            Help = @('Docker web UI on http://localhost:8001.')
+        }
+        [pscustomobject]@{
+            Key = 'MinIO'; Default = $false; Flag = '--with-minio'; DependsOn = @('Docker')
+            Question = 'Add MinIO provider (manual start)?'
+            Help = @('S3-compatible storage on :9000 (console :9001); discontinued upstream.',
+                     'Never starts with the machine: docker compose --profile minio up -d minio.')
+        }
+        [pscustomobject]@{
+            Key = 'SeaweedFS'; Default = $false; Flag = '--with-seaweedfs'; DependsOn = @('Docker')
+            Question = 'Add SeaweedFS provider (manual start)?'
+            Help = @('S3-compatible storage on :8333 (filer :8888, master :9333); MinIO alternative.',
+                     'Never starts with the machine: docker compose --profile seaweedfs up -d seaweedfs.')
+        }
+        [pscustomobject]@{
+            Key = 'Python'; Default = $true; Flag = '--skip-python'; DependsOn = @()
+            Question = 'Install Python tooling?'
+            Help = @('Python (latest) via mise, plus uv, poetry, black, ruff, mypy, pytest, ipython, httpie, pre-commit.')
+        }
+        [pscustomobject]@{
+            Key = 'Node'; Default = $true; Flag = '--skip-node'; DependsOn = @()
+            Question = 'Install Node tooling?'
+            Help = @('Node LTS via mise, plus pnpm, Angular CLI (Linux build), TypeScript, ESLint, Prettier.')
+        }
+        [pscustomobject]@{
+            Key = 'GitKraken'; Default = $true; Flag = '--skip-gitkraken'; DependsOn = @()
+            Question = 'Install GitKraken?'
+            Help = @('Linux GitKraken for repos on the WSL filesystem (~150 MB download).',
+                     'Needs WSLg (Windows 11, or Windows 10 with WSLg) to show its window.',
+                     'The Windows GitKraken is installed separately by setup-windows.ps1.')
+        }
+        [pscustomobject]@{
+            Key = 'KeyboardLayout'; Default = $true; Flag = '--skip-keyboard'; DependsOn = @()
+            Question = 'Configure the keyboard layout (br / abnt2)?'
+            Help = @('Fixes accents in GUI apps run through WSLg (GitKraken, ...), which ignore the Windows layout.',
+                     'Turn off if you do not use a Brazilian ABNT2 keyboard.')
+        }
     )
 }
 
+# Explanatory lines for one option: its Help plus what it requires and what is
+# skipped when it is turned off (both derived from DependsOn, so they cannot drift).
+function Get-WslOptionHelp {
+    param([Parameter(Mandatory)][pscustomobject]$Option)
+    $lines = [System.Collections.Generic.List[string]]::new()
+    foreach ($h in $Option.Help) { $lines.Add($h) }
+    if ($Option.DependsOn.Count -gt 0) {
+        $lines.Add("Requires: $($Option.DependsOn -join ' + ') set to yes (not asked, and forced to no, otherwise).")
+    }
+    $dependents = @(Get-WslOptions | Where-Object { $_.DependsOn -contains $Option.Key } | ForEach-Object Key)
+    if ($dependents.Count -gt 0) {
+        $lines.Add("If you answer no, these are skipped too: $($dependents -join ', ').")
+    }
+    $lines
+}
 # -----------------------------------------------------------------------------
 # Prompts
 # -----------------------------------------------------------------------------
@@ -112,7 +186,10 @@ function New-WslConfigContent {
     foreach ($opt in Get-WslOptions) {
         $value = if ($Values.ContainsKey($opt.Key)) { [bool]$Values[$opt.Key] } else { $opt.Default }
         $literal = if ($value) { '$true ' } else { '$false' }
-        $lines.Add(('    {0} = {1}  # {2}' -f $opt.Key.PadRight($width), $literal, $opt.Question))
+        $lines.Add('')
+        $lines.Add("    # $($opt.Question)")
+        foreach ($h in Get-WslOptionHelp -Option $opt) { $lines.Add("    #   $h") }
+        $lines.Add(('    {0} = {1}' -f $opt.Key.PadRight($width), $literal.TrimEnd()))
     }
     $lines.Add('}')
     ($lines -join "`n") + "`n"

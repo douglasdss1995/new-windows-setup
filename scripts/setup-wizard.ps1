@@ -60,6 +60,10 @@ foreach ($opt in Get-WslOptions) {
         continue
     }
     $default = if ($current.ContainsKey($opt.Key) -and $current[$opt.Key] -is [bool]) { $current[$opt.Key] } else { $opt.Default }
+    if (-not $UseDefaults) {
+        Write-Host ''
+        foreach ($h in Get-WslOptionHelp -Option $opt) { Write-Host "  - $h" -ForegroundColor DarkGray }
+    }
     $answers[$opt.Key] = if ($UseDefaults) { $default } else { Read-YesNo -Prompt $opt.Question -Default $default }
 }
 
