@@ -141,7 +141,7 @@ Infrastructure services shared across all projects, managed at `~/providers/dock
 | Service | Image | Port | Description |
 |---|---|---|---|
 | PostgreSQL | `postgres:15-alpine` | 5432 | Primary relational database (opt-in) |
-| Redis | `redis:7-alpine` | 6379 | Cache, queues (Celery) and sessions |
+| Valkey | `valkey/valkey:9-alpine` | 6379 | Cache, queues (Celery) and sessions. Redis-compatible (BSD licence), replaces Redis |
 | pgAdmin | `dpage/pgadmin4` | 5050 | Web UI for PostgreSQL (opt-in) |
 | Portainer | `portainer/portainer-ce` | 9000 / 9443 | Web UI for managing containers |
 | SeaweedFS | `chrislusf/seaweedfs` | 8333 (S3) / 8888 (filer) / 9333 (master) | S3-compatible object storage (opt-in, manual start) |
@@ -153,10 +153,10 @@ PostgreSQL, pgAdmin, MinIO and SeaweedFS are **not installed by default** — en
 bash wsl/setup-wsl.sh --with-postgres        # also install PostgreSQL
 bash wsl/setup-wsl.sh --with-seaweedfs       # also add SeaweedFS (start manually)
 bash wsl/setup-wsl.sh --with-postgres --with-pgadmin   # PostgreSQL + pgAdmin (pgAdmin requires PostgreSQL)
-bash wsl/setup-wsl.sh --skip-redis           # no Redis
+bash wsl/setup-wsl.sh --skip-valkey          # no Valkey (--skip-redis still works but is deprecated)
 bash wsl/setup-wsl.sh --skip-portainer       # no Portainer
 
-# Example: Docker + only Redis (the default — no flags needed)
+# Example: Docker + only Valkey (the default — no flags needed)
 bash wsl/setup-wsl.sh
 ```
 
@@ -180,4 +180,4 @@ pvps        # docker compose ps
 pvrestart   # docker compose restart
 ```
 
-> **Why Redis in compose and not native?** Redis is shared infrastructure (like Postgres). There's no benefit in installing it natively in WSL. The `redis.conf` limits memory to 256 MB with `allkeys-lru` policy and its lifecycle stays consistent with the other services.
+> **Why Valkey in compose and not native?** Valkey is shared infrastructure (like Postgres). There's no benefit in installing it natively in WSL. The `valkey.conf` limits memory to 256 MB with `allkeys-lru` policy and its lifecycle stays consistent with the other services.

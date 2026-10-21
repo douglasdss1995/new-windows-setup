@@ -72,6 +72,10 @@ Describe 'ConvertTo-WslProvisionArgs' {
         ConvertTo-WslProvisionArgs -Config @{ Docker = $false; Node = $false } |
             Should -Be '--skip-docker --skip-node'
     }
+    It 'honours the legacy Redis key (renamed to Valkey) unless Valkey is set' {
+        ConvertTo-WslProvisionArgs -Config @{ Redis = $false } | Should -Be '--skip-valkey'
+        ConvertTo-WslProvisionArgs -Config @{ Redis = $false; Valkey = $true } | Should -Be ''
+    }
     It 'rejects non-boolean values' {
         { ConvertTo-WslProvisionArgs -Config @{ Docker = 'no' } } | Should -Throw '*Docker*'
     }
@@ -98,7 +102,7 @@ Describe 'wsl option contract' {
         $script = Get-Content (Join-Path $repoRoot 'wsl' 'setup-wsl.sh') -Raw
         $vars = @{
             Docker = 'SKIP_DOCKER'; NvidiaContainerToolkit = 'SKIP_NVIDIA'; PostgreSQL = 'SKIP_POSTGRES'
-            PgAdmin = 'SKIP_PGADMIN'; Redis = 'SKIP_REDIS'; Portainer = 'SKIP_PORTAINER'; MinIO = 'SKIP_MINIO'
+            PgAdmin = 'SKIP_PGADMIN'; Valkey = 'SKIP_VALKEY'; Portainer = 'SKIP_PORTAINER'; MinIO = 'SKIP_MINIO'
             SeaweedFS = 'SKIP_SEAWEEDFS'; Python = 'SKIP_PYTHON'; Node = 'SKIP_NODE'
             GitKraken = 'SKIP_GITKRAKEN'; KeyboardLayout = 'SKIP_KEYBOARD'
         }
@@ -171,7 +175,7 @@ Describe 'setup-wizard.ps1' {
         $cfg = Import-PowerShellDataFile (Join-Path $script:root 'wsl' 'wsl.config.psd1')
         $cfg.Docker                 | Should -BeFalse
         $cfg.NvidiaContainerToolkit | Should -BeFalse
-        $cfg.Redis                  | Should -BeFalse
+        $cfg.Valkey                 | Should -BeFalse
         $cfg.Python                 | Should -BeFalse
         $cfg.Node                   | Should -BeFalse
         $cfg.GitKraken              | Should -BeTrue

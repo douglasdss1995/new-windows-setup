@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# providers.sh — Providers configuration (PostgreSQL, Redis, pgAdmin, MinIO, SeaweedFS, Portainer)
+# providers.sh — Providers configuration (PostgreSQL, Valkey, pgAdmin, MinIO, SeaweedFS, Portainer)
 
 provision_providers() {
   if [ "$SKIP_DOCKER" = false ]; then
@@ -11,7 +11,7 @@ provision_providers() {
 
     ENABLED_PROVIDERS=""
     [ "$SKIP_POSTGRES"  = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }PostgreSQL"
-    [ "$SKIP_REDIS"     = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }Redis"
+    [ "$SKIP_VALKEY"    = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }Valkey"
     [ "$SKIP_PGADMIN"   = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }pgAdmin"
     [ "$SKIP_MINIO"     = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }MinIO"
     [ "$SKIP_SEAWEEDFS" = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }SeaweedFS"
@@ -24,10 +24,11 @@ provision_providers() {
 
       local PROVIDERS_DIR="$HOME/providers"
       mkdir -p "$PROVIDERS_DIR/providers/postgres/init"
-      mkdir -p "$PROVIDERS_DIR/providers/redis"
+      mkdir -p "$PROVIDERS_DIR/providers/valkey"
       mkdir -p "$PROVIDERS_DIR/providers/pgadmin"
       mkdir -p "$PROVIDERS_DIR/providers/seaweedfs"
 
+      _providers_remove_legacy_redis
       _providers_write_compose "$PROVIDERS_DIR"
       _providers_write_configs "$PROVIDERS_DIR"
       _providers_write_systemd "$PROVIDERS_DIR"
@@ -40,6 +41,26 @@ provision_providers() {
       [ "$SKIP_SEAWEEDFS" = false ] && info "SeaweedFS -> S3 http://localhost:8333, filer http://localhost:8888 (seaweedadmin / seaweedadmin) - start: docker compose --profile seaweedfs up -d seaweedfs"
       [ "$SKIP_PORTAINER" = false ] && info "Portainer -> http://localhost:8001"
     fi
+  fi
+}
+
+# Valkey replaces the old Redis provider. A leftover `redis` container from a
+# previous run would keep port 6379 and make `valkey` fail to start, so remove
+# it (only when it belongs to this compose project). Best effort: the daemon may
+# not be reachable yet on a first run, and `up --remove-orphans` also cleans it.
+_providers_remove_legacy_redis() {
+  [ "$SKIP_VALKEY" = false ] || return 0
+  command -v docker >/dev/null 2>&1 || return 0
+  local -a docker_cmd=(docker)
+  local legacy
+  docker info >/dev/null 2>&1 || docker_cmd=(sudo docker)
+  legacy="$("${docker_cmd[@]}" ps -aq --filter "name=^/redis$" --filter "label=com.docker.compose.project=providers" 2>/dev/null)" || return 0
+  [ -n "$legacy" ] || return 0
+  info "Removing the old Redis container (replaced by Valkey)..."
+  if "${docker_cmd[@]}" rm -f "$legacy" >/dev/null 2>&1; then
+    success "Old Redis container removed (its data volume is kept: docker volume rm providers_redis_data)"
+  else
+    warn "Could not remove the old Redis container - run: docker rm -f redis"
   fi
 }
 
@@ -95,27 +116,27 @@ COMPOSE_HEADER
 POSTGRES_SVC
   fi
 
-  if [ "$SKIP_REDIS" = false ]; then
-    cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'REDIS_SVC'
+  if [ "$SKIP_VALKEY" = false ]; then
+    cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'VALKEY_SVC'
 
-  redis:
-    image: redis:7-alpine
-    container_name: redis
+  valkey:
+    image: valkey/valkey:9-alpine
+    container_name: valkey
     restart: unless-stopped
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${VALKEY_PORT:-${REDIS_PORT:-6379}}:6379"
     volumes:
-      - redis_data:/data
-      - ./providers/redis/redis.conf:/usr/local/etc/redis/redis.conf
-    command: redis-server /usr/local/etc/redis/redis.conf
+      - valkey_data:/data
+      - ./providers/valkey/valkey.conf:/usr/local/etc/valkey/valkey.conf
+    command: valkey-server /usr/local/etc/valkey/valkey.conf
     networks:
       - shared-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
-REDIS_SVC
+VALKEY_SVC
   fi
 
   if [ "$SKIP_PGADMIN" = false ]; then
@@ -236,7 +257,7 @@ volumes:
 COMPOSE_FOOTER
 
   [ "$SKIP_POSTGRES"  = false ] && echo "  postgres_data:"  >> "$PROVIDERS_DIR/docker-compose.yml"
-  [ "$SKIP_REDIS"     = false ] && echo "  redis_data:"     >> "$PROVIDERS_DIR/docker-compose.yml"
+  [ "$SKIP_VALKEY"    = false ] && echo "  valkey_data:"    >> "$PROVIDERS_DIR/docker-compose.yml"
   [ "$SKIP_PGADMIN"   = false ] && echo "  pgadmin_data:"   >> "$PROVIDERS_DIR/docker-compose.yml"
   [ "$SKIP_MINIO"     = false ] && echo "  minio_data:"     >> "$PROVIDERS_DIR/docker-compose.yml"
   [ "$SKIP_SEAWEEDFS" = false ] && echo "  seaweedfs_data:" >> "$PROVIDERS_DIR/docker-compose.yml"
@@ -258,8 +279,8 @@ POSTGRES_PASSWORD=postgres
 POSTGRES_DB=postgres
 POSTGRES_PORT=5433
 
-# Redis
-REDIS_PORT=6379
+# Valkey (Redis-compatible)
+VALKEY_PORT=6379
 
 # pgAdmin - http://localhost:5050
 PGADMIN_EMAIL=admin@admin.com
@@ -290,10 +311,10 @@ ENV_EOF
     warn ".env already exists at $PROVIDERS_DIR/.env - kept unchanged"
   fi
 
-  if [ "$SKIP_REDIS" = false ]; then
-    cat > "$PROVIDERS_DIR/providers/redis/redis.conf" << 'REDIS_EOF'
+  if [ "$SKIP_VALKEY" = false ]; then
+    cat > "$PROVIDERS_DIR/providers/valkey/valkey.conf" << 'VALKEY_EOF'
 # ==============================================
-# Redis - Configuration
+# Valkey - Configuration
 # ==============================================
 
 bind 0.0.0.0
@@ -320,7 +341,7 @@ tcp-keepalive 300
 
 # Databases
 databases 16
-REDIS_EOF
+VALKEY_EOF
   fi
 
   if [ "$SKIP_POSTGRES" = false ]; then

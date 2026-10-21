@@ -14,7 +14,7 @@ Provisions the development environment inside Debian. See [`docs/tools-wsl.md`](
 | CLI          | ripgrep, fd, bat, eza, fzf, zoxide, delta, jq, yq, gh                                    |
 | direnv       | Per-directory environment variable loading (`.envrc` files)                              |
 | Docker       | Native daemon (no Docker Desktop) + systemd enable (auto-start)                          |
-| Providers    | Redis, Portainer via compose at `~/providers/`; PostgreSQL and pgAdmin are opt-in (see [Providers](./providers.md)) |
+| Providers    | Valkey, Portainer via compose at `~/providers/`; PostgreSQL and pgAdmin are opt-in (see [Providers](./providers.md)) |
 | Git          | Local `~/.gitconfig` that includes the repo's shared defaults (see [.gitconfig](./gitconfig.md)) |
 | Shell config | `.zshrc` with aliases for Django, Git, Docker, Python, Providers (`pvup`, `pvdown`...)  |
 
@@ -32,7 +32,7 @@ bash wsl/setup-wsl.sh --with-postgres        # also install PostgreSQL (opt-in)
 bash wsl/setup-wsl.sh --with-pgadmin         # also install pgAdmin (requires --with-postgres)
 bash wsl/setup-wsl.sh --with-minio           # add MinIO to the compose file (opt-in, discontinued; never auto-starts)
 bash wsl/setup-wsl.sh --with-seaweedfs       # add SeaweedFS to the compose file (opt-in; never auto-starts)
-bash wsl/setup-wsl.sh --skip-redis           # without Redis
+bash wsl/setup-wsl.sh --skip-valkey          # without Valkey
 bash wsl/setup-wsl.sh --skip-portainer       # without Portainer
 ```
 
@@ -50,10 +50,10 @@ docker compose --profile seaweedfs stop seaweedfs    # stop again
 Flags can be combined freely:
 
 ```bash
-# Docker + Redis only (the default — PostgreSQL and pgAdmin are opt-in)
+# Docker + Valkey only (the default — PostgreSQL and pgAdmin are opt-in)
 bash wsl/setup-wsl.sh
 
-# Docker + Redis + PostgreSQL + pgAdmin
+# Docker + Valkey + PostgreSQL + pgAdmin
 bash wsl/setup-wsl.sh --with-postgres --with-pgadmin
 
 # Everything except Docker and its providers

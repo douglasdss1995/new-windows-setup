@@ -1,6 +1,6 @@
 # =============================================================================
 # docker-compose.yml — Providers (Serviços Compartilhados)
-# Serviços: PostgreSQL, Redis, Portainer (automáticos)
+# Serviços: PostgreSQL, Valkey, Portainer (automáticos)
 # pgAdmin, MailHog, MinIO e SeaweedFS são manuais — ver profiles
 #
 # Este arquivo é copiado para ~/providers/ pelo provision.sh.
@@ -50,21 +50,21 @@ services:
         reservations:
           memory: 256m
 
-  redis:
-    image: redis:7-alpine
-    container_name: redis
+  valkey:
+    image: valkey/valkey:9-alpine
+    container_name: valkey
     restart: unless-stopped
     logging: *default-logging
     ports:
-      - "${REDIS_PORT:-6379}:6379"
+      - "${VALKEY_PORT:-${REDIS_PORT:-6379}}:6379"
     volumes:
-      - redis_data:/data
-      - ./providers/redis/redis.conf:/usr/local/etc/redis/redis.conf
-    command: redis-server /usr/local/etc/redis/redis.conf
+      - valkey_data:/data
+      - ./providers/valkey/valkey.conf:/usr/local/etc/valkey/valkey.conf
+    command: valkey-server /usr/local/etc/valkey/valkey.conf
     networks:
       - shared-network
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -222,7 +222,7 @@ networks:
 
 volumes:
   postgres_data:
-  redis_data:
+  valkey_data:
   pgadmin_data:
   minio_data:
   seaweedfs_data:

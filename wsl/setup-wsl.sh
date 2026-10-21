@@ -2,7 +2,7 @@
 # =============================================================================
 # setup-wsl.sh — WSL environment provisioning for Django + Angular dev
 # Usage: bash setup-wsl.sh [--skip-docker] [--skip-node] [--skip-python]
-#                          [--with-postgres] [--skip-redis]
+#                          [--with-postgres] [--skip-valkey]
 #                          [--with-pgadmin] [--with-minio] [--with-seaweedfs]
 #                          [--skip-portainer] [--with-nvidia]
 #                          [--skip-gitkraken] [--skip-keyboard]
@@ -45,7 +45,7 @@ SKIP_PYTHON=false
 # --with-seaweedfs. MinIO and SeaweedFS are also compose profiles: they never
 # start with the machine, only on demand. All other providers default on.
 SKIP_POSTGRES=true
-SKIP_REDIS=false
+SKIP_VALKEY=false
 SKIP_PGADMIN=true
 SKIP_PORTAINER=false
 SKIP_MINIO=true
@@ -67,7 +67,8 @@ for arg in "$@"; do
     --skip-node)            SKIP_NODE=true ;;
     --skip-python)          SKIP_PYTHON=true ;;
     --with-postgres)        SKIP_POSTGRES=false ;;
-    --skip-redis)           SKIP_REDIS=true ;;
+    --skip-valkey)          SKIP_VALKEY=true ;;
+    --skip-redis)           SKIP_VALKEY=true; warn "--skip-redis is deprecated (Redis was replaced by Valkey) - use --skip-valkey" ;;
     --with-pgadmin)         SKIP_PGADMIN=false ;;
     --skip-portainer)       SKIP_PORTAINER=true ;;
     --with-minio)           SKIP_MINIO=false ;;

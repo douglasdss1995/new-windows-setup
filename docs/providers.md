@@ -21,8 +21,8 @@ POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres      # change before first start
 POSTGRES_PORT=5432
 
-# Redis
-REDIS_PORT=6379
+# Valkey (Redis-compatible; REDIS_PORT is still read as a fallback)
+VALKEY_PORT=6379
 
 # pgAdmin — http://localhost:5050
 PGADMIN_EMAIL=admin@admin.com
@@ -44,7 +44,7 @@ TZ=America/Sao_Paulo
 | Service    | URL / Port            | Default credentials         |
 | ---------- | ---------------------- | ---------------------------- |
 | PostgreSQL | `localhost:5432`      | `postgres` / `postgres`     |
-| Redis      | `localhost:6379`      | —                            |
+| Valkey     | `localhost:6379`      | —                            |
 | pgAdmin    | http://localhost:5050 | `admin@admin.com` / `admin` |
 | Portainer  | http://localhost:9000 | (set on first access)        |
 | SeaweedFS  | S3 `localhost:8333`, filer http://localhost:8888 | `seaweedadmin` / `seaweedadmin` (`providers/seaweedfs/s3.json`) |

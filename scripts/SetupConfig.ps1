@@ -40,9 +40,9 @@ function Get-WslOptions {
             Help = @('Web UI for PostgreSQL on http://localhost:5050.')
         }
         [pscustomobject]@{
-            Key = 'Redis'; Default = $true; Flag = '--skip-redis'; DependsOn = @('Docker')
-            Question = 'Add Redis provider?'
-            Help = @('Container on localhost:6379.')
+            Key = 'Valkey'; Default = $true; Flag = '--skip-valkey'; DependsOn = @('Docker')
+            Question = 'Add Valkey provider?'
+            Help = @('Redis-compatible cache/queue container (BSD licence, replaces Redis) on localhost:6379.')
         }
         [pscustomobject]@{
             Key = 'Portainer'; Default = $true; Flag = '--skip-portainer'; DependsOn = @('Docker')
@@ -159,6 +159,8 @@ function Read-Text {
 # key (or a missing file) behaves exactly like running the script without flags.
 function ConvertTo-WslProvisionArgs {
     param([Parameter(Mandatory)][hashtable]$Config)
+    # Redis was replaced by Valkey: an old config that only has Redis keeps its choice.
+    if ($Config.ContainsKey('Redis') -and -not $Config.ContainsKey('Valkey')) { $Config = $Config + @{ Valkey = $Config.Redis } }
     $flags = foreach ($opt in Get-WslOptions) {
         if (-not $Config.ContainsKey($opt.Key)) { continue }
         $value = $Config[$opt.Key]

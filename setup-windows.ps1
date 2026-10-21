@@ -529,7 +529,6 @@ if ($cfg.Database.PostgreSQL18)  { Install-Pkg "PostgreSQL 18"     "PostgreSQL.P
 if ($cfg.Database.DBeaver)       { Install-Pkg "DBeaver"           "dbeaver.dbeaver"                   } else { Write-Skip "DBeaver (disabled)"          }
 if ($cfg.Database.TablePlus)     { Install-Pkg "TablePlus"         "TablePlus.TablePlus"               } else { Write-Skip "TablePlus (disabled)"        }
 if ($cfg.Database.PgAdmin)       { Install-Pkg "pgAdmin 4"         "PostgreSQL.pgAdmin"                } else { Write-Skip "pgAdmin (disabled)"          }
-if ($cfg.Database.RedisInsight)  { Install-Pkg "Redis Insight"     "RedisLabs.RedisInsight"            } else { Write-Skip "Redis Insight (disabled)"    }
 if ($cfg.Database.SQLiteBrowser) { Install-Pkg "DB Browser SQLite" "DBBrowserForSQLite.DBBrowserForSQLite" } else { Write-Skip "SQLite Browser (disabled)" }
 
 # =============================================================================

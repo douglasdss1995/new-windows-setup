@@ -141,7 +141,7 @@ alias dkc='docker compose'
 alias dkps='docker ps'
 alias dkpsa='docker ps -a'
 
-# Providers (PostgreSQL, Redis, pgAdmin, MinIO, Portainer)
+# Providers (PostgreSQL, Valkey, pgAdmin, MinIO, Portainer)
 alias pvup='docker container prune -f 2>/dev/null; docker compose -f ~/providers/docker-compose.yml up -d --remove-orphans --force-recreate'
 alias pvdown='docker compose -f ~/providers/docker-compose.yml down --remove-orphans; docker container prune -f 2>/dev/null'
 alias pvlogs='docker compose -f ~/providers/docker-compose.yml logs -f'

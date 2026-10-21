@@ -83,7 +83,6 @@
         DBeaver       = $true
         TablePlus     = $false   # paid after trial
         PgAdmin       = $true    # alternative to DBeaver for Postgres
-        RedisInsight  = $false
         SQLiteBrowser = $false
     }
 

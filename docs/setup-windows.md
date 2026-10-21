@@ -16,7 +16,7 @@ powershell -ExecutionPolicy Bypass -File .\setup-windows.ps1
 
 | Editors      | VS Code, Cursor, PyCharm Community, WebStorm                      |
 | Runtimes     | mise, pyenv-win, nvm, Python, Node LTS, JDK 21, uv, pnpm          |
-| Databases    | PostgreSQL, DBeaver, TablePlus, pgAdmin, Redis Insight            |
+| Databases    | PostgreSQL, DBeaver, TablePlus, pgAdmin                           |
 | Docker       | Docker Engine in WSL (via `setup-wsl.sh`) + providers compose     |
 | API          | Postman, Insomnia, Bruno                                          |
 | CLI          | ripgrep, fd, bat, eza, fzf, zoxide, jq, delta, just               |

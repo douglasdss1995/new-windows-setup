@@ -11,7 +11,7 @@
     # Install Docker (native daemon, no Docker Desktop)?
     #   Installs the Docker engine inside WSL and enables it through systemd.
     #   Needs systemd=true in /etc/wsl.conf (already set by this repo).
-    #   If you answer no, these are skipped too: NvidiaContainerToolkit, PostgreSQL, PgAdmin, Redis, Portainer, MinIO, SeaweedFS.
+    #   If you answer no, these are skipped too: NvidiaContainerToolkit, PostgreSQL, PgAdmin, Valkey, Portainer, MinIO, SeaweedFS.
     Docker                 = $true
 
     # Install NVIDIA Container Toolkit (GPU in containers)?
@@ -33,10 +33,10 @@
     #   Requires: Docker + PostgreSQL set to yes (not asked, and forced to no, otherwise).
     PgAdmin                = $false
 
-    # Add Redis provider?
-    #   Container on localhost:6379.
+    # Add Valkey provider?
+    #   Redis-compatible cache/queue container (BSD licence, replaces Redis) on localhost:6379.
     #   Requires: Docker set to yes (not asked, and forced to no, otherwise).
-    Redis                  = $true
+    Valkey                 = $true
 
     # Add Portainer provider?
     #   Docker web UI on http://localhost:8001.
