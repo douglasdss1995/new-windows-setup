@@ -52,7 +52,8 @@ provision_base_deps() {
     xz-utils \
     llvm \
     make \
-    gpg
+    gpg \
+    net-tools
 
   # Every later step (mise, python, node, cli_tools, docker...) assumes curl,
   # wget and git are on PATH. apt-get can exit 0 yet still be missing some of
