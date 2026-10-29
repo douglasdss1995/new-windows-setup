@@ -103,7 +103,7 @@ Describe 'wsl option contract' {
         $vars = @{
             Docker = 'SKIP_DOCKER'; NvidiaContainerToolkit = 'SKIP_NVIDIA'; PostgreSQL = 'SKIP_POSTGRES'
             PgAdmin = 'SKIP_PGADMIN'; Valkey = 'SKIP_VALKEY'; Portainer = 'SKIP_PORTAINER'; MinIO = 'SKIP_MINIO'
-            SeaweedFS = 'SKIP_SEAWEEDFS'; Python = 'SKIP_PYTHON'; Node = 'SKIP_NODE'
+            SeaweedFS = 'SKIP_SEAWEEDFS'; Ollama = 'SKIP_OLLAMA'; Python = 'SKIP_PYTHON'; Node = 'SKIP_NODE'
             GitKraken = 'SKIP_GITKRAKEN'; KeyboardLayout = 'SKIP_KEYBOARD'
         }
         $bad = foreach ($o in Get-WslOptions) {

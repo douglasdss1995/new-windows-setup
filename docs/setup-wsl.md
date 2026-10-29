@@ -32,6 +32,7 @@ bash wsl/setup-wsl.sh --with-postgres        # also install PostgreSQL (opt-in)
 bash wsl/setup-wsl.sh --with-pgadmin         # also install pgAdmin (requires --with-postgres)
 bash wsl/setup-wsl.sh --with-minio           # add MinIO to the compose file (opt-in, discontinued; never auto-starts)
 bash wsl/setup-wsl.sh --with-seaweedfs       # add SeaweedFS to the compose file (opt-in; never auto-starts)
+bash wsl/setup-wsl.sh --with-ollama         # add Ollama to the compose file (opt-in; no models; start with pvup ollama)
 bash wsl/setup-wsl.sh --skip-valkey          # without Valkey
 bash wsl/setup-wsl.sh --skip-portainer       # without Portainer
 ```

@@ -30,6 +30,7 @@ provision_summary() {
       [ "$SKIP_MINIO"     = false ] && echo "     - MinIO Console:  http://localhost:9001  (minioadmin / minioadmin)"
       [ "$SKIP_SEAWEEDFS" = false ] && echo "     - SeaweedFS S3:   http://localhost:8333   (seaweedadmin / seaweedadmin; manual: docker compose --profile seaweedfs up -d seaweedfs)"
       [ "$SKIP_SEAWEEDFS" = false ] && echo "     - SeaweedFS UI:   http://localhost:8888 (filer), http://localhost:9333 (master)"
+      [ "$SKIP_OLLAMA"    = false ] && echo "     - Ollama:         http://localhost:11434  (no models; manual: pvup ollama)"
       [ "$SKIP_PORTAINER" = false ] && echo "     - Portainer:      http://localhost:8001"
     fi
   fi

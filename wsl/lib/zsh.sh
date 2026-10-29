@@ -141,9 +141,9 @@ alias dkc='docker compose'
 alias dkps='docker ps'
 alias dkpsa='docker ps -a'
 
-# Providers (PostgreSQL, Valkey, pgAdmin, MinIO, Portainer)
+# Providers (PostgreSQL, Valkey, pgAdmin, MinIO, Ollama, Portainer)
 alias pvup='docker container prune -f 2>/dev/null; docker compose -f ~/providers/docker-compose.yml up -d --remove-orphans --force-recreate'
-alias pvdown='docker compose -f ~/providers/docker-compose.yml down --remove-orphans; docker container prune -f 2>/dev/null'
+alias pvdown='docker compose -f ~/providers/docker-compose.yml --profile "*" down --remove-orphans; docker container prune -f 2>/dev/null'
 alias pvlogs='docker compose -f ~/providers/docker-compose.yml logs -f'
 alias pvps='docker compose -f ~/providers/docker-compose.yml ps'
 alias pvrestart='docker compose -f ~/providers/docker-compose.yml restart'
@@ -204,7 +204,7 @@ EOF
     "alias dkps='docker ps'"
     "alias dkpsa='docker ps -a'"
     "alias pvup='docker container prune -f 2>/dev/null; docker compose -f ~/providers/docker-compose.yml up -d --remove-orphans --force-recreate'"
-    "alias pvdown='docker compose -f ~/providers/docker-compose.yml down --remove-orphans; docker container prune -f 2>/dev/null'"
+    "alias pvdown='docker compose -f ~/providers/docker-compose.yml --profile \"*\" down --remove-orphans; docker container prune -f 2>/dev/null'"
     "alias pvlogs='docker compose -f ~/providers/docker-compose.yml logs -f'"
     "alias pvps='docker compose -f ~/providers/docker-compose.yml ps'"
     "alias pvrestart='docker compose -f ~/providers/docker-compose.yml restart'"

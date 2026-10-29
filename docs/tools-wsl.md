@@ -145,6 +145,7 @@ Infrastructure services shared across all projects, managed at `~/providers/dock
 | pgAdmin | `dpage/pgadmin4` | 5050 | Web UI for PostgreSQL (opt-in) |
 | Portainer | `portainer/portainer-ce` | 9000 / 9443 | Web UI for managing containers |
 | SeaweedFS | `chrislusf/seaweedfs` | 8333 (S3) / 8888 (filer) / 9333 (master) | S3-compatible object storage (opt-in, manual start) |
+| Ollama | `ollama/ollama` | 11434 | Local LLM server, no models, CPU only (opt-in, manual start: `pvup ollama`) |
 | MinIO | `minio/minio` | 9000 (S3) / 9001 (console) | S3-compatible object storage (opt-in, manual start, discontinued) |
 
 PostgreSQL, pgAdmin, MinIO and SeaweedFS are **not installed by default** — enable them explicitly with `--with-postgres` / `--with-pgadmin` / `--with-minio` / `--with-seaweedfs`. MinIO and SeaweedFS are also Compose profiles with `restart: "no"`: even when enabled, they only run when you start them (`docker compose --profile seaweedfs up -d seaweedfs`), never with the machine. SeaweedFS S3 credentials live in `~/providers/providers/seaweedfs/s3.json` (default `seaweedadmin` / `seaweedadmin`; kept on re-runs). Every other provider can be excluded via `--skip-*` flags when running `setup-wsl.sh`:
@@ -152,6 +153,7 @@ PostgreSQL, pgAdmin, MinIO and SeaweedFS are **not installed by default** — en
 ```bash
 bash wsl/setup-wsl.sh --with-postgres        # also install PostgreSQL
 bash wsl/setup-wsl.sh --with-seaweedfs       # also add SeaweedFS (start manually)
+bash wsl/setup-wsl.sh --with-ollama          # also add Ollama (start with: pvup ollama)
 bash wsl/setup-wsl.sh --with-postgres --with-pgadmin   # PostgreSQL + pgAdmin (pgAdmin requires PostgreSQL)
 bash wsl/setup-wsl.sh --skip-valkey          # no Valkey (--skip-redis still works but is deprecated)
 bash wsl/setup-wsl.sh --skip-portainer       # no Portainer

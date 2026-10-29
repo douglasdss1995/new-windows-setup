@@ -3,7 +3,7 @@
 # setup-wsl.sh — WSL environment provisioning for Django + Angular dev
 # Usage: bash setup-wsl.sh [--skip-docker] [--skip-node] [--skip-python]
 #                          [--with-postgres] [--skip-valkey]
-#                          [--with-pgadmin] [--with-minio] [--with-seaweedfs]
+#                          [--with-pgadmin] [--with-minio] [--with-seaweedfs] [--with-ollama]
 #                          [--skip-portainer] [--with-nvidia]
 #                          [--skip-gitkraken] [--skip-keyboard]
 #                          [--keyboard-layout=br] [--keyboard-variant=abnt2]
@@ -50,6 +50,7 @@ SKIP_PGADMIN=true
 SKIP_PORTAINER=false
 SKIP_MINIO=true
 SKIP_SEAWEEDFS=true
+SKIP_OLLAMA=true
 # NVIDIA Container Toolkit is opt-in (needs an NVIDIA GPU + Windows driver) —
 # enable with --with-nvidia. Ignored when --skip-docker is set.
 SKIP_NVIDIA=true
@@ -73,6 +74,7 @@ for arg in "$@"; do
     --skip-portainer)       SKIP_PORTAINER=true ;;
     --with-minio)           SKIP_MINIO=false ;;
     --with-seaweedfs)       SKIP_SEAWEEDFS=false ;;
+    --with-ollama)          SKIP_OLLAMA=false ;;
     --with-nvidia)          SKIP_NVIDIA=false ;;
     --skip-minio)          SKIP_MINIO=true ;;   # kept for backward compatibility (now the default)
     --skip-gitkraken)       SKIP_GITKRAKEN=true ;;

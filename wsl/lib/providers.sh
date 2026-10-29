@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# providers.sh — Providers configuration (PostgreSQL, Valkey, pgAdmin, MinIO, SeaweedFS, Portainer)
+# providers.sh — Providers configuration (PostgreSQL, Valkey, pgAdmin, MinIO, SeaweedFS, Ollama, Portainer)
 
 provision_providers() {
   if [ "$SKIP_DOCKER" = false ]; then
@@ -15,6 +15,7 @@ provision_providers() {
     [ "$SKIP_PGADMIN"   = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }pgAdmin"
     [ "$SKIP_MINIO"     = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }MinIO"
     [ "$SKIP_SEAWEEDFS" = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }SeaweedFS"
+    [ "$SKIP_OLLAMA"    = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }Ollama"
     [ "$SKIP_PORTAINER" = false ] && ENABLED_PROVIDERS="${ENABLED_PROVIDERS:+$ENABLED_PROVIDERS, }Portainer"
 
     if [ -z "$ENABLED_PROVIDERS" ]; then
@@ -39,6 +40,7 @@ provision_providers() {
       # machine (providers.service only runs `docker compose up -d`).
       [ "$SKIP_MINIO"     = false ] && info "MinIO     -> http://localhost:9001  (minioadmin / minioadmin) - start: docker compose --profile minio up -d minio"
       [ "$SKIP_SEAWEEDFS" = false ] && info "SeaweedFS -> S3 http://localhost:8333, filer http://localhost:8888 (seaweedadmin / seaweedadmin) - start: docker compose --profile seaweedfs up -d seaweedfs"
+      [ "$SKIP_OLLAMA"    = false ] && info "Ollama    -> http://localhost:11434 (no models) - start: pvup ollama"
       [ "$SKIP_PORTAINER" = false ] && info "Portainer -> http://localhost:8001"
     fi
   fi
@@ -228,6 +230,35 @@ MINIO_SVC
 SEAWEEDFS_SVC
   fi
 
+  if [ "$SKIP_OLLAMA" = false ]; then
+    cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'OLLAMA_SVC'
+
+  # Opt-in and manual: not started by `docker compose up -d` nor on boot.
+  # Start with: pvup ollama   (or: docker compose up -d ollama)
+  # No models are pulled: run `docker exec ollama ollama pull <model>` yourself.
+  # CPU only; for GPU add the NVIDIA Container Toolkit and a `deploy.resources.reservations.devices` block.
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    restart: "no"
+    profiles:
+      - ollama
+    environment:
+      TZ: ${TZ:-America/Sao_Paulo}
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - shared-network
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+OLLAMA_SVC
+  fi
+
   if [ "$SKIP_PORTAINER" = false ]; then
     cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'PORTAINER_SVC'
 
@@ -261,6 +292,7 @@ COMPOSE_FOOTER
   [ "$SKIP_PGADMIN"   = false ] && echo "  pgadmin_data:"   >> "$PROVIDERS_DIR/docker-compose.yml"
   [ "$SKIP_MINIO"     = false ] && echo "  minio_data:"     >> "$PROVIDERS_DIR/docker-compose.yml"
   [ "$SKIP_SEAWEEDFS" = false ] && echo "  seaweedfs_data:" >> "$PROVIDERS_DIR/docker-compose.yml"
+  [ "$SKIP_OLLAMA"    = false ] && echo "  ollama_data:"    >> "$PROVIDERS_DIR/docker-compose.yml"
   [ "$SKIP_PORTAINER" = false ] && echo "  portainer_data:" >> "$PROVIDERS_DIR/docker-compose.yml"
 }
 
@@ -298,6 +330,9 @@ MINIO_PORT_CONSOLE=9001
 SEAWEEDFS_S3_PORT=8333
 SEAWEEDFS_FILER_PORT=8888
 SEAWEEDFS_MASTER_PORT=9333
+
+# Ollama (opt-in, manual start: pvup ollama) - API
+OLLAMA_PORT=11434
 
 # Portainer - http://localhost:8001
 PORTAINER_HTTP_PORT=8001

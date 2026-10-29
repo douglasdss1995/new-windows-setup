@@ -29,6 +29,9 @@ PGADMIN_EMAIL=admin@admin.com
 PGADMIN_PASSWORD=admin          # change before first start
 PGADMIN_PORT=5050
 
+# Ollama (opt-in, pvup ollama)
+OLLAMA_PORT=11434
+
 # Portainer — http://localhost:9000
 PORTAINER_HTTP_PORT=9000
 PORTAINER_HTTPS_PORT=9443
@@ -49,6 +52,7 @@ TZ=America/Sao_Paulo
 | Portainer  | http://localhost:9000 | (set on first access)        |
 | SeaweedFS  | S3 `localhost:8333`, filer http://localhost:8888 | `seaweedadmin` / `seaweedadmin` (`providers/seaweedfs/s3.json`) |
 | MinIO      | S3 `localhost:9000`, console http://localhost:9001 | `minioadmin` / `minioadmin` |
+| Ollama     | http://localhost:11434 | — (no models; `--with-ollama`, CPU only) |
 
 SeaweedFS and MinIO are **opt-in** (`--with-seaweedfs` / `--with-minio`) and run as Compose
 profiles, so they never start with the machine. Start them on demand:
@@ -57,6 +61,7 @@ profiles, so they never start with the machine. Start them on demand:
 cd ~/providers
 docker compose --profile seaweedfs up -d seaweedfs
 docker compose --profile minio up -d minio
+pvup ollama        # Ollama; pull models yourself: docker exec ollama ollama pull <model>
 ```
 
 ## Shell aliases available after provisioning

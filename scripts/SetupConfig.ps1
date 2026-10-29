@@ -62,6 +62,12 @@ function Get-WslOptions {
                      'Never starts with the machine: docker compose --profile seaweedfs up -d seaweedfs.')
         }
         [pscustomobject]@{
+            Key = 'Ollama'; Default = $false; Flag = '--with-ollama'; DependsOn = @('Docker')
+            Question = 'Add Ollama provider (manual start)?'
+            Help = @('Local LLM server on :11434, with no models pulled; CPU only.',
+                     'Never starts with the machine: pvup ollama.')
+        }
+        [pscustomobject]@{
             Key = 'Python'; Default = $true; Flag = '--skip-python'; DependsOn = @()
             Question = 'Install Python tooling?'
             Help = @('Python (latest) via mise, plus uv, poetry, black, ruff, mypy, pytest, ipython, httpie, pre-commit.')
