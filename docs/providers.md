@@ -52,7 +52,7 @@ TZ=America/Sao_Paulo
 | Portainer  | http://localhost:9000 | (set on first access)        |
 | SeaweedFS  | S3 `localhost:8333`, filer http://localhost:8888 | `seaweedadmin` / `seaweedadmin` (`providers/seaweedfs/s3.json`) |
 | MinIO      | S3 `localhost:9000`, console http://localhost:9001 | `minioadmin` / `minioadmin` |
-| Ollama     | http://localhost:11434 | — (no models; `--with-ollama`, CPU only) |
+| Ollama     | http://localhost:11434 | — (no models; `--with-ollama`; GPU when `--with-nvidia` is also set, else CPU) |
 
 SeaweedFS and MinIO are **opt-in** (`--with-seaweedfs` / `--with-minio`) and run as Compose
 profiles, so they never start with the machine. Start them on demand:

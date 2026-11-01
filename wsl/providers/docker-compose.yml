@@ -175,7 +175,8 @@ services:
           memory: 128m
 
   # Não sobe automaticamente com `docker compose up -d`. Iniciar: pvup ollama
-  # Sem modelos: baixe com `docker exec ollama ollama pull <modelo>`. Somente CPU.
+  # Sem modelos: baixe com `docker exec ollama ollama pull <modelo>`.
+  # Somente CPU; com o NVIDIA Container Toolkit (--with-nvidia), descomente o bloco deploy.
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
@@ -196,6 +197,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
 
   portainer:
     image: portainer/portainer-ce:latest

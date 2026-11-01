@@ -56,7 +56,7 @@
     SeaweedFS              = $false
 
     # Add Ollama provider (manual start)?
-    #   Local LLM server on :11434, with no models pulled; CPU only.
+    #   Local LLM server on :11434, with no models pulled; uses the GPU when NvidiaContainerToolkit is on, else CPU.
     #   Never starts with the machine: pvup ollama.
     #   Requires: Docker set to yes (not asked, and forced to no, otherwise).
     Ollama                 = $false

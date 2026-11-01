@@ -64,7 +64,7 @@ function Get-WslOptions {
         [pscustomobject]@{
             Key = 'Ollama'; Default = $false; Flag = '--with-ollama'; DependsOn = @('Docker')
             Question = 'Add Ollama provider (manual start)?'
-            Help = @('Local LLM server on :11434, with no models pulled; CPU only.',
+            Help = @('Local LLM server on :11434, with no models pulled; uses the GPU when NvidiaContainerToolkit is on, else CPU.',
                      'Never starts with the machine: pvup ollama.')
         }
         [pscustomobject]@{

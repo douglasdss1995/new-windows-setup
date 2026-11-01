@@ -32,9 +32,9 @@ service_block() { # service_block <file> <service>
   ' "$1"
 }
 
-generate() { # generate <skip_minio> <skip_seaweedfs> [skip_ollama]
+generate() { # generate <skip_minio> <skip_seaweedfs> [skip_ollama] [skip_nvidia]
   SKIP_POSTGRES=true SKIP_VALKEY=false SKIP_PGADMIN=true SKIP_PORTAINER=false
-  SKIP_MINIO=$1 SKIP_SEAWEEDFS=$2 SKIP_OLLAMA=${3:-true}
+  SKIP_MINIO=$1 SKIP_SEAWEEDFS=$2 SKIP_OLLAMA=${3:-true} SKIP_NVIDIA=${4:-true}
   D="$(mktemp -d)"
   mkdir -p "$D/providers/postgres/init" "$D/providers/valkey" "$D/providers/pgadmin" "$D/providers/seaweedfs"
   _providers_write_compose "$D"
@@ -80,6 +80,14 @@ assert "ollama does not restart on boot"         has_line "$block" '    restart:
 assert "ollama joins the shared network"         has_line "$block" "      - shared-network"
 assert "ollama_data volume declared"             contains "$(cat "$D/docker-compose.yml")" "  ollama_data:"
 assert "no models are pulled by the compose"     not_contains "$block" "pull"
+assert "no GPU reservation without --with-nvidia" not_contains "$block" "driver: nvidia"
+rm -rf "$D"
+
+echo "with --with-ollama --with-nvidia"
+generate true true false false
+block="$(service_block "$D/docker-compose.yml" ollama)"
+assert "ollama reserves the nvidia GPU"          contains "$block" "driver: nvidia"
+assert "GPU block is valid under deploy:"        contains "$block" "capabilities: [gpu]"
 rm -rf "$D"
 
 generate false false

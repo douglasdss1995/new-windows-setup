@@ -236,7 +236,7 @@ SEAWEEDFS_SVC
   # Opt-in and manual: not started by `docker compose up -d` nor on boot.
   # Start with: pvup ollama   (or: docker compose up -d ollama)
   # No models are pulled: run `docker exec ollama ollama pull <model>` yourself.
-  # CPU only; for GPU add the NVIDIA Container Toolkit and a `deploy.resources.reservations.devices` block.
+  # CPU only unless the NVIDIA Container Toolkit is enabled (--with-nvidia): then a GPU block is appended.
   ollama:
     image: ollama/ollama:latest
     container_name: ollama
@@ -257,6 +257,19 @@ SEAWEEDFS_SVC
       timeout: 5s
       retries: 5
 OLLAMA_SVC
+    # The device reservation fails to start the container on a host without the
+    # nvidia runtime, so it is only written when the toolkit step is enabled.
+    if [ "$SKIP_NVIDIA" = false ]; then
+      cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'OLLAMA_GPU'
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+OLLAMA_GPU
+    fi
   fi
 
   if [ "$SKIP_PORTAINER" = false ]; then
