@@ -69,15 +69,15 @@ Describe 'ConvertTo-WslProvisionArgs' {
         ConvertTo-WslProvisionArgs -Config @{ NvidiaContainerToolkit = $false } | Should -Be ''
     }
     It 'emits --skip-* for tools turned off' {
-        ConvertTo-WslProvisionArgs -Config @{ Docker = $false; Node = $false } |
-            Should -Be '--skip-docker --skip-node'
+        ConvertTo-WslProvisionArgs -Config @{ Valkey = $false; Portainer = $false } |
+            Should -Be '--skip-valkey --skip-portainer'
     }
     It 'honours the legacy Redis key (renamed to Valkey) unless Valkey is set' {
         ConvertTo-WslProvisionArgs -Config @{ Redis = $false } | Should -Be '--skip-valkey'
         ConvertTo-WslProvisionArgs -Config @{ Redis = $false; Valkey = $true } | Should -Be ''
     }
     It 'rejects non-boolean values' {
-        { ConvertTo-WslProvisionArgs -Config @{ Docker = 'no' } } | Should -Throw '*Docker*'
+        { ConvertTo-WslProvisionArgs -Config @{ Valkey = 'no' } } | Should -Throw '*Valkey*'
     }
 }
 
@@ -101,9 +101,9 @@ Describe 'wsl option contract' {
     It 'defaults match the SKIP_* defaults in setup-wsl.sh' {
         $script = Get-Content (Join-Path $repoRoot 'wsl' 'setup-wsl.sh') -Raw
         $vars = @{
-            Docker = 'SKIP_DOCKER'; NvidiaContainerToolkit = 'SKIP_NVIDIA'; PostgreSQL = 'SKIP_POSTGRES'
+            NvidiaContainerToolkit = 'SKIP_NVIDIA'; PostgreSQL = 'SKIP_POSTGRES'
             PgAdmin = 'SKIP_PGADMIN'; Valkey = 'SKIP_VALKEY'; Portainer = 'SKIP_PORTAINER'; MinIO = 'SKIP_MINIO'
-            SeaweedFS = 'SKIP_SEAWEEDFS'; Ollama = 'SKIP_OLLAMA'; Python = 'SKIP_PYTHON'; Node = 'SKIP_NODE'
+            SeaweedFS = 'SKIP_SEAWEEDFS'; Ollama = 'SKIP_OLLAMA'
             GitKraken = 'SKIP_GITKRAKEN'; KeyboardLayout = 'SKIP_KEYBOARD'
         }
         $bad = foreach ($o in Get-WslOptions) {
@@ -120,9 +120,9 @@ Describe 'Copy-ConfigExamples' {
         $root = New-FakeRepo
         try {
             (Copy-ConfigExamples -RepoRoot $root).Created | Should -Be @($true, $true, $true)
-            Set-Content (Join-Path $root 'wsl' 'wsl.config.psd1') '@{ Docker = $false }'
+            Set-Content (Join-Path $root 'wsl' 'wsl.config.psd1') '@{ Valkey = $false }'
             (Copy-ConfigExamples -RepoRoot $root).Created | Should -Be @($false, $false, $false)
-            (Import-PowerShellDataFile (Join-Path $root 'wsl' 'wsl.config.psd1')).Docker | Should -BeFalse
+            (Import-PowerShellDataFile (Join-Path $root 'wsl' 'wsl.config.psd1')).Valkey | Should -BeFalse
         } finally { Remove-Item $root -Recurse -Force }
     }
 }
@@ -137,7 +137,7 @@ Describe 'Set-GitIdentityInConfig' {
             $cfg = Import-PowerShellDataFile $path
             $cfg.Git.UserName  | Should -Be "Jane O'Brien"
             $cfg.Git.UserEmail | Should -Be 'jane@example.com'
-            $cfg.PackageManagers.Chocolatey | Should -BeTrue
+            $cfg.Terminal.OhMyPosh | Should -BeTrue
             (Get-Content $path -Raw) | Should -Match 'Git configuration'
         } finally { Remove-Item $root -Recurse -Force }
     }
@@ -166,23 +166,57 @@ Describe 'setup-wizard.ps1' {
         $cfg = Import-PowerShellDataFile (Join-Path $script:root 'wsl' 'wsl.config.psd1')
         foreach ($o in Get-WslOptions) { $cfg[$o.Key] | Should -Be $o.Default }
     }
-    It 'records answers, skips dependants of Docker=no, and saves the Git identity' {
+    It 'asks only optional tools, records the answers and saves the Git identity' {
         $queue = [System.Collections.Queue]::new()
-        # Docker=n -> every Docker-dependent question is skipped; remaining: Python, Node, GitKraken, Keyboard, name, email
-        'n', '0', 'no', '', '1', 'Jane Doe', 'jane@example.com' | ForEach-Object { $queue.Enqueue($_) }
-        Mock Read-Host { $queue.Dequeue() }
+        $asked = [System.Collections.Generic.List[string]]::new()
+        # Windows: Oh My Posh = n, every other optional tool keeps its default.
+        # WSL: NVIDIA = y, PostgreSQL = default (no, so pgAdmin is not asked), Valkey = 0, Portainer/MinIO/SeaweedFS/Ollama = default, GitKraken = n, Keyboard = 1.
+        $answers = @('n') + @('') * ((Get-WindowsOptions).Count - 1) + @('y', '', '0', '', '', '', '', 'n', '1', 'Jane Doe', 'jane@example.com')
+        $answers | ForEach-Object { $queue.Enqueue($_) }
+        Mock Read-Host { $asked.Add($Prompt); $queue.Dequeue() }
         & (Join-Path $repoRoot 'scripts' 'setup-wizard.ps1') -RepoRoot $script:root *>$null
+        $queue.Count | Should -Be 0
+        ($asked | Where-Object { $_ -match 'Docker \(native|Python tooling|Node tooling|Chocolatey|Visual Studio Code|7-Zip' }) | Should -BeNullOrEmpty
         $cfg = Import-PowerShellDataFile (Join-Path $script:root 'wsl' 'wsl.config.psd1')
-        $cfg.Docker                 | Should -BeFalse
-        $cfg.NvidiaContainerToolkit | Should -BeFalse
+        $cfg.NvidiaContainerToolkit | Should -BeTrue
         $cfg.Valkey                 | Should -BeFalse
-        $cfg.Python                 | Should -BeFalse
-        $cfg.Node                   | Should -BeFalse
-        $cfg.GitKraken              | Should -BeTrue
+        $cfg.GitKraken              | Should -BeFalse
         $cfg.KeyboardLayout         | Should -BeTrue
         $win = Import-PowerShellDataFile (Join-Path $script:root 'windows' 'windows.config.psd1')
+        $win.Terminal.OhMyPosh | Should -BeFalse
+        $win.Terminal.SetPowerShell7AsDefault | Should -BeTrue
         $win.Git.UserName | Should -Be 'Jane Doe'
-        ConvertTo-WslProvisionArgs -Config $cfg | Should -Match '--skip-docker'
+        ConvertTo-WslProvisionArgs -Config $cfg | Should -Be '--with-nvidia --skip-valkey --skip-gitkraken'
+    }
+    It 'never asks about a mandatory tool' {
+        $asked = [System.Collections.Generic.List[string]]::new()
+        Mock Read-Host { $asked.Add($Prompt); '' }
+        & (Join-Path $repoRoot 'scripts' 'setup-wizard.ps1') -RepoRoot $script:root *>$null
+        $options = @(Get-WindowsOptions)
+        # The first questions are exactly the optional Windows tools, in catalog order: nothing else is asked.
+        $windowsAsked = @($asked | Select-Object -First $options.Count | ForEach-Object { $_ -replace ' \[[Yy]/[Nn]\]$', '' })
+        $windowsAsked | Should -Be @($options.Question)
+        foreach ($label in 'Docker (native', 'Python tooling', 'Node tooling') { ($asked | Where-Object { $_ -like "*$label*" }) | Should -BeNullOrEmpty -Because $label }
+    }
+    It 'removes the keys of tools that became mandatory from an existing config, with a .bak' {
+        $win = Join-Path $script:root 'windows' 'windows.config.psd1'
+        $old = (Get-Content "$win.example" -Raw) -replace '(?m)^    Terminal ', "    CLI = @{`n        Ripgrep = `$false`n    }`n`n    Terminal "
+        $old = $old -replace '(?m)^(    Terminal\s*= @\{\r?\n)', "`$1        Fzf = `$false`n"
+        Set-Content $win $old -NoNewline
+        Mock Read-Host { '' }
+        & (Join-Path $repoRoot 'scripts' 'setup-wizard.ps1') -RepoRoot $script:root -UseDefaults *>$null
+        $cfg = Import-PowerShellDataFile $win
+        $cfg.ContainsKey('CLI') | Should -BeFalse
+        $cfg.Terminal.ContainsKey('Fzf') | Should -BeFalse
+        Test-Path "$win.bak" | Should -BeTrue
+    }
+    It 'keeps the saved answer of an optional tool as the next default' {
+        $win = Join-Path $script:root 'windows' 'windows.config.psd1'
+        Copy-Item "$win.example" $win
+        Set-ConfigBooleans -Path $win -Values @{ 'Browsers.Opera' = $true } | Out-Null
+        Mock Read-Host { '' }
+        & (Join-Path $repoRoot 'scripts' 'setup-wizard.ps1') -RepoRoot $script:root *>$null
+        (Import-PowerShellDataFile $win).Browsers.Opera | Should -BeTrue
     }
     It 'uses saved values as the next defaults' {
         Set-Content (Join-Path $script:root 'wsl' 'wsl.config.psd1') '@{ NvidiaContainerToolkit = $true }'
@@ -309,5 +343,105 @@ Describe 'setup-wizard.ps1 config sync' {
             & (Join-Path $repoRoot 'scripts' 'setup-wizard.ps1') -RepoRoot $root -ConfigOnly *>$null
             (Import-PowerShellDataFile $win).Browsers.ContainsKey('Opera') | Should -BeTrue
         } finally { Remove-Item $root -Recurse -Force }
+    }
+}
+
+Describe 'Set-ConfigBooleans' {
+    It 'changes only the requested values and keeps comments and CRLF' {
+        $path = Join-Path ([System.IO.Path]::GetTempPath()) ("sb-" + [guid]::NewGuid().ToString('N') + '.psd1')
+        try {
+            [System.IO.File]::WriteAllText($path, "@{`r`n    Browsers = @{`r`n        Chrome = `$true   # main`r`n        Opera  = `$false`r`n    }`r`n}`r`n")
+            Set-ConfigBooleans -Path $path -Values @{ 'Browsers.Chrome' = $false; 'Browsers.Nope' = $true; 'Missing.Key' = $true } | Should -Be 1
+            $raw = [System.IO.File]::ReadAllText($path)
+            $raw | Should -Match 'Chrome = \$false   # main'
+            $raw | Should -Match 'Opera  = \$false'
+            ($raw -replace "`r`n", '').Contains("`n") | Should -BeFalse
+            Set-ConfigBooleans -Path $path -Values @{ 'Browsers.Chrome' = $false } | Should -Be 0
+        } finally { Remove-Item $path -ErrorAction SilentlyContinue }
+    }
+}
+
+Describe 'Remove-ConfigKeys' {
+    BeforeEach {
+        $script:file = Join-Path ([System.IO.Path]::GetTempPath()) ("rk-" + [guid]::NewGuid().ToString('N') + '.psd1')
+        @'
+@{
+    # -------------------------------------------------------------------------
+    # CLI
+    # -------------------------------------------------------------------------
+    CLI = @{
+        Fd = $true
+        Bat = $true
+    }
+
+    Browsers = @{
+        Chrome = $true   # keep
+        Opera  = $false
+    }
+}
+'@ | Set-Content $script:file -NoNewline
+    }
+    AfterEach { Remove-Item "$($script:file)*" -ErrorAction SilentlyContinue }
+
+    It 'removes a key, and a section left empty together with its banner' {
+        $r = Remove-ConfigKeys -Path $script:file -Keys 'CLI.Fd', 'CLI.Bat', 'Browsers.Opera'
+        $r | Should -Be @('CLI.Fd', 'CLI.Bat', 'Browsers.Opera')
+        $cfg = Import-PowerShellDataFile $script:file
+        $cfg.ContainsKey('CLI') | Should -BeFalse
+        $cfg.Browsers.Keys | Should -Be @('Chrome')
+        (Get-Content $script:file -Raw) | Should -Not -Match '# CLI'
+        (Get-Content $script:file -Raw) | Should -Match '# keep'
+        Test-Path "$($script:file).bak" | Should -BeTrue
+    }
+    It 'is idempotent and writes no .bak when nothing is removed' {
+        Remove-ConfigKeys -Path $script:file -Keys 'Nope.Key', 'CLI.Missing' | Should -BeNullOrEmpty
+        Test-Path "$($script:file).bak" | Should -BeFalse
+    }
+}
+
+Describe 'windows option contract' {
+    BeforeAll {
+        $script:example = Import-PowerShellDataFile (Join-Path $repoRoot 'windows' 'windows.config.psd1.example')
+        $script:optionRefs = (Get-WindowsOptions) | ForEach-Object { "$($_.Section).$($_.Key)" }
+    }
+    It 'every optional tool is a boolean in the example with the catalog default' {
+        $bad = foreach ($o in Get-WindowsOptions) {
+            $sec = $script:example[$o.Section]
+            if ($null -eq $sec -or -not $sec.ContainsKey($o.Key)) { "$($o.Section).$($o.Key) missing"; continue }
+            if ($sec[$o.Key] -isnot [bool] -or $sec[$o.Key] -ne $o.Default) { "$($o.Section).$($o.Key) default differs" }
+        }
+        $bad | Should -BeNullOrEmpty
+    }
+    It 'every boolean in the example is an optional tool in the catalog' {
+        $bad = foreach ($section in $script:example.Keys) {
+            if ($section -eq 'Git') { continue }
+            foreach ($k in $script:example[$section].Keys) {
+                if ($script:example[$section][$k] -is [bool] -and "$section.$k" -notin $script:optionRefs) { "$section.$k" }
+            }
+        }
+        $bad | Should -BeNullOrEmpty
+    }
+    It 'no retired (mandatory) key is in the example, and none is also an option' {
+        $retired = Get-WindowsRetiredKeys
+        foreach ($ref in $retired) {
+            $section, $key = $ref -split '\.', 2
+            if ($script:example.ContainsKey($section)) { $script:example[$section].ContainsKey($key) | Should -BeFalse -Because $ref }
+            $ref | Should -Not -BeIn $script:optionRefs
+        }
+    }
+    It 'setup-windows.ps1 reads only optional tools from $cfg and never a retired key' {
+        $script = Get-Content (Join-Path $repoRoot 'setup-windows.ps1') -Raw
+        $read = [regex]::Matches($script, '\$cfg\.([A-Za-z0-9]+)\.([A-Za-z0-9]+)') | ForEach-Object { "$($_.Groups[1].Value).$($_.Groups[2].Value)" } | Sort-Object -Unique
+        $allowed = @($script:optionRefs) + 'Git.UserName', 'Git.UserEmail', 'Terminal.OhMyPoshTheme'
+        ($read | Where-Object { $_ -notin $allowed }) | Should -BeNullOrEmpty
+        ($read | Where-Object { $_ -in (Get-WindowsRetiredKeys) }) | Should -BeNullOrEmpty
+    }
+    It 'every optional tool except the VS Code extensions is read by setup-windows.ps1' {
+        $script = Get-Content (Join-Path $repoRoot 'setup-windows.ps1') -Raw
+        $unused = foreach ($o in Get-WindowsOptions) {
+            if ($o.Section -eq 'VSCodeExtensions') { if ($script -notmatch "\`$ext\.$($o.Key)\b") { "$($o.Section).$($o.Key)" }; continue }
+            if ($script -notmatch [regex]::Escape("`$cfg.$($o.Section).$($o.Key)")) { "$($o.Section).$($o.Key)" }
+        }
+        $unused | Should -BeNullOrEmpty
     }
 }

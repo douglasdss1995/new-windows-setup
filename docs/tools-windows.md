@@ -1,6 +1,6 @@
 # Windows Tools
 
-Tools installed on Windows via `setup-windows.ps1` using winget and Chocolatey. All flags are controlled by `windows/windows.config.psd1`.
+Tools installed on Windows via `setup-windows.ps1` using winget and Chocolatey. Optional tools are controlled by flags in `windows/windows.config.psd1` (asked by `make setup`); mandatory ones are always installed. See [setup-windows.md](./setup-windows.md#mandatory-and-optional-tools).
 
 ---
 

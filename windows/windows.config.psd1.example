@@ -1,8 +1,11 @@
 # =============================================================================
 # windows.config.psd1 - Windows setup configuration
 #
-# true  = install
-# false = skip
+# Only OPTIONAL tools are listed here (true = install, false = skip); `make setup`
+# asks each one and saves the answer. MANDATORY tools (Chocolatey, Windows
+# Terminal, PowerShell 7, Git, zoxide, fzf, VS Code, mise, uv, pnpm, the CLI set,
+# Gpg4win, OpenSSH, 7-Zip, VC++ Redistributables and the fonts) are always
+# installed by setup-windows.ps1 and have no key. See docs/setup-windows.md.
 # =============================================================================
 @{
 
@@ -16,33 +19,19 @@
     }
 
     # -------------------------------------------------------------------------
-    # Package Managers
-    # Chocolatey and winget source update are always run (setup base)
-    # -------------------------------------------------------------------------
-    PackageManagers  = @{
-        Chocolatey = $true
-    }
-
-    # -------------------------------------------------------------------------
     # Terminal and Shell
     # -------------------------------------------------------------------------
     Terminal         = @{
-        WindowsTerminal         = $true
-        PowerShell7             = $true
         SetPowerShell7AsDefault = $true   # set PS7 as default in Windows Terminal and VS Code
-        Git                     = $true
         OhMyPosh                = $true
         OhMyPoshTheme           = "amro.omp.json"   # file in themes/, edit it or swap this to customize
         Starship                = $false   # alternative to OhMyPosh - pick one
-        Zoxide                  = $true
-        Fzf                     = $true
     }
 
     # -------------------------------------------------------------------------
     # Editors and IDEs
     # -------------------------------------------------------------------------
     Editors          = @{
-        VSCode              = $true
         Cursor              = $false
         # JetBrains: install Toolbox first; IDEs install via Toolbox (API) with winget fallback
         JetBrainsToolbox    = $true    # Toolbox manages installs, updates and licenses
@@ -58,21 +47,17 @@
     GitTools         = @{
         GitHubCLI = $false
         GitKraken = $true
-        Delta     = $false
     }
 
     # -------------------------------------------------------------------------
     # Runtimes and Version Managers
     # -------------------------------------------------------------------------
     Runtimes         = @{
-        Mise       = $true    # universal version manager (recommended)
         PyenvWin   = $true   # alternative to mise for Python
         NvmWindows = $true   # alternative to mise for Node
         Python313  = $false
         NodeLTS    = $false   # managed by mise - install via: mise use -g node@lts
         Java21     = $false
-        Uv         = $true    # ultra-fast Python package manager
-        Pnpm       = $true    # efficient Node package manager
     }
 
     # -------------------------------------------------------------------------
@@ -90,7 +75,6 @@
     # Infrastructure
     # -------------------------------------------------------------------------
     Infrastructure   = @{
-        WSL                    = $true   # Windows Subsystem for Linux
         # Prefer IPv4 for "localhost" (netsh prefix policy) - see docs/wslconfig.md
         IPv4LoopbackPreference = $true
     }
@@ -105,30 +89,10 @@
     }
 
     # -------------------------------------------------------------------------
-    # CLI Utilities
-    # -------------------------------------------------------------------------
-    CLI              = @{
-        Ripgrep = $true
-        Fd      = $true
-        Bat     = $true
-        Eza     = $true
-        Delta   = $true
-        Jq      = $true
-        Yq      = $true
-        Wget    = $true
-        Make    = $true
-        Sudo    = $true
-        Just    = $true
-        Curl    = $true
-    }
-
-    # -------------------------------------------------------------------------
     # Security and Authentication
     # -------------------------------------------------------------------------
     Security         = @{
         Bitwarden = $false
-        Gpg4win   = $true
-        OpenSSH   = $true
     }
 
     # -------------------------------------------------------------------------
@@ -152,13 +116,11 @@
     # Utilities
     # -------------------------------------------------------------------------
     Utilities        = @{
-        SevenZip  = $true    # archive manager (free, open-source)
         WinRAR    = $true   # archive manager (trialware - pick one)
         VLC       = $true    # media player
         WinSCP    = $true    # SFTP/FTP client
         PuTTY     = $true    # SSH/Telnet client
         NotepadPP = $true    # text editor
-        VCRedist  = $true    # Visual C++ Redistributables (2015-2022 x64 + x86)
     }
 
     # -------------------------------------------------------------------------
@@ -168,16 +130,6 @@
         Chrome     = $true
         FirefoxDev = $true
         Opera      = $false
-    }
-
-    # -------------------------------------------------------------------------
-    # Fonts
-    # -------------------------------------------------------------------------
-    Fonts            = @{
-        JetBrainsMono = $true
-        FiraCode      = $true
-        CascadiaCode  = $true
-        NerdFontsHack = $true
     }
 
     # -------------------------------------------------------------------------

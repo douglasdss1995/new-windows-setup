@@ -22,7 +22,7 @@ One-time tool install: `Install-Module Pester -MinimumVersion 5.5 -Scope Current
 
 - Lint rules live in `PSScriptAnalyzerSettings.psd1` and `.shellcheckrc`; each excluded rule has a comment saying why. Prefer fixing over excluding.
 - `setup-windows.ps1` and `git-clone.ps1` run their main flow on load, so tests extract function definitions via the AST (see `tests/pester/GitClone.Tests.ps1`) instead of dot-sourcing the whole script.
-- `Config.Tests.ps1` checks that every `$cfg.X.Y` read by `setup-windows.ps1` exists in `windows.config.psd1.example`. Adding a new flag means adding it to the example too.
+- `Config.Tests.ps1` checks that every `$cfg.X.Y` read by `setup-windows.ps1` exists in `windows.config.psd1.example`. Adding a new flag means adding it to the example too (and to `Get-WindowsOptions`, see below).
 - `.psd1` files are loaded with `Import-PowerShellDataFile`, which rejects variables such as `$HOME`. Use literal paths in config examples.
 - Add new bash tests as `tests/bash/*.test.sh`; they are picked up automatically.
 
@@ -30,6 +30,8 @@ One-time tool install: `Install-Module Pester -MinimumVersion 5.5 -Scope Current
 
 `make setup` runs `scripts/setup-wizard.ps1`: copies the missing `*.example` configs (never overwrites), asks yes/no questions (Enter = default, `y`/`yes`/`1` and `n`/`no`/`0`), and prints the next commands. It never launches the installers (they need Administrator). `make config` only copies files; `make setup WIZARD_ARGS=-UseDefaults` skips the prompts.
 
+- **Mandatory vs optional.** Mandatory tools are installed unconditionally by `setup-windows.ps1` (no `$cfg` read, no key in the example, never asked) and are listed in `Get-WindowsRetiredKeys`; the wizard removes those keys from an older local `windows.config.psd1` (`Remove-ConfigKeys`, `.bak` kept) *before* `Sync-ConfigKeys`. Optional tools are listed in `Get-WindowsOptions` (section, key, default, question) and the wizard asks each one and writes the boolean in place (`Set-ConfigBooleans`). Docker, Python and Node on the WSL side are mandatory too (no `Get-WslOptions` entry; `setup-wsl.sh` still accepts `--skip-docker/--skip-python/--skip-node` for manual runs).
+- Adding a Windows tool: **optional** = `Get-WindowsOptions` entry + `Section.Key` in `windows.config.psd1.example` (same default) + the `if ($cfg.Section.Key)` in `setup-windows.ps1`; **mandatory** = install it unconditionally and add `Section.Key` to `Get-WindowsRetiredKeys` only if it used to be a key. `SetupConfig.Tests.ps1` ('windows option contract') fails if the catalog, the example and the `$cfg` reads drift.
 - `scripts/SetupConfig.ps1` is the single source of truth for the WSL options (`Get-WslOptions`): key, default, `setup-wsl.sh` flag, dependencies, question. The wizard, `wsl/wsl.config.psd1(.example)` and `ConvertTo-WslProvisionArgs` (used by `setup-wsl.ps1`) all derive from it.
 - Adding a WSL option = one entry in `Get-WslOptions` + the flag in `wsl/setup-wsl.sh` + regenerate `wsl/wsl.config.psd1.example` (`tests/pester/SetupConfig.Tests.ps1` fails if the example, the flag or the `SKIP_*` default drift).
 - On every run the wizard (also `make config`) runs `Sync-ConfigKeys`: keys/sections present in `windows/windows.config.psd1.example` but missing from the local `windows.config.psd1` are inserted with the example's default and comment (a missing key is otherwise silently read as disabled). It never changes your values and never deletes: keys only your file has are reported as probably renamed. A `.bak` is written only when something is added.

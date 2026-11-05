@@ -12,17 +12,14 @@ function Get-WslOptions {
     # Default   = what setup-wsl.sh does when the flag is absent.
     # Flag      = the setup-wsl.sh flag emitted when the value differs from Default.
     # DependsOn = options that must be $true for this one to be asked/applied.
+    # Docker, Python and Node are not listed: they are mandatory (always installed,
+    # never asked). setup-wsl.sh still accepts --skip-docker/--skip-python/--skip-node
+    # for manual runs, but setup-wsl.ps1 never passes them.
     # Help      = what the option installs and what it needs. "Requires" and
     #             "Skipped when turned off" lines are derived by Get-WslOptionHelp.
     @(
         [pscustomobject]@{
-            Key = 'Docker'; Default = $true; Flag = '--skip-docker'; DependsOn = @()
-            Question = 'Install Docker (native daemon, no Docker Desktop)?'
-            Help = @('Installs the Docker engine inside WSL and enables it through systemd.',
-                     'Needs systemd=true in /etc/wsl.conf (already set by this repo).')
-        }
-        [pscustomobject]@{
-            Key = 'NvidiaContainerToolkit'; Default = $false; Flag = '--with-nvidia'; DependsOn = @('Docker')
+            Key = 'NvidiaContainerToolkit'; Default = $false; Flag = '--with-nvidia'; DependsOn = @()
             Question = 'Install NVIDIA Container Toolkit (GPU in containers)?'
             Help = @('Lets containers use the GPU (docker run --gpus all).',
                      'Needs an NVIDIA GPU and the regular NVIDIA driver installed on WINDOWS (with WSL support).',
@@ -30,52 +27,42 @@ function Get-WslOptions {
                      'If no GPU is visible at install time the step is skipped with a warning.')
         }
         [pscustomobject]@{
-            Key = 'PostgreSQL'; Default = $false; Flag = '--with-postgres'; DependsOn = @('Docker')
+            Key = 'PostgreSQL'; Default = $false; Flag = '--with-postgres'; DependsOn = @()
             Question = 'Add PostgreSQL provider?'
             Help = @('Container on localhost:5433, started with the other providers.')
         }
         [pscustomobject]@{
-            Key = 'PgAdmin'; Default = $false; Flag = '--with-pgadmin'; DependsOn = @('Docker', 'PostgreSQL')
+            Key = 'PgAdmin'; Default = $false; Flag = '--with-pgadmin'; DependsOn = @('PostgreSQL')
             Question = 'Add pgAdmin provider?'
             Help = @('Web UI for PostgreSQL on http://localhost:5050.')
         }
         [pscustomobject]@{
-            Key = 'Valkey'; Default = $true; Flag = '--skip-valkey'; DependsOn = @('Docker')
+            Key = 'Valkey'; Default = $true; Flag = '--skip-valkey'; DependsOn = @()
             Question = 'Add Valkey provider?'
             Help = @('Redis-compatible cache/queue container (BSD licence, replaces Redis) on localhost:6379.')
         }
         [pscustomobject]@{
-            Key = 'Portainer'; Default = $true; Flag = '--skip-portainer'; DependsOn = @('Docker')
+            Key = 'Portainer'; Default = $true; Flag = '--skip-portainer'; DependsOn = @()
             Question = 'Add Portainer provider?'
             Help = @('Docker web UI on http://localhost:8001.')
         }
         [pscustomobject]@{
-            Key = 'MinIO'; Default = $false; Flag = '--with-minio'; DependsOn = @('Docker')
+            Key = 'MinIO'; Default = $false; Flag = '--with-minio'; DependsOn = @()
             Question = 'Add MinIO provider (manual start)?'
             Help = @('S3-compatible storage on :9000 (console :9001); discontinued upstream.',
                      'Never starts with the machine: docker compose --profile minio up -d minio.')
         }
         [pscustomobject]@{
-            Key = 'SeaweedFS'; Default = $false; Flag = '--with-seaweedfs'; DependsOn = @('Docker')
+            Key = 'SeaweedFS'; Default = $false; Flag = '--with-seaweedfs'; DependsOn = @()
             Question = 'Add SeaweedFS provider (manual start)?'
             Help = @('S3-compatible storage on :8333 (filer :8888, master :9333); MinIO alternative.',
                      'Never starts with the machine: docker compose --profile seaweedfs up -d seaweedfs.')
         }
         [pscustomobject]@{
-            Key = 'Ollama'; Default = $false; Flag = '--with-ollama'; DependsOn = @('Docker')
+            Key = 'Ollama'; Default = $false; Flag = '--with-ollama'; DependsOn = @()
             Question = 'Add Ollama provider (manual start)?'
             Help = @('Local LLM server on :11434, with no models pulled; uses the GPU when NvidiaContainerToolkit is on, else CPU.',
                      'Never starts with the machine: pvup ollama.')
-        }
-        [pscustomobject]@{
-            Key = 'Python'; Default = $true; Flag = '--skip-python'; DependsOn = @()
-            Question = 'Install Python tooling?'
-            Help = @('Python (latest) via mise, plus uv, poetry, black, ruff, mypy, pytest, ipython, httpie, pre-commit.')
-        }
-        [pscustomobject]@{
-            Key = 'Node'; Default = $true; Flag = '--skip-node'; DependsOn = @()
-            Question = 'Install Node tooling?'
-            Help = @('Node LTS via mise, plus pnpm, Angular CLI (Linux build), TypeScript, ESLint, Prettier.')
         }
         [pscustomobject]@{
             Key = 'GitKraken'; Default = $true; Flag = '--skip-gitkraken'; DependsOn = @()
@@ -108,6 +95,170 @@ function Get-WslOptionHelp {
     }
     $lines
 }
+# -----------------------------------------------------------------------------
+# Windows tools: mandatory vs optional
+#
+# Mandatory tools are installed by setup-windows.ps1 unconditionally: they are
+# not asked by `make setup` and have no key in windows.config.psd1(.example).
+# Optional tools are listed in Get-WindowsOptions: `make setup` asks each one and
+# stores the answer as a boolean in windows.config.psd1.
+# -----------------------------------------------------------------------------
+
+# Section.Key names that must NOT exist in windows.config.psd1 any more: mandatory
+# tools, plus two keys that were dropped (GitTools.Delta duplicated CLI.Delta;
+# Infrastructure.WSL was never read). `make setup` removes them from a local config.
+function Get-WindowsRetiredKeys {
+    @(
+        'PackageManagers.Chocolatey'
+        'Terminal.WindowsTerminal', 'Terminal.PowerShell7', 'Terminal.Git', 'Terminal.Zoxide', 'Terminal.Fzf'
+        'Editors.VSCode'
+        'Runtimes.Mise', 'Runtimes.Uv', 'Runtimes.Pnpm'
+        'CLI.Ripgrep', 'CLI.Fd', 'CLI.Bat', 'CLI.Eza', 'CLI.Delta', 'CLI.Jq', 'CLI.Yq'
+        'CLI.Wget', 'CLI.Make', 'CLI.Sudo', 'CLI.Just', 'CLI.Curl'
+        'Security.Gpg4win', 'Security.OpenSSH'
+        'Utilities.SevenZip', 'Utilities.VCRedist'
+        'Fonts.JetBrainsMono', 'Fonts.FiraCode', 'Fonts.CascadiaCode', 'Fonts.NerdFontsHack'
+        'GitTools.Delta', 'Infrastructure.WSL'
+    )
+}
+
+# One object per optional tool, in the order the wizard asks them.
+# Default = value in windows.config.psd1.example. Note = shown before the question.
+function Get-WindowsOptions {
+    $rows = @(
+        # Section, Key, Default, Label, Note
+        ,@('Terminal', 'OhMyPosh', $true, 'Oh My Posh (prompt theme engine)', 'Activated in the PowerShell profile with the theme set in Terminal.OhMyPoshTheme.')
+        ,@('Terminal', 'Starship', $false, 'Starship (prompt; alternative to Oh My Posh)', '')
+        ,@('Terminal', 'SetPowerShell7AsDefault', $true, 'PowerShell 7 as the default profile in Windows Terminal and VS Code', 'Edits the settings.json of both.')
+        ,@('Editors', 'Cursor', $false, 'Cursor', '')
+        ,@('Editors', 'JetBrainsToolbox', $true, 'JetBrains Toolbox', 'Manages installs, updates and licenses of the JetBrains IDEs below.')
+        ,@('Editors', 'PyCharm', $false, 'PyCharm Community', 'Free.')
+        ,@('Editors', 'PyCharmProfessional', $false, 'PyCharm Professional', 'Needs an active JetBrains license.')
+        ,@('Editors', 'WebStorm', $false, 'WebStorm', 'Needs an active JetBrains license.')
+        ,@('Editors', 'DataGrip', $false, 'DataGrip', 'Needs an active JetBrains license.')
+        ,@('GitTools', 'GitHubCLI', $false, 'GitHub CLI', '')
+        ,@('GitTools', 'GitKraken', $true, 'GitKraken', '')
+        ,@('Runtimes', 'PyenvWin', $true, 'pyenv-win (Python versions; alternative to mise)', '')
+        ,@('Runtimes', 'NvmWindows', $true, 'nvm-windows (Node versions; alternative to mise)', '')
+        ,@('Runtimes', 'Python313', $false, 'Python 3.13 (system-wide)', 'mise already manages Python versions.')
+        ,@('Runtimes', 'NodeLTS', $false, 'Node.js LTS (system-wide)', 'mise already manages Node: mise use -g node@lts.')
+        ,@('Runtimes', 'Java21', $false, 'Java 21 (Eclipse Temurin JDK)', '')
+        ,@('Database', 'PostgreSQL18', $false, 'PostgreSQL 18 on Windows', 'The WSL provider already offers PostgreSQL in a container.')
+        ,@('Database', 'DBeaver', $true, 'DBeaver', '')
+        ,@('Database', 'TablePlus', $false, 'TablePlus', 'Paid after the trial.')
+        ,@('Database', 'PgAdmin', $true, 'pgAdmin 4', '')
+        ,@('Database', 'SQLiteBrowser', $false, 'DB Browser for SQLite', '')
+        ,@('Infrastructure', 'IPv4LoopbackPreference', $true, 'Prefer IPv4 for localhost (netsh prefix policy)', 'Changes a system network policy; see docs/wslconfig.md.')
+        ,@('API', 'Postman', $true, 'Postman', 'Heavy; needs an account.')
+        ,@('API', 'Insomnia', $false, 'Insomnia', '')
+        ,@('API', 'Bruno', $true, 'Bruno', 'Lightweight, open source, file based.')
+        ,@('Security', 'Bitwarden', $false, 'Bitwarden', '')
+        ,@('Productivity', 'Obsidian', $true, 'Obsidian', '')
+        ,@('Productivity', 'OBSStudio', $false, 'OBS Studio', '')
+        ,@('Productivity', 'Notion', $false, 'Notion', '')
+        ,@('Productivity', 'Slack', $false, 'Slack', '')
+        ,@('Productivity', 'Discord', $false, 'Discord', '')
+        ,@('Productivity', 'ShareX', $true, 'ShareX', '')
+        ,@('Productivity', 'PowerToys', $false, 'PowerToys', '')
+        ,@('Productivity', 'Everything', $true, 'Everything (file search)', '')
+        ,@('Productivity', 'WizTree', $true, 'WizTree (disk usage)', '')
+        ,@('Productivity', 'AutoHotkey', $false, 'AutoHotkey v2', '')
+        ,@('Productivity', 'DrawIO', $true, 'draw.io (diagrams)', '')
+        ,@('Utilities', 'WinRAR', $true, 'WinRAR', 'Trialware; 7-Zip is always installed.')
+        ,@('Utilities', 'VLC', $true, 'VLC', '')
+        ,@('Utilities', 'WinSCP', $true, 'WinSCP', '')
+        ,@('Utilities', 'PuTTY', $true, 'PuTTY', '')
+        ,@('Utilities', 'NotepadPP', $true, 'Notepad++', '')
+        ,@('Browsers', 'Chrome', $true, 'Google Chrome', '')
+        ,@('Browsers', 'FirefoxDev', $true, 'Firefox Developer Edition', '')
+        ,@('Browsers', 'Opera', $false, 'Opera', '')
+        ,@('VSCodeExtensions', 'Python', $true, 'VS Code: Python', 'Extensions are skipped when VS Code is not on PATH after its install.')
+        ,@('VSCodeExtensions', 'Pylance', $true, 'VS Code: Pylance', '')
+        ,@('VSCodeExtensions', 'Debugpy', $true, 'VS Code: Debugpy', '')
+        ,@('VSCodeExtensions', 'VscodeDjango', $true, 'VS Code: Django', '')
+        ,@('VSCodeExtensions', 'AutoCloseTag', $true, 'VS Code: Auto Close Tag', '')
+        ,@('VSCodeExtensions', 'NgTemplate', $true, 'VS Code: Angular Language Service', '')
+        ,@('VSCodeExtensions', 'TypeScriptNext', $true, 'VS Code: TypeScript Nightly', '')
+        ,@('VSCodeExtensions', 'ESLint', $true, 'VS Code: ESLint', '')
+        ,@('VSCodeExtensions', 'Prettier', $true, 'VS Code: Prettier', '')
+        ,@('VSCodeExtensions', 'GitLens', $true, 'VS Code: GitLens', '')
+        ,@('VSCodeExtensions', 'GitGraph', $true, 'VS Code: Git Graph', '')
+        ,@('VSCodeExtensions', 'DockerExt', $true, 'VS Code: Docker', '')
+        ,@('VSCodeExtensions', 'RemoteContainers', $true, 'VS Code: Dev Containers', '')
+        ,@('VSCodeExtensions', 'RemoteWSL', $true, 'VS Code: WSL', '')
+        ,@('VSCodeExtensions', 'MaterialIcons', $true, 'VS Code: Material Icon Theme', '')
+        ,@('VSCodeExtensions', 'IndentRainbow', $true, 'VS Code: Indent Rainbow', '')
+        ,@('VSCodeExtensions', 'SpellChecker', $true, 'VS Code: Code Spell Checker', '')
+    )
+    foreach ($r in $rows) {
+        [pscustomobject]@{
+            Section = $r[0]; Key = $r[1]; Default = [bool]$r[2]
+            Question = "Install $($r[3])?"; Note = $r[4]
+        }
+    }
+}
+
+# Rewrites the `$true`/`$false` of the given keys in place, keeping comments and
+# everything else. $Values maps 'Section.Key' -> [bool]. Keys not in the file are
+# ignored (Sync-ConfigKeys adds them first). Returns the number of lines changed.
+function Set-ConfigBooleans {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][hashtable]$Values
+    )
+    $raw = [System.IO.File]::ReadAllText($Path)
+    $nl = if ($raw.Contains("`r`n")) { "`r`n" } else { "`n" }
+    $lines = [string[]]($raw -split "`r?`n")
+    $map = Get-PsdSectionMap -Lines $lines
+    $changed = 0
+    foreach ($ref in $Values.Keys) {
+        $section, $key = $ref -split '\.', 2
+        if (-not $map.Contains($section) -or -not $map[$section].Keys.Contains($key)) { continue }
+        $i = $map[$section].Keys[$key]
+        $literal = if ($Values[$ref]) { '$true' } else { '$false' }
+        $new = [regex]::Replace($lines[$i], '(=\s*)\$(?:true|false)\b', { param($m) $m.Groups[1].Value + $literal }.GetNewClosure(), 1)
+        if ($new -ne $lines[$i]) { $lines[$i] = $new; $changed++ }
+    }
+    if ($changed -gt 0) { Write-Utf8NoBom -Path $Path -Content ($lines -join $nl) }
+    $changed
+}
+
+# Removes the given 'Section.Key' lines from a config; a section left without
+# keys is removed too, with the comment banner right above it. Writes a .bak
+# next to the file only when something is removed. Returns the removed names.
+function Remove-ConfigKeys {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string[]]$Keys
+    )
+    $raw = [System.IO.File]::ReadAllText($Path)
+    $nl = if ($raw.Contains("`r`n")) { "`r`n" } else { "`n" }
+    $lines = [System.Collections.Generic.List[string]]::new([string[]]($raw -split "`r?`n"))
+    $removed = [System.Collections.Generic.List[string]]::new()
+
+    foreach ($ref in $Keys) {
+        $section, $key = $ref -split '\.', 2
+        $map = Get-PsdSectionMap -Lines $lines.ToArray()
+        if (-not $map.Contains($section) -or $map[$section].Inline -or -not $map[$section].Keys.Contains($key)) { continue }
+        $lines.RemoveAt($map[$section].Keys[$key])
+        $removed.Add($ref)
+
+        $map = Get-PsdSectionMap -Lines $lines.ToArray()
+        if ($map[$section].Keys.Count -eq 0) {
+            $from = $map[$section].Start
+            while ($from -gt 0 -and $lines[$from - 1].TrimStart().StartsWith('#')) { $from-- }
+            if ($from -gt 0 -and $lines[$from - 1].Trim() -eq '') { $from-- }
+            $lines.RemoveRange($from, $map[$section].End - $from + 1)
+        }
+    }
+
+    if ($removed.Count -gt 0) {
+        Copy-Item -LiteralPath $Path -Destination "$Path.bak" -Force
+        Write-Utf8NoBom -Path $Path -Content ($lines -join $nl)
+    }
+    $removed.ToArray()
+}
+
 # -----------------------------------------------------------------------------
 # Prompts
 # -----------------------------------------------------------------------------

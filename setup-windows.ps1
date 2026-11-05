@@ -321,27 +321,22 @@ Write-Step "Package Managers"
 Write-Info "Updating winget sources..."
 winget source update 2>&1 | Out-Null
 
-if ($cfg.PackageManagers.Chocolatey) {
-    if (Get-Command choco -ErrorAction SilentlyContinue) {
-        Write-Skip "Chocolatey (already installed)"
-        $script:Skipped++
-    } else {
-        Write-Host "  --> Chocolatey..." -ForegroundColor White
-        Set-ExecutionPolicy Bypass -Scope Process -Force
-        [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
-        Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-        if (Get-Command choco -ErrorAction SilentlyContinue) {
-            Write-OK "Chocolatey"
-            $script:Installed++
-        } else {
-            Write-Fail "Chocolatey"
-            $script:FailList += "Chocolatey"
-            $script:Failed++
-        }
-    }
-} else {
-    Write-Skip "Chocolatey (disabled in config)"
+if (Get-Command choco -ErrorAction SilentlyContinue) {
+    Write-Skip "Chocolatey (already installed)"
     $script:Skipped++
+} else {
+    Write-Host "  --> Chocolatey..." -ForegroundColor White
+    Set-ExecutionPolicy Bypass -Scope Process -Force
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+    Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+    if (Get-Command choco -ErrorAction SilentlyContinue) {
+        Write-OK "Chocolatey"
+        $script:Installed++
+    } else {
+        Write-Fail "Chocolatey"
+        $script:FailList += "Chocolatey"
+        $script:Failed++
+    }
 }
 
 # =============================================================================
@@ -349,13 +344,13 @@ if ($cfg.PackageManagers.Chocolatey) {
 # =============================================================================
 Write-Step "Terminal and Shell"
 
-if ($cfg.Terminal.WindowsTerminal) { Install-Pkg "Windows Terminal"  "Microsoft.WindowsTerminal" } else { Write-Skip "Windows Terminal (disabled)" }
-if ($cfg.Terminal.PowerShell7)     { Install-Pkg "PowerShell 7"      "Microsoft.PowerShell"      } else { Write-Skip "PowerShell 7 (disabled)"  }
-if ($cfg.Terminal.Git)             { Install-Pkg "Git + Git Bash"    "Git.Git"                   } else { Write-Skip "Git (disabled)"           }
+Install-Pkg "Windows Terminal"  "Microsoft.WindowsTerminal"
+Install-Pkg "PowerShell 7"      "Microsoft.PowerShell"
+Install-Pkg "Git + Git Bash"    "Git.Git"
 if ($cfg.Terminal.OhMyPosh)        { Install-Pkg "Oh My Posh"        "JanDeDobbeleer.OhMyPosh"   } else { Write-Skip "Oh My Posh (disabled)"   }
 if ($cfg.Terminal.Starship)        { Install-Pkg "Starship"          "Starship.Starship"          } else { Write-Skip "Starship (disabled)"     }
-if ($cfg.Terminal.Zoxide)          { Install-Pkg "zoxide"            "ajeetdsouza.zoxide"         } else { Write-Skip "zoxide (disabled)"       }
-if ($cfg.Terminal.Fzf)             { Install-Pkg "fzf"               "junegunn.fzf"               } else { Write-Skip "fzf (disabled)"         }
+Install-Pkg "zoxide"            "ajeetdsouza.zoxide"
+Install-Pkg "fzf"               "junegunn.fzf"
 
 if ($cfg.Terminal.OhMyPosh) {
     # Activate Oh My Posh in the PowerShell profile, pointing at the theme file
@@ -387,7 +382,7 @@ if ($cfg.Terminal.OhMyPosh) {
 # =============================================================================
 Write-Step "Editors and IDEs"
 
-if ($cfg.Editors.VSCode)  { Install-Pkg "VS Code" "Microsoft.VisualStudioCode" } else { Write-Skip "VS Code (disabled)"  }
+Install-Pkg "VS Code" "Microsoft.VisualStudioCode"
 if ($cfg.Editors.Cursor)  { Install-Pkg "Cursor"  "Anysphere.Cursor"           } else { Write-Skip "Cursor (disabled)"  }
 
 # JetBrains Toolbox - install first so the IDEs below can use it
@@ -412,48 +407,43 @@ Write-Step "Git and Version Control"
 
 if ($cfg.GitTools.GitHubCLI)  { Install-Pkg "GitHub CLI"  "GitHub.cli"          } else { Write-Skip "GitHub CLI (disabled)"  }
 if ($cfg.GitTools.GitKraken)  { Install-Pkg "GitKraken"   "Axosoft.GitKraken"   } else { Write-Skip "GitKraken (disabled)"  }
-if ($cfg.GitTools.Delta)      { Install-Pkg "delta"        "dandavison.delta"    } else { Write-Skip "delta (disabled)"      }
 
 # =============================================================================
 # 5. RUNTIMES AND VERSION MANAGERS
 # =============================================================================
 Write-Step "Runtimes and Version Managers"
 
-if ($cfg.Runtimes.Mise) {
-    Install-Pkg "mise" "jdx.mise"
+Install-Pkg "mise" "jdx.mise"
 
-    # Configure mise activation in the PowerShell profile so `mise use` works
-    # per-directory inside PowerShell sessions.
-    $miseLine = 'mise activate pwsh | Out-String | Invoke-Expression'
-    $profilePath = $script:Ps7ProfilePath
+# Configure mise activation in the PowerShell profile so `mise use` works
+# per-directory inside PowerShell sessions.
+$miseLine = 'mise activate pwsh | Out-String | Invoke-Expression'
+$profilePath = $script:Ps7ProfilePath
 
-    if (-not (Test-Path $profilePath)) {
-        New-Item -ItemType File -Path $profilePath -Force | Out-Null
-    }
+if (-not (Test-Path $profilePath)) {
+    New-Item -ItemType File -Path $profilePath -Force | Out-Null
+}
 
-    $profileContent = Get-Content $profilePath -Raw -ErrorAction SilentlyContinue
-    if ($profileContent -notmatch [regex]::Escape($miseLine)) {
-        Add-Content -Path $profilePath -Value "`n# mise - version manager activation`n$miseLine"
-        Write-OK "mise activation added to PowerShell profile ($profilePath)"
-    } else {
-        Write-Skip "mise activation already in PowerShell profile"
-    }
-
-    # Also add the shims directory to the Windows user PATH so mise-managed
-    # tools resolve outside PowerShell too (VS Code integrated terminal,
-    # cmd.exe, GUI apps launched via PATH, etc.) without relying on activation.
-    $miseShims = "$env:LOCALAPPDATA\mise\shims"
-    $userPath  = [Environment]::GetEnvironmentVariable("PATH", "User")
-
-    if ($userPath -notmatch [regex]::Escape($miseShims)) {
-        $userPath = "$miseShims;$userPath"
-        [Environment]::SetEnvironmentVariable("PATH", $userPath, "User")
-        Write-OK "mise shims added to PATH (restart terminal to apply)"
-    } else {
-        Write-Skip "mise shims already in PATH"
-    }
+$profileContent = Get-Content $profilePath -Raw -ErrorAction SilentlyContinue
+if ($profileContent -notmatch [regex]::Escape($miseLine)) {
+    Add-Content -Path $profilePath -Value "`n# mise - version manager activation`n$miseLine"
+    Write-OK "mise activation added to PowerShell profile ($profilePath)"
 } else {
-    Write-Skip "mise (disabled)"
+    Write-Skip "mise activation already in PowerShell profile"
+}
+
+# Also add the shims directory to the Windows user PATH so mise-managed
+# tools resolve outside PowerShell too (VS Code integrated terminal,
+# cmd.exe, GUI apps launched via PATH, etc.) without relying on activation.
+$miseShims = "$env:LOCALAPPDATA\mise\shims"
+$userPath  = [Environment]::GetEnvironmentVariable("PATH", "User")
+
+if ($userPath -notmatch [regex]::Escape($miseShims)) {
+    $userPath = "$miseShims;$userPath"
+    [Environment]::SetEnvironmentVariable("PATH", $userPath, "User")
+    Write-OK "mise shims added to PATH (restart terminal to apply)"
+} else {
+    Write-Skip "mise shims already in PATH"
 }
 
 if ($cfg.Runtimes.PyenvWin) {
@@ -484,40 +474,32 @@ if ($cfg.Runtimes.Python313)  { Install-Pkg "Python 3.13"            "Python.Pyt
 if ($cfg.Runtimes.NodeLTS)    { Install-Pkg "Node.js LTS"            "OpenJS.NodeJS.LTS"                } else { Write-Skip "Node.js LTS (disabled)" }
 if ($cfg.Runtimes.Java21)     { Install-Pkg "Eclipse Temurin 21 JDK" "EclipseAdoptium.Temurin.21.JDK"  } else { Write-Skip "Java 21 (disabled)"     }
 
-if ($cfg.Runtimes.Uv) {
-    if (Get-Command uv -ErrorAction SilentlyContinue) {
-        Write-Skip "uv (already installed)"
-        $script:Skipped++
-    } else {
-        Write-Host "  --> uv..." -ForegroundColor White
-        powershell -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
-        if (Get-Command uv -ErrorAction SilentlyContinue) {
-            Write-OK "uv"
-            $script:Installed++
-        } else {
-            Write-Warn "uv - restart terminal and verify installation"
-        }
-    }
+if (Get-Command uv -ErrorAction SilentlyContinue) {
+    Write-Skip "uv (already installed)"
+    $script:Skipped++
 } else {
-    Write-Skip "uv (disabled)"
+    Write-Host "  --> uv..." -ForegroundColor White
+    powershell -ExecutionPolicy Bypass -Command "irm https://astral.sh/uv/install.ps1 | iex"
+    if (Get-Command uv -ErrorAction SilentlyContinue) {
+        Write-OK "uv"
+        $script:Installed++
+    } else {
+        Write-Warn "uv - restart terminal and verify installation"
+    }
 }
 
-if ($cfg.Runtimes.Pnpm) {
-    if (Get-Command pnpm -ErrorAction SilentlyContinue) {
-        Write-Skip "pnpm (already installed)"
-        $script:Skipped++
-    } else {
-        Write-Host "  --> pnpm..." -ForegroundColor White
-        Invoke-WebRequest https://get.pnpm.io/install.ps1 -UseBasicParsing | Invoke-Expression
-        if (Get-Command pnpm -ErrorAction SilentlyContinue) {
-            Write-OK "pnpm"
-            $script:Installed++
-        } else {
-            Write-Warn "pnpm - restart terminal and verify installation"
-        }
-    }
+if (Get-Command pnpm -ErrorAction SilentlyContinue) {
+    Write-Skip "pnpm (already installed)"
+    $script:Skipped++
 } else {
-    Write-Skip "pnpm (disabled)"
+    Write-Host "  --> pnpm..." -ForegroundColor White
+    Invoke-WebRequest https://get.pnpm.io/install.ps1 -UseBasicParsing | Invoke-Expression
+    if (Get-Command pnpm -ErrorAction SilentlyContinue) {
+        Write-OK "pnpm"
+        $script:Installed++
+    } else {
+        Write-Warn "pnpm - restart terminal and verify installation"
+    }
 }
 
 # =============================================================================
@@ -577,18 +559,18 @@ if ($cfg.API.Bruno)    { Install-Pkg "Bruno"    "Bruno.Bruno"      } else { Writ
 # =============================================================================
 Write-Step "CLI Utilities"
 
-if ($cfg.CLI.Ripgrep) { Install-Pkg "ripgrep" "BurntSushi.ripgrep.MSVC" } else { Write-Skip "ripgrep (disabled)" }
-if ($cfg.CLI.Fd)      { Install-Pkg "fd"      "sharkdp.fd"              } else { Write-Skip "fd (disabled)"      }
-if ($cfg.CLI.Bat)     { Install-Pkg "bat"     "sharkdp.bat"             } else { Write-Skip "bat (disabled)"     }
-if ($cfg.CLI.Eza)     { Install-Pkg "eza"     "eza-community.eza"       } else { Write-Skip "eza (disabled)"     }
-if ($cfg.CLI.Delta)   { Install-Pkg "delta"   "dandavison.delta"        } else { Write-Skip "delta (disabled)"   }
-if ($cfg.CLI.Jq)      { Install-Pkg "jq"      "jqlang.jq"               } else { Write-Skip "jq (disabled)"      }
-if ($cfg.CLI.Yq)      { Install-Pkg "yq"      "MikeFarah.yq"            } else { Write-Skip "yq (disabled)"      }
-if ($cfg.CLI.Wget)    { Install-Pkg "wget"    "JernejSimoncic.Wget"     } else { Write-Skip "wget (disabled)"    }
-if ($cfg.CLI.Make)    { Install-Choco "make"   "make"                    } else { Write-Skip "make (disabled)"    }
-if ($cfg.CLI.Sudo)    { Install-Choco "sudo"   "gsudo"                   } else { Write-Skip "sudo (disabled)"    }
-if ($cfg.CLI.Just)    { Install-Pkg "just"    "Casey.Just"              } else { Write-Skip "just (disabled)"    }
-if ($cfg.CLI.Curl)    { Install-Pkg "curl"    "cURL.cURL"               } else { Write-Skip "curl (disabled)"    }
+Install-Pkg "ripgrep" "BurntSushi.ripgrep.MSVC"
+Install-Pkg "fd"      "sharkdp.fd"
+Install-Pkg "bat"     "sharkdp.bat"
+Install-Pkg "eza"     "eza-community.eza"
+Install-Pkg "delta"   "dandavison.delta"
+Install-Pkg "jq"      "jqlang.jq"
+Install-Pkg "yq"      "MikeFarah.yq"
+Install-Pkg "wget"    "JernejSimoncic.Wget"
+Install-Choco "make"   "make"
+Install-Choco "sudo"   "gsudo"
+Install-Pkg "just"    "Casey.Just"
+Install-Pkg "curl"    "cURL.cURL"
 
 # =============================================================================
 # 10. SECURITY AND AUTHENTICATION
@@ -596,21 +578,17 @@ if ($cfg.CLI.Curl)    { Install-Pkg "curl"    "cURL.cURL"               } else {
 Write-Step "Security and Authentication"
 
 if ($cfg.Security.Bitwarden) { Install-Pkg "Bitwarden" "Bitwarden.Bitwarden" } else { Write-Skip "Bitwarden (disabled)" }
-if ($cfg.Security.Gpg4win)   { Install-Pkg "Gpg4win"   "GnuPG.Gpg4win"      } else { Write-Skip "Gpg4win (disabled)"   }
+Install-Pkg "Gpg4win"   "GnuPG.Gpg4win"
 
-if ($cfg.Security.OpenSSH) {
-    $ssh = Get-WindowsCapability -Online -Name "OpenSSH.Client*"
-    if ($ssh.State -eq "Installed") {
-        Write-Skip "OpenSSH Client (already installed)"
-        $script:Skipped++
-    } else {
-        Write-Host "  --> OpenSSH Client..." -ForegroundColor White
-        Add-WindowsCapability -Online -Name "OpenSSH.Client~~~~0.0.1.0" | Out-Null
-        Write-OK "OpenSSH Client"
-        $script:Installed++
-    }
+$ssh = Get-WindowsCapability -Online -Name "OpenSSH.Client*"
+if ($ssh.State -eq "Installed") {
+    Write-Skip "OpenSSH Client (already installed)"
+    $script:Skipped++
 } else {
-    Write-Skip "OpenSSH (disabled)"
+    Write-Host "  --> OpenSSH Client..." -ForegroundColor White
+    Add-WindowsCapability -Online -Name "OpenSSH.Client~~~~0.0.1.0" | Out-Null
+    Write-OK "OpenSSH Client"
+    $script:Installed++
 }
 
 # =============================================================================
@@ -644,10 +622,10 @@ if ($cfg.Browsers.Opera)      { Install-Pkg "Opera"                    "Opera.Op
 # =============================================================================
 Write-Step "Development Fonts"
 
-if ($cfg.Fonts.JetBrainsMono) { Install-Pkg   "JetBrains Mono Nerd Font" "DEVCOM.JetBrainsMonoNerdFont"        } else { Write-Skip "JetBrains Mono (disabled)" }
-if ($cfg.Fonts.FiraCode)      { Install-Choco "Fira Code"                "firacode"                            } else { Write-Skip "Fira Code (disabled)"      }
-if ($cfg.Fonts.CascadiaCode)  { Install-Choco "Cascadia Code"            "cascadiafonts"                      } else { Write-Skip "Cascadia Code (disabled)"  }
-if ($cfg.Fonts.NerdFontsHack) { Install-Choco "Nerd Fonts (Hack)"        "nerdfont-hack"                      } else { Write-Skip "Nerd Fonts Hack (disabled)" }
+Install-Pkg   "JetBrains Mono Nerd Font" "DEVCOM.JetBrainsMonoNerdFont"
+Install-Choco "Fira Code"                "firacode"
+Install-Choco "Cascadia Code"            "cascadiafonts"
+Install-Choco "Nerd Fonts (Hack)"        "nerdfont-hack"
 
 # =============================================================================
 # 14. VS CODE EXTENSIONS
@@ -765,16 +743,14 @@ if ($cfg.Terminal.SetPowerShell7AsDefault) {
 # =============================================================================
 Write-Step "Utilities"
 
-if ($cfg.Utilities.SevenZip)  { Install-Pkg "7-Zip"     "7zip.7zip"                     } else { Write-Skip "7-Zip (disabled)"              }
+Install-Pkg "7-Zip"     "7zip.7zip"
 if ($cfg.Utilities.WinRAR)    { Install-Pkg "WinRAR"    "RARLab.WinRAR"                 } else { Write-Skip "WinRAR (disabled)"             }
 if ($cfg.Utilities.VLC)       { Install-Pkg "VLC"       "VideoLAN.VLC"                  } else { Write-Skip "VLC (disabled)"                }
 if ($cfg.Utilities.WinSCP)    { Install-Pkg "WinSCP"    "WinSCP.WinSCP"                 } else { Write-Skip "WinSCP (disabled)"             }
 if ($cfg.Utilities.PuTTY)     { Install-Pkg "PuTTY"     "PuTTY.PuTTY"                   } else { Write-Skip "PuTTY (disabled)"              }
 if ($cfg.Utilities.NotepadPP) { Install-Pkg "Notepad++" "Notepad++.Notepad++"           } else { Write-Skip "Notepad++ (disabled)"          }
-if ($cfg.Utilities.VCRedist) {
-    Install-Pkg "VC++ Redist x64" "Microsoft.VCRedist.2015+.x64"
-    Install-Pkg "VC++ Redist x86" "Microsoft.VCRedist.2015+.x86"
-} else { Write-Skip "VC++ Redistributables (disabled)" }
+Install-Pkg "VC++ Redist x64" "Microsoft.VCRedist.2015+.x64"
+Install-Pkg "VC++ Redist x86" "Microsoft.VCRedist.2015+.x86"
 
 # =============================================================================
 # GIT CONFIGURATION

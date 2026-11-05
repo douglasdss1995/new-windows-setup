@@ -1,9 +1,10 @@
 <#
 .SYNOPSIS
-    First-run setup: creates the local config files and asks which WSL pieces to install.
+    First-run setup: creates the local config files and asks which optional tools to install.
 .DESCRIPTION
     Usually run through `make setup`. Copies the *.example configs that are missing
-    (never overwrites), then asks yes/no questions. Press Enter to accept the default
+    (never overwrites), drops the keys of tools that became mandatory, then asks yes/no
+    questions about every OPTIONAL Windows tool and WSL provider. Mandatory tools are never asked. Press Enter to accept the default
     shown in capitals; y/yes/1 mean yes and n/no/0 mean no. Re-running uses the values
     already saved as defaults.
 .PARAMETER ConfigOnly
@@ -39,6 +40,14 @@ foreach ($file in Copy-ConfigExamples -RepoRoot $RepoRoot) {
     }
 }
 
+# Mandatory tools are always installed and no longer have a key: remove the ones
+# an older config still carries so nobody believes they can switch them off.
+$winConfigPath = Join-Path $RepoRoot 'windows' 'windows.config.psd1'
+$retired = @(Remove-ConfigKeys -Path $winConfigPath -Keys (Get-WindowsRetiredKeys))
+if ($retired.Count -gt 0) {
+    Write-Host "[OK]   windows/windows.config.psd1: removed keys of tools that are now always installed (or dropped): $($retired -join ', ')" -ForegroundColor Green
+    Write-Host '       (previous file kept as .bak)' -ForegroundColor DarkGray
+}
 # Keys added to the example after this machine's config was created (new tools,
 # renamed flags) would otherwise be silently read as "disabled".
 $syncPairs = @(
@@ -58,10 +67,39 @@ foreach ($pair in $syncPairs) {
         Write-Host "[WARN] $($pair.Config): add manually (multi-line or inline): $($sync.Manual -join ', ')" -ForegroundColor Yellow
     }
 }
+
 if ($ConfigOnly) { return }
 
 # -----------------------------------------------------------------------------
-# 2. WSL choices
+# 2. Windows tools (optional ones only)
+# -----------------------------------------------------------------------------
+Write-Step 'Windows tools'
+if (-not $UseDefaults) {
+    Write-Host 'Mandatory tools are installed without asking. Answer y/yes/1 or n/no/0; Enter accepts the default (the capital letter).' -ForegroundColor DarkGray
+}
+$winCurrent = Import-PowerShellDataFile -Path $winConfigPath
+$winAnswers = @{}
+$lastSection = ''
+foreach ($opt in Get-WindowsOptions) {
+    $saved = $null
+    if ($winCurrent.ContainsKey($opt.Section) -and $winCurrent[$opt.Section] -is [hashtable] -and $winCurrent[$opt.Section].ContainsKey($opt.Key)) {
+        $saved = $winCurrent[$opt.Section][$opt.Key]
+    }
+    $default = if ($saved -is [bool]) { $saved } else { $opt.Default }
+    if ($UseDefaults) { $winAnswers["$($opt.Section).$($opt.Key)"] = $default; continue }
+    if ($opt.Section -ne $lastSection) {
+        Write-Host "`n-- $($opt.Section) --" -ForegroundColor Cyan
+        $lastSection = $opt.Section
+    }
+    if ($opt.Note) { Write-Host "  - $($opt.Note)" -ForegroundColor DarkGray }
+    $winAnswers["$($opt.Section).$($opt.Key)"] = Read-YesNo -Prompt $opt.Question -Default $default
+}
+if ((Set-ConfigBooleans -Path $winConfigPath -Values $winAnswers) -gt 0) {
+    Write-Host '[OK]   saved your choices in windows/windows.config.psd1' -ForegroundColor Green
+}
+
+# -----------------------------------------------------------------------------
+# 3. WSL choices
 # -----------------------------------------------------------------------------
 $wslConfigPath = Join-Path $RepoRoot 'wsl' 'wsl.config.psd1'
 $current = Import-PowerShellDataFile -Path $wslConfigPath
@@ -91,11 +129,10 @@ Write-Utf8NoBom -Path $wslConfigPath -Content (New-WslConfigContent -Values $ans
 Write-Host '[OK]   saved wsl/wsl.config.psd1' -ForegroundColor Green
 
 # -----------------------------------------------------------------------------
-# 3. Git identity (lives in windows.config.psd1, shared by Windows and WSL)
+# 4. Git identity (lives in windows.config.psd1, shared by Windows and WSL)
 # -----------------------------------------------------------------------------
 if (-not $UseDefaults) {
     Write-Step 'Git identity'
-    $winConfigPath = Join-Path $RepoRoot 'windows' 'windows.config.psd1'
     $winConfig = Import-PowerShellDataFile -Path $winConfigPath
     $git = if ($winConfig.ContainsKey('Git')) { $winConfig.Git } else { @{} }
     $curName  = if ($git.ContainsKey('UserName'))  { [string]$git.UserName }  else { '' }
@@ -110,10 +147,10 @@ if (-not $UseDefaults) {
 }
 
 # -----------------------------------------------------------------------------
-# 4. Next steps (installers need Administrator, so they are never launched here)
+# 5. Next steps (installers need Administrator, so they are never launched here)
 # -----------------------------------------------------------------------------
 Write-Step 'Next steps (PowerShell as Administrator, from the repo root)'
 Write-Host '  1. powershell -ExecutionPolicy Bypass -File setup-windows.ps1'
 Write-Host '  2. powershell -ExecutionPolicy Bypass -File setup-wsl.ps1'
 Write-Host ''
-Write-Host 'Review windows/windows.config.psd1 first if you want to change Windows tools.' -ForegroundColor DarkGray
+Write-Host 'Run `make setup` again any time to change your optional choices.' -ForegroundColor DarkGray

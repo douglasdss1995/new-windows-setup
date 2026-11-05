@@ -22,7 +22,7 @@ Describe 'windows.config.psd1.example' {
         $missing | Should -BeNullOrEmpty
     }
     It 'uses booleans for tool flags' {
-        $bad = foreach ($section in 'Editors', 'CLI', 'Runtimes', 'Browsers') {
+        $bad = foreach ($section in 'Editors', 'Runtimes', 'Browsers') {
             foreach ($k in $example[$section].Keys) {
                 if ($example[$section][$k] -isnot [bool]) { "$section.$k" }
             }
