@@ -105,7 +105,7 @@ function Get-WslOptionHelp {
 # -----------------------------------------------------------------------------
 
 # Section.Key names that must NOT exist in windows.config.psd1 any more: mandatory
-# tools, plus two keys that were dropped (GitTools.Delta duplicated CLI.Delta;
+# tools, plus keys that were dropped (GitTools.Delta duplicated CLI.Delta; Database.RedisInsight left with Redis;
 # Infrastructure.WSL was never read). `make setup` removes them from a local config.
 function Get-WindowsRetiredKeys {
     @(
@@ -118,7 +118,7 @@ function Get-WindowsRetiredKeys {
         'Security.Gpg4win', 'Security.OpenSSH'
         'Utilities.SevenZip', 'Utilities.VCRedist'
         'Fonts.JetBrainsMono', 'Fonts.FiraCode', 'Fonts.CascadiaCode', 'Fonts.NerdFontsHack'
-        'GitTools.Delta', 'Infrastructure.WSL'
+        'GitTools.Delta', 'Infrastructure.WSL', 'Database.RedisInsight'
     )
 }
 
