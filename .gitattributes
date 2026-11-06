@@ -1,3 +1,9 @@
 # Shell scripts and the Makefile run on Linux (WSL / GNU make): never check them out with CRLF.
 *.sh text eol=lf
 Makefile text eol=lf
+
+# shellcheck reads this on the Windows CI runner: CRLF makes it fail with SC1017.
+.shellcheckrc text eol=lf
+
+# Copied into WSL as-is (compose, .env, SQL, JSON, conf): CRLF breaks them on Linux.
+wsl/providers/** text eol=lf
