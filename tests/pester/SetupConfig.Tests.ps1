@@ -435,6 +435,14 @@ Describe 'windows option contract' {
         ($read | Where-Object { $_ -notin $allowed }) | Should -BeNullOrEmpty
         ($read | Where-Object { $_ -in (Get-WindowsRetiredKeys) }) | Should -BeNullOrEmpty
     }
+    It 'the Windows PostgreSQL password in the installer is the one the wizard tells the user' {
+        $script = Get-Content (Join-Path $repoRoot 'setup-windows.ps1') -Raw
+        $m = [regex]::Match($script, '\$PostgresPassword = "([^"]+)"')
+        $m.Success | Should -BeTrue
+        $pw = $m.Groups[1].Value
+        $script | Should -Match '--superpassword \$PostgresPassword'
+        ((Get-WindowsOptions) | Where-Object Key -eq 'PostgreSQL18').Note | Should -Match ([regex]::Escape($pw))
+    }
     It 'every optional tool except the VS Code extensions is read by setup-windows.ps1' {
         $script = Get-Content (Join-Path $repoRoot 'setup-windows.ps1') -Raw
         $unused = foreach ($o in Get-WindowsOptions) {

@@ -89,7 +89,7 @@ function Install-Pkg {
     param(
         [string]$Name,
         [string]$Id,
-        [string]$Extra
+        [string[]]$Extra
     )
 
     $check = winget list --id $Id --exact --accept-source-agreements 2>&1 | Out-String
@@ -409,7 +409,13 @@ if (Get-Command pnpm -ErrorAction SilentlyContinue) {
 # =============================================================================
 Write-Step "Databases"
 
-if ($cfg.Database.PostgreSQL18)  { Install-Pkg "PostgreSQL 18"     "PostgreSQL.PostgreSQL.18"          } else { Write-Skip "PostgreSQL 18 (disabled)"   }
+# Fixed development password for the "postgres" superuser (same as the WSL provider's
+# .env.example). Only applies to a fresh install; --override replaces ALL of the
+# EDB installer's switches, so the unattended mode has to be repeated here.
+$PostgresPassword = "123456"
+if ($cfg.Database.PostgreSQL18) {
+    Install-Pkg "PostgreSQL 18" "PostgreSQL.PostgreSQL.18" -Extra @("--override", "--mode unattended --unattendedmodeui none --superpassword $PostgresPassword")
+} else { Write-Skip "PostgreSQL 18 (disabled)" }
 if ($cfg.Database.DBeaver)       { Install-Pkg "DBeaver"           "dbeaver.dbeaver"                   } else { Write-Skip "DBeaver (disabled)"          }
 if ($cfg.Database.PgAdmin)       { Install-Pkg "pgAdmin 4"         "PostgreSQL.pgAdmin"                } else { Write-Skip "pgAdmin (disabled)"          }
 

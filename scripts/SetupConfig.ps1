@@ -140,7 +140,7 @@ function Get-WindowsOptions {
         ,@('Runtimes', 'Python313', $false, 'Python 3.13 (system-wide)', 'mise already manages Python versions.')
         ,@('Runtimes', 'NodeLTS', $false, 'Node.js LTS (system-wide)', 'mise already manages Node: mise use -g node@lts.')
         ,@('Runtimes', 'Java21', $false, 'Java 21 (Eclipse Temurin JDK)', '')
-        ,@('Database', 'PostgreSQL18', $false, 'PostgreSQL 18 on Windows', 'The WSL provider already offers PostgreSQL in a container.')
+        ,@('Database', 'PostgreSQL18', $false, 'PostgreSQL 18 on Windows', 'Superuser "postgres" gets the fixed development password 123456 (fresh install only; never asked or stored). The WSL provider also offers PostgreSQL in a container.')
         ,@('Database', 'DBeaver', $true, 'DBeaver', '')
         ,@('Database', 'PgAdmin', $true, 'pgAdmin 4', '')
         ,@('Infrastructure', 'IPv4LoopbackPreference', $true, 'Prefer IPv4 for localhost (netsh prefix policy)', 'Changes a system network policy; see docs/wslconfig.md.')

@@ -98,7 +98,7 @@ Tools installed on Windows via `setup-windows.ps1` using winget and Chocolatey. 
 |---|---|
 | [DBeaver](https://dbeaver.io/) | Universal database client GUI |
 | [pgAdmin](https://www.pgadmin.org/) | PostgreSQL administration GUI |
-| [PostgreSQL 18](https://www.postgresql.org/) | Native PostgreSQL install (optional — providers in WSL cover most needs) |
+| [PostgreSQL 18](https://www.postgresql.org/) | Native PostgreSQL install (optional — providers in WSL cover most needs). Superuser `postgres`, password `123456` (development only, set on a fresh install), port 5432 |
 
 ---
 
