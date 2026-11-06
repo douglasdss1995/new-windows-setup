@@ -52,6 +52,11 @@
     #   The Windows GitKraken is installed separately by setup-windows.ps1.
     GitKraken              = $true
 
+    # Install Obsidian?
+    #   Linux Obsidian (notes) for vaults on the WSL filesystem (~110 MB download, latest GitHub release).
+    #   Needs WSLg to show its window. The Windows Obsidian is installed separately by setup-windows.ps1.
+    Obsidian               = $true
+
     # Configure the keyboard layout (br / abnt2)?
     #   Fixes accents in GUI apps run through WSLg (GitKraken, ...), which ignore the Windows layout.
     #   Turn off if you do not use a Brazilian ABNT2 keyboard.

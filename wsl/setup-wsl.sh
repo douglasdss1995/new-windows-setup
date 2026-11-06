@@ -5,7 +5,7 @@
 #                          [--with-postgres] [--skip-valkey]
 #                          [--with-pgadmin] [--with-minio] [--with-seaweedfs] [--with-ollama]
 #                          [--skip-portainer] [--with-nvidia]
-#                          [--skip-gitkraken] [--skip-keyboard]
+#                          [--skip-gitkraken] [--skip-obsidian] [--skip-keyboard]
 #                          [--keyboard-layout=br] [--keyboard-variant=abnt2]
 #                          [--repo-path=/mnt/x/path/to/new-windows-setup]
 #                          [--git-username="Your Name"] [--git-email=you@example.com]
@@ -30,6 +30,7 @@ source "$LIB_DIR/cli_tools.sh"
 source "$LIB_DIR/docker.sh"
 source "$LIB_DIR/nvidia.sh"
 source "$LIB_DIR/gitkraken.sh"
+source "$LIB_DIR/obsidian.sh"
 source "$LIB_DIR/git_config.sh"
 source "$LIB_DIR/providers.sh"
 source "$LIB_DIR/summary.sh"
@@ -57,6 +58,7 @@ SKIP_OLLAMA=true
 # enable with --with-nvidia. Ignored when --skip-docker is set.
 SKIP_NVIDIA=true
 SKIP_GITKRAKEN=false
+SKIP_OBSIDIAN=false
 SKIP_KEYBOARD=false
 KEYBOARD_LAYOUT="br"
 KEYBOARD_VARIANT="abnt2"
@@ -80,6 +82,7 @@ for arg in "$@"; do
     --with-nvidia)          SKIP_NVIDIA=false ;;
     --skip-minio)          SKIP_MINIO=true ;;   # kept for backward compatibility (now the default)
     --skip-gitkraken)       SKIP_GITKRAKEN=true ;;
+    --skip-obsidian)        SKIP_OBSIDIAN=true ;;
     --skip-keyboard)        SKIP_KEYBOARD=true ;;
     --keyboard-layout=*)    KEYBOARD_LAYOUT="${arg#*=}" ;;
     --keyboard-variant=*)   KEYBOARD_VARIANT="${arg#*=}" ;;
@@ -120,6 +123,7 @@ run_step "cli_tools" provision_cli_tools
 [ "$SKIP_DOCKER" = false ] && [ "$SKIP_NVIDIA" = false ] && run_step "nvidia_container_toolkit" provision_nvidia_container_toolkit
 
 [ "$SKIP_GITKRAKEN" = false ] && run_step "gitkraken"       provision_gitkraken
+[ "$SKIP_OBSIDIAN" = false ]  && run_step "obsidian"        provision_obsidian
 [ "$SKIP_KEYBOARD" = false ]  && run_step "keyboard_layout" provision_keyboard_layout
 
 run_step "git_config"    provision_git_config

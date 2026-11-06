@@ -71,6 +71,12 @@ function Get-WslOptions {
                      'The Windows GitKraken is installed separately by setup-windows.ps1.')
         }
         [pscustomobject]@{
+            Key = 'Obsidian'; Default = $true; Flag = '--skip-obsidian'; DependsOn = @()
+            Question = 'Install Obsidian?'
+            Help = @('Linux Obsidian (notes) for vaults on the WSL filesystem (~110 MB download, latest GitHub release).',
+                     'Needs WSLg to show its window. The Windows Obsidian is installed separately by setup-windows.ps1.')
+        }
+        [pscustomobject]@{
             Key = 'KeyboardLayout'; Default = $true; Flag = '--skip-keyboard'; DependsOn = @()
             Question = 'Configure the keyboard layout (br / abnt2)?'
             Help = @('Fixes accents in GUI apps run through WSLg (GitKraken, ...), which ignore the Windows layout.',

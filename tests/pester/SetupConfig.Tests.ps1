@@ -103,7 +103,7 @@ Describe 'wsl option contract' {
             NvidiaContainerToolkit = 'SKIP_NVIDIA'; PostgreSQL = 'SKIP_POSTGRES'
             PgAdmin = 'SKIP_PGADMIN'; Portainer = 'SKIP_PORTAINER'; MinIO = 'SKIP_MINIO'
             SeaweedFS = 'SKIP_SEAWEEDFS'; Ollama = 'SKIP_OLLAMA'
-            GitKraken = 'SKIP_GITKRAKEN'; KeyboardLayout = 'SKIP_KEYBOARD'
+            GitKraken = 'SKIP_GITKRAKEN'; Obsidian = 'SKIP_OBSIDIAN'; KeyboardLayout = 'SKIP_KEYBOARD'
         }
         $bad = foreach ($o in Get-WslOptions) {
             $skipDefault = [regex]::Match($script, "(?m)^$($vars[$o.Key])=(true|false)").Groups[1].Value
@@ -169,8 +169,8 @@ Describe 'setup-wizard.ps1' {
         $queue = [System.Collections.Queue]::new()
         $asked = [System.Collections.Generic.List[string]]::new()
         # Windows: Oh My Posh = n, every other optional tool keeps its default.
-        # WSL: NVIDIA = y, PostgreSQL = default (no, so pgAdmin is not asked), Portainer = 0, MinIO/SeaweedFS/Ollama = default, GitKraken = n, Keyboard = 1.
-        $answers = @('n') + @('') * ((Get-WindowsOptions).Count - 1) + @('y', '', '0', '', '', '', 'n', '1', 'Jane Doe', 'jane@example.com')
+        # WSL: NVIDIA = y, PostgreSQL = default (no, so pgAdmin is not asked), Portainer = 0, MinIO/SeaweedFS/Ollama = default, GitKraken = n, Obsidian = default, Keyboard = 1.
+        $answers = @('n') + @('') * ((Get-WindowsOptions).Count - 1) + @('y', '', '0', '', '', '', 'n', '', '1', 'Jane Doe', 'jane@example.com')
         $answers | ForEach-Object { $queue.Enqueue($_) }
         Mock Read-Host { $asked.Add($Prompt); $queue.Dequeue() }
         & (Join-Path $repoRoot 'scripts' 'setup-wizard.ps1') -RepoRoot $script:root *>$null
@@ -180,7 +180,8 @@ Describe 'setup-wizard.ps1' {
         $cfg.NvidiaContainerToolkit | Should -BeTrue
         $cfg.Portainer              | Should -BeFalse
         $cfg.GitKraken              | Should -BeFalse
-        $cfg.KeyboardLayout         | Should -BeTrue
+        $cfg.Obsidian               | Should -BeTrue
+        $cfg.KeyboardLayout        | Should -BeTrue
         $win = Import-PowerShellDataFile (Join-Path $script:root 'windows' 'windows.config.psd1')
         $win.Terminal.OhMyPosh | Should -BeFalse
         $win.Terminal.SetPowerShell7AsDefault | Should -BeTrue

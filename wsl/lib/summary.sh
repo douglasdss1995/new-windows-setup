@@ -19,6 +19,9 @@ provision_summary() {
   if [ "$SKIP_GITKRAKEN" = false ]; then
     echo "  $STEP. Launch GitKraken (WSL repos only - use the Windows install for /mnt/c repos): gitkraken"; STEP=$((STEP + 1))
   fi
+  if [ "$SKIP_OBSIDIAN" = false ]; then
+    echo "  $STEP. Launch Obsidian (vaults on the WSL filesystem; use the Windows install for /mnt/c vaults): obsidian"; STEP=$((STEP + 1))
+  fi
   if [ "$SKIP_DOCKER" = false ]; then
     echo "  $STEP. For Docker without sudo: restart WSL session (wsl --shutdown in PowerShell)"; STEP=$((STEP + 1))
     if [ -n "${ENABLED_PROVIDERS:-}" ]; then
