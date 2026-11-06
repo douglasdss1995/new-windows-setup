@@ -3,7 +3,7 @@
 #
 # Only OPTIONAL tools are listed here (true = install, false = skip); `make setup`
 # asks each one and saves the answer. MANDATORY tools (Chocolatey, Windows
-# Terminal, PowerShell 7, Git, zoxide, fzf, VS Code, mise, uv, pnpm, the CLI set,
+# Terminal, PowerShell 7, Git, zoxide, fzf, VS Code, JetBrains Toolbox, mise, uv, pnpm, the CLI set,
 # Gpg4win, OpenSSH, 7-Zip, VC++ Redistributables and the fonts) are always
 # installed by setup-windows.ps1 and have no key. See docs/setup-windows.md.
 # =============================================================================
@@ -32,13 +32,7 @@
     # Editors and IDEs
     # -------------------------------------------------------------------------
     Editors          = @{
-        Cursor              = $false
-        # JetBrains: install Toolbox first; IDEs install via Toolbox (API) with winget fallback
-        JetBrainsToolbox    = $true    # Toolbox manages installs, updates and licenses
-        PyCharm             = $false    # Community (free) - set PyCharmProfessional for paid license
-        PyCharmProfessional = $false # Professional requires active JetBrains license
-        WebStorm            = $false    # requires active JetBrains license
-        DataGrip            = $false   # database IDE - requires active JetBrains license
+        Cursor = $false
     }
 
     # -------------------------------------------------------------------------

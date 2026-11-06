@@ -143,92 +143,6 @@ function Install-Choco {
 }
 
 # -----------------------------------------------------------------------------
-# Function: install JetBrains IDE via Toolbox (with winget fallback)
-#
-# The Toolbox App exposes a local REST API after startup. We discover the port
-# from the lock file it creates, POST an install request, and fall back to a
-# direct winget install if the API is unavailable or returns an error.
-# Downloads always originate from download.jetbrains.com regardless of method.
-# -----------------------------------------------------------------------------
-function Install-JetBrainsTool {
-    param(
-        [string]$Name,
-        [string]$WingetId,
-        [string]$ToolboxTag   # product tag used by Toolbox API, e.g. "WebStorm"
-    )
-
-    # Skip if already installed (winget check covers both Toolbox and direct installs)
-    $check = winget list --id $WingetId --exact --accept-source-agreements 2>&1 | Out-String
-    if ($check -match [regex]::Escape($WingetId)) {
-        Write-Skip "$Name (already installed)"
-        $script:Skipped++
-        return
-    }
-
-    $toolboxExe = "$env:LOCALAPPDATA\JetBrains\Toolbox\bin\jetbrains-toolbox.exe"
-
-    if ((Test-Path $toolboxExe) -and $ToolboxTag) {
-        Write-Host "  --> $Name (via JetBrains Toolbox)..." -ForegroundColor White
-
-        # Start Toolbox minimized if not already running
-        $tbProc = Get-Process -Name "jetbrains-toolbox" -ErrorAction SilentlyContinue
-        if (-not $tbProc) {
-            Start-Process $toolboxExe -ArgumentList "--minimized" -WindowStyle Hidden
-            Write-Info "Waiting for Toolbox to initialize..."
-            Start-Sleep -Seconds 8
-        }
-
-        # Toolbox writes its REST API port to a JSON lock file
-        $portFile = "$env:LOCALAPPDATA\JetBrains\Toolbox\.lock"
-        $apiPort  = $null
-
-        if (Test-Path $portFile) {
-            try {
-                $lockData = Get-Content $portFile -Raw -ErrorAction Stop | ConvertFrom-Json
-                $apiPort  = $lockData.port
-            } catch { Write-Verbose "Toolbox lock file unreadable: $_" }
-        }
-
-        # Fallback: scan common Toolbox port range (63342-63352)
-        if (-not $apiPort) {
-            foreach ($p in 63342..63352) {
-                try {
-                    $r = Invoke-RestMethod "http://localhost:$p/api/about" -TimeoutSec 1 -ErrorAction Stop
-                    if ($r) { $apiPort = $p; break }
-                } catch { Write-Verbose "Toolbox API not on port ${p}: $_" }
-            }
-        }
-
-        if ($apiPort) {
-            try {
-                Invoke-RestMethod -Uri "http://localhost:$apiPort/api/tools/$ToolboxTag/install" `
-                                  -Method Post -TimeoutSec 30 -ErrorAction Stop | Out-Null
-                Write-OK "$Name (Toolbox)"
-                $script:Installed++
-                return
-            } catch {
-                Write-Warn "$Name - Toolbox API unavailable, falling back to winget..."
-            }
-        } else {
-            Write-Warn "$Name - could not reach Toolbox API, falling back to winget..."
-        }
-    }
-
-    # Fallback: direct winget install (downloads from official JetBrains CDN)
-    Write-Host "  --> $Name (winget)..." -ForegroundColor White
-    winget install --id $WingetId --exact --silent --accept-package-agreements --accept-source-agreements
-
-    if ($LASTEXITCODE -eq 0) {
-        Write-OK "$Name"
-        $script:Installed++
-    } else {
-        Write-Fail "$Name (exit code $LASTEXITCODE)"
-        $script:FailList += $Name
-        $script:Failed++
-    }
-}
-
-# -----------------------------------------------------------------------------
 # Function: install VS Code extension
 # -----------------------------------------------------------------------------
 function Install-VSExt {
@@ -385,20 +299,8 @@ Write-Step "Editors and IDEs"
 Install-Pkg "VS Code" "Microsoft.VisualStudioCode"
 if ($cfg.Editors.Cursor)  { Install-Pkg "Cursor"  "Anysphere.Cursor"           } else { Write-Skip "Cursor (disabled)"  }
 
-# JetBrains Toolbox - install first so the IDEs below can use it
-if ($cfg.Editors.JetBrainsToolbox) {
-    Install-Pkg "JetBrains Toolbox" "JetBrains.Toolbox"
-    Write-Info "Toolbox installed - subsequent JetBrains IDEs will install via Toolbox API when available."
-} else {
-    Write-Skip "JetBrains Toolbox (disabled)"
-}
-
-# JetBrains IDEs - use Toolbox when available, direct winget as fallback
-# All packages download from download.jetbrains.com regardless of method.
-if ($cfg.Editors.PyCharm)             { Install-JetBrainsTool "PyCharm Community"    "JetBrains.PyCharm.Community"    "PyCharm"    } else { Write-Skip "PyCharm Community (disabled)"    }
-if ($cfg.Editors.PyCharmProfessional) { Install-JetBrainsTool "PyCharm Professional" "JetBrains.PyCharm.Professional" "PyCharm"    } else { Write-Skip "PyCharm Professional (disabled)" }
-if ($cfg.Editors.WebStorm)            { Install-JetBrainsTool "WebStorm"             "JetBrains.WebStorm"             "WebStorm"   } else { Write-Skip "WebStorm (disabled)"             }
-if ($cfg.Editors.DataGrip)            { Install-JetBrainsTool "DataGrip"             "JetBrains.DataGrip"             "DataGrip"   } else { Write-Skip "DataGrip (disabled)"             }
+# JetBrains Toolbox installs and updates the JetBrains IDEs; install the IDEs you need from it.
+Install-Pkg "JetBrains Toolbox" "JetBrains.Toolbox"
 
 # =============================================================================
 # 4. GIT AND VERSION CONTROL

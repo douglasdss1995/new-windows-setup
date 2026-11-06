@@ -83,7 +83,7 @@ Key sections to review before your first run:
 
 | Section        | What to decide                                                       |
 | -------------- | -------------------------------------------------------------------- |
-| `Editors`      | VS Code, Cursor, JetBrains IDEs — enable only what you use           |
+| `Editors`      | Cursor is optional; VS Code and JetBrains Toolbox are always installed |
 | `Runtimes`     | Mise is recommended; disable `PyenvWin` / `NvmWindows` if using Mise |
 | `Database`     | Enable only the database tools you actually need                     |
 | `Productivity` | Slack, Discord, Notion — opt-in only                                 |

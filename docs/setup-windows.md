@@ -12,10 +12,10 @@ powershell -ExecutionPolicy Bypass -File .\setup-windows.ps1
 
 `make setup` only asks about **optional** tools; each answer is saved as `$true`/`$false` in `windows/windows.config.psd1`. **Mandatory** tools are installed by `setup-windows.ps1` unconditionally and have no key in the config (an older config that still has them loses those keys the next time you run `make setup`; a `.bak` is kept).
 
-- **Mandatory (Windows):** Chocolatey, Windows Terminal, PowerShell 7, Git, zoxide, fzf, VS Code, mise, uv, pnpm, the CLI set (ripgrep, fd, bat, eza, delta, jq, yq, wget, make, sudo, just, curl), Gpg4win, OpenSSH, 7-Zip, the VC++ Redistributables and the four fonts.
+- **Mandatory (Windows):** Chocolatey, Windows Terminal, PowerShell 7, Git, zoxide, fzf, VS Code, JetBrains Toolbox, mise, uv, pnpm, the CLI set (ripgrep, fd, bat, eza, delta, jq, yq, wget, make, sudo, just, curl), Gpg4win, OpenSSH, 7-Zip, the VC++ Redistributables and the four fonts.
 - **Mandatory (WSL):** Docker Engine, Python tooling and Node tooling (plus the base packages, zsh and mise).
-- **Optional:** everything else: editors and JetBrains IDEs, databases, API clients, productivity apps, browsers, the other utilities, the VS Code extensions, the Oh My Posh / Starship prompt, the IPv4 loopback tweak, and the WSL providers (PostgreSQL, pgAdmin, Valkey, Portainer, MinIO, SeaweedFS, Ollama), NVIDIA Container Toolkit, GitKraken and the keyboard layout.
-- Paid or trialware apps (TablePlus, WinRAR, PyCharm Professional, WebStorm, DataGrip, Postman) are always optional.
+- **Optional:** everything else: Cursor, databases, API clients, productivity apps, browsers, the other utilities, the VS Code extensions, the Oh My Posh / Starship prompt, the IPv4 loopback tweak, and the WSL providers (PostgreSQL, pgAdmin, Valkey, Portainer, MinIO, SeaweedFS, Ollama), NVIDIA Container Toolkit, GitKraken and the keyboard layout.
+- Paid or trialware apps (TablePlus, WinRAR, Postman) are always optional.
 
 Run `make setup` again any time to change the optional choices.
 
@@ -25,7 +25,7 @@ Run `make setup` again any time to change the optional choices.
 
 > Oh My Posh is enabled by default and activated automatically in your PowerShell profile using the `amro` theme (`windows/themes/amro.omp.json`). To customize, edit that file directly, or add another `*.omp.json` file to `windows/themes/` and point `Terminal.OhMyPoshTheme` at it in `windows/windows.config.psd1`.
 
-| Editors      | VS Code, Cursor, PyCharm Community, WebStorm                      |
+| Editors      | VS Code, JetBrains Toolbox, Cursor                                |
 | Runtimes     | mise, pyenv-win, nvm, Python, Node LTS, JDK 21, uv, pnpm          |
 | Databases    | PostgreSQL, DBeaver, TablePlus, pgAdmin                           |
 | Docker       | Docker Engine in WSL (via `setup-wsl.sh`) + providers compose     |

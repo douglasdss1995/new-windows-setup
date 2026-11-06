@@ -87,7 +87,7 @@ modules/
 ├── Logger.ps1       # Write-Step/OK/Skip/Warn/Fail/Info
 ├── Stats.ps1        # $global:StatsInstalled/Skipped/Failed counters
 ├── Bootstrap.ps1    # Assert-IsAdministrator, Set-SafeExecutionPolicy, Import-SetupConfig
-├── Installer.ps1    # Install-WingetPackage, Install-ChocoPackage, Install-JetBrainsIde,
+├── Installer.ps1    # Install-WingetPackage, Install-ChocoPackage,
 │                    # Install-VsCodeExtension, Install-RemoteScript, Add-ProfileLine
 └── steps/
     └── Install-*.ps1  # one file per tool category

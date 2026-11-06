@@ -105,13 +105,13 @@ function Get-WslOptionHelp {
 # -----------------------------------------------------------------------------
 
 # Section.Key names that must NOT exist in windows.config.psd1 any more: mandatory
-# tools, plus keys that were dropped (GitTools.Delta duplicated CLI.Delta; Database.RedisInsight left with Redis;
+# tools, plus keys that were dropped (GitTools.Delta duplicated CLI.Delta; Database.RedisInsight left with Redis; the PyCharm, WebStorm and DataGrip installs were dropped;
 # Infrastructure.WSL was never read). `make setup` removes them from a local config.
 function Get-WindowsRetiredKeys {
     @(
         'PackageManagers.Chocolatey'
         'Terminal.WindowsTerminal', 'Terminal.PowerShell7', 'Terminal.Git', 'Terminal.Zoxide', 'Terminal.Fzf'
-        'Editors.VSCode'
+        'Editors.VSCode', 'Editors.JetBrainsToolbox'
         'Runtimes.Mise', 'Runtimes.Uv', 'Runtimes.Pnpm'
         'CLI.Ripgrep', 'CLI.Fd', 'CLI.Bat', 'CLI.Eza', 'CLI.Delta', 'CLI.Jq', 'CLI.Yq'
         'CLI.Wget', 'CLI.Make', 'CLI.Sudo', 'CLI.Just', 'CLI.Curl'
@@ -119,6 +119,7 @@ function Get-WindowsRetiredKeys {
         'Utilities.SevenZip', 'Utilities.VCRedist'
         'Fonts.JetBrainsMono', 'Fonts.FiraCode', 'Fonts.CascadiaCode', 'Fonts.NerdFontsHack'
         'GitTools.Delta', 'Infrastructure.WSL', 'Database.RedisInsight'
+        'Editors.PyCharm', 'Editors.PyCharmProfessional', 'Editors.WebStorm', 'Editors.DataGrip'
     )
 }
 
@@ -131,11 +132,6 @@ function Get-WindowsOptions {
         ,@('Terminal', 'Starship', $false, 'Starship (prompt; alternative to Oh My Posh)', '')
         ,@('Terminal', 'SetPowerShell7AsDefault', $true, 'PowerShell 7 as the default profile in Windows Terminal and VS Code', 'Edits the settings.json of both.')
         ,@('Editors', 'Cursor', $false, 'Cursor', '')
-        ,@('Editors', 'JetBrainsToolbox', $true, 'JetBrains Toolbox', 'Manages installs, updates and licenses of the JetBrains IDEs below.')
-        ,@('Editors', 'PyCharm', $false, 'PyCharm Community', 'Free.')
-        ,@('Editors', 'PyCharmProfessional', $false, 'PyCharm Professional', 'Needs an active JetBrains license.')
-        ,@('Editors', 'WebStorm', $false, 'WebStorm', 'Needs an active JetBrains license.')
-        ,@('Editors', 'DataGrip', $false, 'DataGrip', 'Needs an active JetBrains license.')
         ,@('GitTools', 'GitHubCLI', $false, 'GitHub CLI', '')
         ,@('GitTools', 'GitKraken', $true, 'GitKraken', '')
         ,@('Runtimes', 'PyenvWin', $true, 'pyenv-win (Python versions; alternative to mise)', '')

@@ -33,10 +33,7 @@ Tools installed on Windows via `setup-windows.ps1` using winget and Chocolatey. 
 |---|---|
 | [VS Code](https://code.visualstudio.com/) | Primary editor for Django and Angular |
 | [Cursor](https://cursor.sh/) | AI-powered editor (VS Code fork) |
-| [JetBrains Toolbox](https://www.jetbrains.com/toolbox-app/) | Manages JetBrains IDE installs, updates and licenses |
-| [PyCharm Professional](https://www.jetbrains.com/pycharm/) | Dedicated Python/Django IDE (requires JetBrains license) |
-| [WebStorm](https://www.jetbrains.com/webstorm/) | Dedicated JavaScript/TypeScript/Angular IDE (requires license) |
-| [DataGrip](https://www.jetbrains.com/datagrip/) | Database IDE (requires JetBrains license) |
+| [JetBrains Toolbox](https://www.jetbrains.com/toolbox-app/) | Manages JetBrains IDE installs, updates and licenses (install PyCharm, WebStorm, DataGrip... from it) |
 
 ---
 
