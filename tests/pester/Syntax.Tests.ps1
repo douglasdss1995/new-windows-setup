@@ -34,9 +34,8 @@ Describe 'entry scripts are safe for Windows PowerShell 5.1' {
     It 'no doc or script tells the user to run setup-wsl.ps1 with the powershell (5.1) command' {
         $root = (Resolve-Path (Join-Path $PSScriptRoot '..' '..')).Path
         $hits = Get-ChildItem -Path $root -Recurse -Include *.md, *.ps1 -File |
-            Where-Object { $_.FullName -notmatch '[\/](\.git|tests)[\/]' } |
-            Select-String -Pattern 'powershell[^
-]*setup-wsl\.ps1'
+            Where-Object { $_.FullName -notmatch '[\\/](\.git|tests)[\\/]' } |
+            Select-String -CaseSensitive -Pattern 'powershell\b[^\r\n]*setup-wsl\.ps1'
         $hits | Should -BeNullOrEmpty
     }
 }
