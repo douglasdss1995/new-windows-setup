@@ -1,9 +1,9 @@
 # =============================================================================
-# setup-wsl.ps1 — WSL 2 + Debian installation and configuration
+# setup-wsl.ps1 - WSL 2 + Debian installation and configuration
 # Run as Administrator in PowerShell 7.6+, from the repo root
 #
 # Usage:
-#   powershell -ExecutionPolicy Bypass -File .\setup-wsl.ps1 [-Distro Debian] [-SkipProvision]
+#   pwsh -ExecutionPolicy Bypass -File .\setup-wsl.ps1 [-Distro Debian] [-SkipProvision]
 #
 # See docs/execution-policy.md if you hit a "running scripts is disabled" error.
 # =============================================================================
@@ -14,6 +14,14 @@ param(
     [string]$Distro        = "Debian",
     [bool]  $SkipProvision = $false
 )
+
+# Windows PowerShell 5.1 (the `powershell` command, even when started from a PowerShell 7
+# window) cannot run this script: stop with a clear message instead of a parser error.
+if ($PSVersionTable.PSVersion -lt [version]'7.0') {
+    Write-Host "[ERROR] setup-wsl.ps1 needs PowerShell 7.6+ (this is $($PSVersionTable.PSVersion))." -ForegroundColor Red
+    Write-Host "        Run it with pwsh: pwsh -ExecutionPolicy Bypass -File .\setup-wsl.ps1" -ForegroundColor Yellow
+    exit 1
+}
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
@@ -143,7 +151,7 @@ try {
     wsl --update 2>&1 | Out-Null
     Write-OK "WSL kernel updated"
 } catch {
-    Write-Warn "WSL kernel update failed (no internet or Store blocked) — continuing with current version"
+    Write-Warn "WSL kernel update failed (no internet or Store blocked) - continuing with current version"
 }
 
 # -----------------------------------------------------------------------------
@@ -202,7 +210,7 @@ if (Test-Path $wslConfigSrc) {
     Copy-Item -Path $wslConfigSrc -Destination $wslConfigDst -Force
     Write-OK ".wslconfig copied to $wslConfigDst"
 } else {
-    Write-Warn ".wslconfig not found at $wslConfigSrc — skipping"
+    Write-Warn ".wslconfig not found at $wslConfigSrc - skipping"
 }
 
 # -----------------------------------------------------------------------------
@@ -213,11 +221,11 @@ Write-Step "Configuring wsl.conf in the distro"
 $wslConfSrc = Join-Path $WslDir "wsl.conf"
 
 if (Test-Path $wslConfSrc) {
-    # Normalize to LF before writing into Linux — CRLF in /etc/wsl.conf causes
+    # Normalize to LF before writing into Linux - CRLF in /etc/wsl.conf causes
     # silent parse failures in systemd and automount.
     $wslConfContent = (Get-Content $wslConfSrc -Raw) -replace "`r`n", "`n" -replace "`r", "`n"
 
-    # Step 1: write to a temp file in the user home (no sudo — that's step 2).
+    # Step 1: write to a temp file in the user home (no sudo - that's step 2).
     Copy-TextFileToWsl -Content $wslConfContent -Distro $Distro -DestPath "~/wsl.conf.tmp"
 
     # Step 2: move to /etc/wsl.conf with sudo in a separate call that has a TTY,
@@ -229,7 +237,7 @@ if (Test-Path $wslConfSrc) {
 
     Write-OK "wsl.conf configured at /etc/wsl.conf"
 } else {
-    Write-Warn "wsl.conf not found at $wslConfSrc — skipping"
+    Write-Warn "wsl.conf not found at $wslConfSrc - skipping"
 }
 
 # -----------------------------------------------------------------------------
@@ -237,7 +245,7 @@ if (Test-Path $wslConfSrc) {
 # -----------------------------------------------------------------------------
 # Windows Terminal's auto-generated WSL profiles leave startingDirectory empty,
 # which falls back to the Windows user profile folder (via /mnt/c) instead of
-# the Linux home — makes every new WSL tab open in a slow, wrong location.
+# the Linux home - makes every new WSL tab open in a slow, wrong location.
 Write-Step "Configuring Windows Terminal startingDirectory for $Distro"
 
 $wtSettingsPaths = @(
@@ -378,7 +386,7 @@ if (-not $SkipProvision) {
     Write-OK "setup-wsl.sh executed successfully"
 
     # -------------------------------------------------------------------------
-    # First boot of providers — run after provision while Docker is already
+    # First boot of providers - run after provision while Docker is already
     # active in the same WSL session, avoiding race conditions on next restart.
     # -------------------------------------------------------------------------
     Write-Step "Starting providers for the first time"

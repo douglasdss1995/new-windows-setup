@@ -152,7 +152,7 @@ Next steps:
   2. Authenticate with GitHub:
        gh auth login
   3. Configure WSL:
-       powershell -ExecutionPolicy Bypass -File .\setup-wsl.ps1
+       pwsh -ExecutionPolicy Bypass -File .\setup-wsl.ps1
 ```
 
 See [docs/setup-windows.md](./docs/setup-windows.md) for the full list of what gets installed.
@@ -163,7 +163,7 @@ See [docs/setup-windows.md](./docs/setup-windows.md) for the full list of what g
 
 ```powershell
 # PowerShell 7.6 as Administrator, from the repo root
-powershell -ExecutionPolicy Bypass -File .\setup-wsl.ps1
+pwsh -ExecutionPolicy Bypass -File .\setup-wsl.ps1
 ```
 
 **If Debian is not yet installed**, the script installs the distro, then automatically opens it in its own window and pauses:

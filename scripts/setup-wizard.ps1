@@ -151,6 +151,6 @@ if (-not $UseDefaults) {
 # -----------------------------------------------------------------------------
 Write-Step 'Next steps (PowerShell as Administrator, from the repo root)'
 Write-Host '  1. powershell -ExecutionPolicy Bypass -File setup-windows.ps1'
-Write-Host '  2. powershell -ExecutionPolicy Bypass -File setup-wsl.ps1'
+Write-Host '  2. pwsh -ExecutionPolicy Bypass -File setup-wsl.ps1'
 Write-Host ''
 Write-Host 'Run `make setup` again any time to change your optional choices.' -ForegroundColor DarkGray

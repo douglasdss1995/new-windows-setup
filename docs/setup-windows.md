@@ -45,5 +45,5 @@ Next steps:
   2. Authenticate with GitHub:
        gh auth login
   3. Configure WSL:
-       powershell -ExecutionPolicy Bypass -File .\setup-wsl.ps1
+       pwsh -ExecutionPolicy Bypass -File .\setup-wsl.ps1
 ```

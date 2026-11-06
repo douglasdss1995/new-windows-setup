@@ -17,13 +17,13 @@ Orchestrates the complete WSL 2 installation and configuration.
 
 ```powershell
 # Full installation (default)
-powershell -ExecutionPolicy Bypass -File .\setup-wsl.ps1
+pwsh -ExecutionPolicy Bypass -File .\setup-wsl.ps1
 
 # Use a different distro
-powershell -ExecutionPolicy Bypass -File .\setup-wsl.ps1 -Distro Ubuntu-24.04
+pwsh -ExecutionPolicy Bypass -File .\setup-wsl.ps1 -Distro Ubuntu-24.04
 
 # Configure WSL without provisioning
-powershell -ExecutionPolicy Bypass -File .\setup-wsl.ps1 -SkipProvision:$true
+pwsh -ExecutionPolicy Bypass -File .\setup-wsl.ps1 -SkipProvision:$true
 ```
 
 > See [Execution Policy](./execution-policy.md) if the command above is blocked.
