@@ -411,9 +411,7 @@ Write-Step "Databases"
 
 if ($cfg.Database.PostgreSQL18)  { Install-Pkg "PostgreSQL 18"     "PostgreSQL.PostgreSQL.18"          } else { Write-Skip "PostgreSQL 18 (disabled)"   }
 if ($cfg.Database.DBeaver)       { Install-Pkg "DBeaver"           "dbeaver.dbeaver"                   } else { Write-Skip "DBeaver (disabled)"          }
-if ($cfg.Database.TablePlus)     { Install-Pkg "TablePlus"         "TablePlus.TablePlus"               } else { Write-Skip "TablePlus (disabled)"        }
 if ($cfg.Database.PgAdmin)       { Install-Pkg "pgAdmin 4"         "PostgreSQL.pgAdmin"                } else { Write-Skip "pgAdmin (disabled)"          }
-if ($cfg.Database.SQLiteBrowser) { Install-Pkg "DB Browser SQLite" "DBBrowserForSQLite.DBBrowserForSQLite" } else { Write-Skip "SQLite Browser (disabled)" }
 
 # =============================================================================
 # 7. DOCKER AND INFRASTRUCTURE

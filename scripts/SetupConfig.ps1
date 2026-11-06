@@ -105,8 +105,10 @@ function Get-WslOptionHelp {
 # -----------------------------------------------------------------------------
 
 # Section.Key names that must NOT exist in windows.config.psd1 any more: mandatory
-# tools, plus keys that were dropped (GitTools.Delta duplicated CLI.Delta; Database.RedisInsight left with Redis; the PyCharm, WebStorm and DataGrip installs were dropped;
-# Infrastructure.WSL was never read). `make setup` removes them from a local config.
+# tools, plus keys of tools that were dropped (GitTools.Delta duplicated CLI.Delta;
+# Infrastructure.WSL was never read; RedisInsight left with Redis; PyCharm, WebStorm,
+# DataGrip, TablePlus and DB Browser for SQLite are no longer installed). `make setup`
+# removes them from a local config.
 function Get-WindowsRetiredKeys {
     @(
         'PackageManagers.Chocolatey'
@@ -118,7 +120,7 @@ function Get-WindowsRetiredKeys {
         'Security.Gpg4win', 'Security.OpenSSH'
         'Utilities.SevenZip', 'Utilities.VCRedist'
         'Fonts.JetBrainsMono', 'Fonts.FiraCode', 'Fonts.CascadiaCode', 'Fonts.NerdFontsHack'
-        'GitTools.Delta', 'Infrastructure.WSL', 'Database.RedisInsight'
+        'GitTools.Delta', 'Infrastructure.WSL', 'Database.RedisInsight', 'Database.TablePlus', 'Database.SQLiteBrowser'
         'Editors.PyCharm', 'Editors.PyCharmProfessional', 'Editors.WebStorm', 'Editors.DataGrip'
     )
 }
@@ -141,9 +143,7 @@ function Get-WindowsOptions {
         ,@('Runtimes', 'Java21', $false, 'Java 21 (Eclipse Temurin JDK)', '')
         ,@('Database', 'PostgreSQL18', $false, 'PostgreSQL 18 on Windows', 'The WSL provider already offers PostgreSQL in a container.')
         ,@('Database', 'DBeaver', $true, 'DBeaver', '')
-        ,@('Database', 'TablePlus', $false, 'TablePlus', 'Paid after the trial.')
         ,@('Database', 'PgAdmin', $true, 'pgAdmin 4', '')
-        ,@('Database', 'SQLiteBrowser', $false, 'DB Browser for SQLite', '')
         ,@('Infrastructure', 'IPv4LoopbackPreference', $true, 'Prefer IPv4 for localhost (netsh prefix policy)', 'Changes a system network policy; see docs/wslconfig.md.')
         ,@('API', 'Postman', $true, 'Postman', 'Heavy; needs an account.')
         ,@('API', 'Insomnia', $false, 'Insomnia', '')
@@ -163,11 +163,11 @@ function Get-WindowsOptions {
         ,@('Utilities', 'WinRAR', $true, 'WinRAR', 'Trialware; 7-Zip is always installed.')
         ,@('Utilities', 'VLC', $true, 'VLC', '')
         ,@('Utilities', 'WinSCP', $true, 'WinSCP', '')
-        ,@('Utilities', 'PuTTY', $true, 'PuTTY', '')
+        ,@('Utilities', 'PuTTY', $false, 'PuTTY', '')
         ,@('Utilities', 'NotepadPP', $true, 'Notepad++', '')
         ,@('Browsers', 'Chrome', $true, 'Google Chrome', '')
         ,@('Browsers', 'FirefoxDev', $true, 'Firefox Developer Edition', '')
-        ,@('Browsers', 'Opera', $false, 'Opera', '')
+        ,@('Browsers', 'Opera', $true, 'Opera', '')
         ,@('VSCodeExtensions', 'Python', $true, 'VS Code: Python', 'Extensions are skipped when VS Code is not on PATH after its install.')
         ,@('VSCodeExtensions', 'Pylance', $true, 'VS Code: Pylance', '')
         ,@('VSCodeExtensions', 'Debugpy', $true, 'VS Code: Debugpy', '')

@@ -60,9 +60,7 @@
     Database         = @{
         PostgreSQL18  = $false
         DBeaver       = $true
-        TablePlus     = $false   # paid after trial
         PgAdmin       = $true    # alternative to DBeaver for Postgres
-        SQLiteBrowser = $false
     }
 
     # -------------------------------------------------------------------------
@@ -113,7 +111,7 @@
         WinRAR    = $true   # archive manager (trialware - pick one)
         VLC       = $true    # media player
         WinSCP    = $true    # SFTP/FTP client
-        PuTTY     = $true    # SSH/Telnet client
+        PuTTY     = $false    # SSH/Telnet client
         NotepadPP = $true    # text editor
     }
 
@@ -123,7 +121,7 @@
     Browsers         = @{
         Chrome     = $true
         FirefoxDev = $true
-        Opera      = $false
+        Opera      = $true
     }
 
     # -------------------------------------------------------------------------

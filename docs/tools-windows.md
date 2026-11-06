@@ -98,8 +98,6 @@ Tools installed on Windows via `setup-windows.ps1` using winget and Chocolatey. 
 |---|---|
 | [DBeaver](https://dbeaver.io/) | Universal database client GUI |
 | [pgAdmin](https://www.pgadmin.org/) | PostgreSQL administration GUI |
-| [TablePlus](https://tableplus.com/) | Modern database client GUI (paid after trial) |
-| [SQLite Browser](https://sqlitebrowser.org/) | Visual editor for SQLite |
 | [PostgreSQL 18](https://www.postgresql.org/) | Native PostgreSQL install (optional — providers in WSL cover most needs) |
 
 ---

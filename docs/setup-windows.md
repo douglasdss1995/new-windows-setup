@@ -15,7 +15,7 @@ powershell -ExecutionPolicy Bypass -File .\setup-windows.ps1
 - **Mandatory (Windows):** Chocolatey, Windows Terminal, PowerShell 7, Git, zoxide, fzf, VS Code, JetBrains Toolbox, mise, uv, pnpm, the CLI set (ripgrep, fd, bat, eza, delta, jq, yq, wget, make, sudo, just, curl), Gpg4win, OpenSSH, 7-Zip, the VC++ Redistributables and the four fonts.
 - **Mandatory (WSL):** Docker Engine, Python tooling and Node tooling (plus the base packages, zsh and mise).
 - **Optional:** everything else: Cursor, databases, API clients, productivity apps, browsers, the other utilities, the VS Code extensions, the Oh My Posh / Starship prompt, the IPv4 loopback tweak, and the WSL providers (PostgreSQL, pgAdmin, Valkey, Portainer, MinIO, SeaweedFS, Ollama), NVIDIA Container Toolkit, GitKraken and the keyboard layout.
-- Paid or trialware apps (TablePlus, WinRAR, Postman) are always optional.
+- Paid or trialware apps (WinRAR, Postman) are always optional.
 
 Run `make setup` again any time to change the optional choices.
 
@@ -27,7 +27,7 @@ Run `make setup` again any time to change the optional choices.
 
 | Editors      | VS Code, JetBrains Toolbox, Cursor                                |
 | Runtimes     | mise, pyenv-win, nvm, Python, Node LTS, JDK 21, uv, pnpm          |
-| Databases    | PostgreSQL, DBeaver, TablePlus, pgAdmin                           |
+| Databases    | PostgreSQL, DBeaver, pgAdmin                                      |
 | Docker       | Docker Engine in WSL (via `setup-wsl.sh`) + providers compose     |
 | API          | Postman, Insomnia, Bruno                                          |
 | CLI          | ripgrep, fd, bat, eza, fzf, zoxide, jq, delta, just               |
