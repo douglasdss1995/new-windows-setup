@@ -14,7 +14,7 @@ Provisions the development environment inside Debian. See [`docs/tools-wsl.md`](
 | CLI          | ripgrep, fd, bat, eza, fzf, zoxide, delta, jq, yq, gh                                    |
 | direnv       | Per-directory environment variable loading (`.envrc` files)                              |
 | Docker       | Native daemon (no Docker Desktop) + systemd enable (auto-start)                          |
-| Providers    | Valkey, Portainer via compose at `~/providers/`; PostgreSQL and pgAdmin are opt-in (see [Providers](./providers.md)) |
+| Providers    | Valkey (mandatory) and Portainer via compose at `~/providers/`, started with WSL; PostgreSQL, pgAdmin, MinIO, SeaweedFS and Ollama are opt-in and started on demand with `pvup <name>` (see [Providers](./providers.md)) |
 | Git          | Local `~/.gitconfig` that includes the repo's shared defaults (see [.gitconfig](./gitconfig.md)) |
 | Shell config | `.zshrc` with aliases for Django, Git, Docker, Python, Providers (`pvup`, `pvdown`...)  |
 
@@ -33,7 +33,6 @@ bash wsl/setup-wsl.sh --with-pgadmin         # also install pgAdmin (requires --
 bash wsl/setup-wsl.sh --with-minio           # add MinIO to the compose file (opt-in, discontinued; never auto-starts)
 bash wsl/setup-wsl.sh --with-seaweedfs       # add SeaweedFS to the compose file (opt-in; never auto-starts)
 bash wsl/setup-wsl.sh --with-ollama         # add Ollama to the compose file (opt-in; no models; start with pvup ollama)
-bash wsl/setup-wsl.sh --skip-valkey          # without Valkey
 bash wsl/setup-wsl.sh --skip-portainer       # without Portainer
 ```
 
@@ -51,7 +50,7 @@ docker compose --profile seaweedfs stop seaweedfs    # stop again
 Flags can be combined freely:
 
 ```bash
-# Docker + Valkey only (the default — PostgreSQL and pgAdmin are opt-in)
+# Docker + Valkey + Portainer (the default — PostgreSQL and pgAdmin are opt-in and manual)
 bash wsl/setup-wsl.sh
 
 # Docker + Valkey + PostgreSQL + pgAdmin

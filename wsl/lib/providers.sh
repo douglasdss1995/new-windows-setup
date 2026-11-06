@@ -35,9 +35,10 @@ provision_providers() {
       _providers_write_systemd "$PROVIDERS_DIR"
 
       success "Providers configured at: $PROVIDERS_DIR ($ENABLED_PROVIDERS)"
-      [ "$SKIP_PGADMIN"   = false ] && info "pgAdmin   -> http://localhost:5050  (admin@admin.com / admin)"
-      # MinIO and SeaweedFS are compose profiles: they do NOT start with the
-      # machine (providers.service only runs `docker compose up -d`).
+      [ "$SKIP_PGADMIN"   = false ] && info "pgAdmin   -> http://localhost:5050  (admin@admin.com / admin) - start: pvup pgadmin"
+      # PostgreSQL, pgAdmin, MinIO, SeaweedFS and Ollama are compose profiles: they
+      # do NOT start with the machine (providers.service only runs `docker compose up -d`).
+      [ "$SKIP_POSTGRES"  = false ] && info "PostgreSQL -> localhost:5433 - start: pvup postgres"
       [ "$SKIP_MINIO"     = false ] && info "MinIO     -> http://localhost:9001  (minioadmin / minioadmin) - start: docker compose --profile minio up -d minio"
       [ "$SKIP_SEAWEEDFS" = false ] && info "SeaweedFS -> S3 http://localhost:8333, filer http://localhost:8888 (seaweedadmin / seaweedadmin) - start: docker compose --profile seaweedfs up -d seaweedfs"
       [ "$SKIP_OLLAMA"    = false ] && info "Ollama    -> http://localhost:11434 (no models) - start: pvup ollama"
@@ -82,10 +83,15 @@ COMPOSE_HEADER
   if [ "$SKIP_POSTGRES" = false ]; then
     cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'POSTGRES_SVC'
 
+  # Opt-in and manual: not started by `docker compose up -d` nor on boot.
+  # Start with: pvup postgres   (pgAdmin's profile also makes it available)
   postgres:
     image: postgres:18-alpine
     container_name: postgres
-    restart: unless-stopped
+    restart: "no"
+    profiles:
+      - postgres
+      - pgadmin
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
@@ -144,10 +150,14 @@ VALKEY_SVC
   if [ "$SKIP_PGADMIN" = false ]; then
     cat >> "$PROVIDERS_DIR/docker-compose.yml" << 'PGADMIN_SVC'
 
+  # Opt-in and manual: not started by `docker compose up -d` nor on boot.
+  # Start with: pvup pgadmin   (also starts postgres, which it depends on)
   pgadmin:
     image: dpage/pgadmin4:latest
     container_name: pgadmin
-    restart: unless-stopped
+    restart: "no"
+    profiles:
+      - pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@admin.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin}

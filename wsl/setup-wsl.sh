@@ -40,10 +40,12 @@ source "$LIB_DIR/summary.sh"
 SKIP_DOCKER=false
 SKIP_NODE=false
 SKIP_PYTHON=false
-# PostgreSQL, pgAdmin, MinIO and SeaweedFS are opt-in (not needed by every
+# PostgreSQL, pgAdmin, MinIO, SeaweedFS and Ollama are opt-in (not needed by every
 # project) — enable with --with-postgres / --with-pgadmin / --with-minio /
-# --with-seaweedfs. MinIO and SeaweedFS are also compose profiles: they never
-# start with the machine, only on demand. All other providers default on.
+# --with-seaweedfs / --with-ollama. They are also compose profiles: they never
+# start with the machine, only on demand (pvup <name>). Valkey and Portainer
+# default on and start with the machine; Valkey is mandatory for setup-wsl.ps1
+# (--skip-valkey only exists for manual runs).
 SKIP_POSTGRES=true
 SKIP_VALKEY=false
 SKIP_PGADMIN=true

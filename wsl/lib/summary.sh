@@ -23,9 +23,9 @@ provision_summary() {
     echo "  $STEP. For Docker without sudo: restart WSL session (wsl --shutdown in PowerShell)"; STEP=$((STEP + 1))
     if [ -n "${ENABLED_PROVIDERS:-}" ]; then
       echo "  $STEP. Start providers:  pvup   (or: cd ~/providers && docker compose up -d)"; STEP=$((STEP + 1))
-      [ "$SKIP_POSTGRES"  = false ] && echo "     - PostgreSQL:     localhost:5433"
+      [ "$SKIP_POSTGRES"  = false ] && echo "     - PostgreSQL:     localhost:5433  (manual: pvup postgres)"
       [ "$SKIP_VALKEY"    = false ] && echo "     - Valkey:         localhost:6379"
-      [ "$SKIP_PGADMIN"   = false ] && echo "     - pgAdmin:        http://localhost:5050  (admin@admin.com / admin)"
+      [ "$SKIP_PGADMIN"   = false ] && echo "     - pgAdmin:        http://localhost:5050  (admin@admin.com / admin; manual: pvup pgadmin)"
       [ "$SKIP_MINIO"     = false ] && echo "     - MinIO API:      http://localhost:9000   (manual: docker compose --profile minio up -d minio)"
       [ "$SKIP_MINIO"     = false ] && echo "     - MinIO Console:  http://localhost:9001  (minioadmin / minioadmin)"
       [ "$SKIP_SEAWEEDFS" = false ] && echo "     - SeaweedFS S3:   http://localhost:8333   (seaweedadmin / seaweedadmin; manual: docker compose --profile seaweedfs up -d seaweedfs)"

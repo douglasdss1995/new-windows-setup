@@ -57,6 +57,27 @@ assert "no redis.conf written"                   [ ! -e "$D/providers/redis" ]
 assert ".env uses VALKEY_PORT"                   contains "$(cat "$D/.env")" "VALKEY_PORT=6379"
 rm -rf "$D"
 
+echo "autostart: only Valkey and Portainer start with the machine"
+SKIP_POSTGRES=false SKIP_PGADMIN=false SKIP_VALKEY=false SKIP_PORTAINER=false SKIP_MINIO=true SKIP_SEAWEEDFS=true SKIP_OLLAMA=true SKIP_NVIDIA=true
+D="$(mktemp -d)"
+mkdir -p "$D/providers/postgres/init" "$D/providers/valkey" "$D/providers/pgadmin" "$D/providers/seaweedfs"
+_providers_write_compose "$D"
+for svc in valkey portainer; do
+  block="$(service_block "$D/docker-compose.yml" "$svc")"
+  assert "$svc restarts with the machine"        has_line "$block" "    restart: unless-stopped"
+  assert "$svc has no profile (up -d starts it)" not_contains "$block" "profiles:"
+done
+for svc in postgres pgadmin; do
+  block="$(service_block "$D/docker-compose.yml" "$svc")"
+  assert "$svc is generated"                     contains "$block" "container_name: $svc"
+  assert "$svc does not restart on boot"         has_line "$block" '    restart: "no"'
+  assert "$svc has profiles: (not started by up -d)" has_line "$block" "    profiles:"
+  assert "$svc is in its own profile"            has_line "$block" "      - $svc"
+done
+# pgadmin depends on postgres: pvup pgadmin must be able to bring postgres up through its profile
+assert "postgres is also in the pgadmin profile" contains "$(service_block "$D/docker-compose.yml" postgres)" "      - pgadmin"
+rm -rf "$D"
+
 echo "with --with-minio --with-seaweedfs"
 generate false false
 for svc in minio seaweedfs; do

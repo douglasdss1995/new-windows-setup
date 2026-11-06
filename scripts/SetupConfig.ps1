@@ -12,9 +12,11 @@ function Get-WslOptions {
     # Default   = what setup-wsl.sh does when the flag is absent.
     # Flag      = the setup-wsl.sh flag emitted when the value differs from Default.
     # DependsOn = options that must be $true for this one to be asked/applied.
-    # Docker, Python and Node are not listed: they are mandatory (always installed,
-    # never asked). setup-wsl.sh still accepts --skip-docker/--skip-python/--skip-node
-    # for manual runs, but setup-wsl.ps1 never passes them.
+    # Docker, Python, Node and Valkey are not listed: they are mandatory (always
+    # installed, never asked). setup-wsl.sh still accepts --skip-docker/--skip-python/
+    # --skip-node/--skip-valkey for manual runs, but setup-wsl.ps1 never passes them.
+    # Autostart: Valkey and Portainer start with the machine; every other provider is
+    # a compose profile (restart "no") started on demand with pvup <name>.
     # Help      = what the option installs and what it needs. "Requires" and
     #             "Skipped when turned off" lines are derived by Get-WslOptionHelp.
     @(
@@ -29,17 +31,14 @@ function Get-WslOptions {
         [pscustomobject]@{
             Key = 'PostgreSQL'; Default = $false; Flag = '--with-postgres'; DependsOn = @()
             Question = 'Add PostgreSQL provider?'
-            Help = @('Container on localhost:5433, started with the other providers.')
+            Help = @('Container on localhost:5433.',
+                     'Never starts with the machine: pvup postgres.')
         }
         [pscustomobject]@{
             Key = 'PgAdmin'; Default = $false; Flag = '--with-pgadmin'; DependsOn = @('PostgreSQL')
             Question = 'Add pgAdmin provider?'
-            Help = @('Web UI for PostgreSQL on http://localhost:5050.')
-        }
-        [pscustomobject]@{
-            Key = 'Valkey'; Default = $true; Flag = '--skip-valkey'; DependsOn = @()
-            Question = 'Add Valkey provider?'
-            Help = @('Redis-compatible cache/queue container (BSD licence, replaces Redis) on localhost:6379.')
+            Help = @('Web UI for PostgreSQL on http://localhost:5050.',
+                     'Never starts with the machine: pvup pgadmin (also starts postgres).')
         }
         [pscustomobject]@{
             Key = 'Portainer'; Default = $true; Flag = '--skip-portainer'; DependsOn = @()
@@ -312,8 +311,6 @@ function Read-Text {
 # key (or a missing file) behaves exactly like running the script without flags.
 function ConvertTo-WslProvisionArgs {
     param([Parameter(Mandatory)][hashtable]$Config)
-    # Redis was replaced by Valkey: an old config that only has Redis keeps its choice.
-    if ($Config.ContainsKey('Redis') -and -not $Config.ContainsKey('Valkey')) { $Config = $Config + @{ Valkey = $Config.Redis } }
     $flags = foreach ($opt in Get-WslOptions) {
         if (-not $Config.ContainsKey($opt.Key)) { continue }
         $value = $Config[$opt.Key]

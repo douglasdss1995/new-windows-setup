@@ -103,8 +103,6 @@ if ((Set-ConfigBooleans -Path $winConfigPath -Values $winAnswers) -gt 0) {
 # -----------------------------------------------------------------------------
 $wslConfigPath = Join-Path $RepoRoot 'wsl' 'wsl.config.psd1'
 $current = Import-PowerShellDataFile -Path $wslConfigPath
-# Redis was replaced by Valkey: carry an old answer over.
-if ($current.ContainsKey('Redis') -and -not $current.ContainsKey('Valkey')) { $current['Valkey'] = $current['Redis'] }
 
 Write-Step 'WSL setup'
 if (-not $UseDefaults) {

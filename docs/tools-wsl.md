@@ -136,7 +136,7 @@ export DATABASE_URL=postgres://localhost/mydb
 
 ## Providers (Shared Services)
 
-Infrastructure services shared across all projects, managed at `~/providers/docker-compose.yml` and started automatically via a systemd service when WSL boots.
+Infrastructure services shared across all projects, managed at `~/providers/docker-compose.yml` and with a systemd service that starts **Valkey and Portainer** when WSL boots. PostgreSQL, pgAdmin, MinIO, SeaweedFS and Ollama are opt-in and manual (see below).
 
 | Service | Image | Port | Description |
 |---|---|---|---|
@@ -148,14 +148,13 @@ Infrastructure services shared across all projects, managed at `~/providers/dock
 | Ollama | `ollama/ollama` | 11434 | Local LLM server, no models; GPU with `--with-nvidia`, else CPU (opt-in, manual start: `pvup ollama`) |
 | MinIO | `minio/minio` | 9000 (S3) / 9001 (console) | S3-compatible object storage (opt-in, manual start, discontinued) |
 
-PostgreSQL, pgAdmin, MinIO and SeaweedFS are **not installed by default** — enable them explicitly with `--with-postgres` / `--with-pgadmin` / `--with-minio` / `--with-seaweedfs`. MinIO and SeaweedFS are also Compose profiles with `restart: "no"`: even when enabled, they only run when you start them (`docker compose --profile seaweedfs up -d seaweedfs`), never with the machine. SeaweedFS S3 credentials live in `~/providers/providers/seaweedfs/s3.json` (default `seaweedadmin` / `seaweedadmin`; kept on re-runs). Every other provider can be excluded via `--skip-*` flags when running `setup-wsl.sh`:
+PostgreSQL, pgAdmin, MinIO and SeaweedFS are **not installed by default** — enable them explicitly with `--with-postgres` / `--with-pgadmin` / `--with-minio` / `--with-seaweedfs`. They are also Compose profiles with `restart: "no"` (as is Ollama): even when enabled, they only run when you start them with `pvup <name>` (`pvup postgres`, `pvup pgadmin`, `pvup seaweedfs`...), never with the machine. `pvup pgadmin` also starts PostgreSQL, which it depends on. SeaweedFS S3 credentials live in `~/providers/providers/seaweedfs/s3.json` (default `seaweedadmin` / `seaweedadmin`; kept on re-runs). Valkey is mandatory (setup-wsl.ps1 always installs it; `--skip-valkey` only exists for manual runs). Portainer can be excluded via `--skip-portainer`:
 
 ```bash
 bash wsl/setup-wsl.sh --with-postgres        # also install PostgreSQL
 bash wsl/setup-wsl.sh --with-seaweedfs       # also add SeaweedFS (start manually)
 bash wsl/setup-wsl.sh --with-ollama          # also add Ollama (start with: pvup ollama)
 bash wsl/setup-wsl.sh --with-postgres --with-pgadmin   # PostgreSQL + pgAdmin (pgAdmin requires PostgreSQL)
-bash wsl/setup-wsl.sh --skip-valkey          # no Valkey (--skip-redis still works but is deprecated)
 bash wsl/setup-wsl.sh --skip-portainer       # no Portainer
 
 # Example: Docker + only Valkey (the default — no flags needed)

@@ -16,18 +16,16 @@
     NvidiaContainerToolkit = $false
 
     # Add PostgreSQL provider?
-    #   Container on localhost:5433, started with the other providers.
+    #   Container on localhost:5433.
+    #   Never starts with the machine: pvup postgres.
     #   If you answer no, these are skipped too: PgAdmin.
     PostgreSQL             = $false
 
     # Add pgAdmin provider?
     #   Web UI for PostgreSQL on http://localhost:5050.
+    #   Never starts with the machine: pvup pgadmin (also starts postgres).
     #   Requires: PostgreSQL set to yes (not asked, and forced to no, otherwise).
     PgAdmin                = $false
-
-    # Add Valkey provider?
-    #   Redis-compatible cache/queue container (BSD licence, replaces Redis) on localhost:6379.
-    Valkey                 = $true
 
     # Add Portainer provider?
     #   Docker web UI on http://localhost:8001.

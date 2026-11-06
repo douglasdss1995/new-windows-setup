@@ -69,15 +69,14 @@ Describe 'ConvertTo-WslProvisionArgs' {
         ConvertTo-WslProvisionArgs -Config @{ NvidiaContainerToolkit = $false } | Should -Be ''
     }
     It 'emits --skip-* for tools turned off' {
-        ConvertTo-WslProvisionArgs -Config @{ Valkey = $false; Portainer = $false } |
-            Should -Be '--skip-valkey --skip-portainer'
+        ConvertTo-WslProvisionArgs -Config @{ Portainer = $false; GitKraken = $false } |
+            Should -Be '--skip-portainer --skip-gitkraken'
     }
-    It 'honours the legacy Redis key (renamed to Valkey) unless Valkey is set' {
-        ConvertTo-WslProvisionArgs -Config @{ Redis = $false } | Should -Be '--skip-valkey'
-        ConvertTo-WslProvisionArgs -Config @{ Redis = $false; Valkey = $true } | Should -Be ''
+    It 'ignores the retired Docker/Python/Node/Valkey/Redis keys: they are mandatory now' {
+        ConvertTo-WslProvisionArgs -Config @{ Docker = $false; Python = $false; Node = $false; Valkey = $false; Redis = $false } | Should -Be ''
     }
     It 'rejects non-boolean values' {
-        { ConvertTo-WslProvisionArgs -Config @{ Valkey = 'no' } } | Should -Throw '*Valkey*'
+        { ConvertTo-WslProvisionArgs -Config @{ Portainer = 'no' } } | Should -Throw '*Portainer*'
     }
 }
 
@@ -102,7 +101,7 @@ Describe 'wsl option contract' {
         $script = Get-Content (Join-Path $repoRoot 'wsl' 'setup-wsl.sh') -Raw
         $vars = @{
             NvidiaContainerToolkit = 'SKIP_NVIDIA'; PostgreSQL = 'SKIP_POSTGRES'
-            PgAdmin = 'SKIP_PGADMIN'; Valkey = 'SKIP_VALKEY'; Portainer = 'SKIP_PORTAINER'; MinIO = 'SKIP_MINIO'
+            PgAdmin = 'SKIP_PGADMIN'; Portainer = 'SKIP_PORTAINER'; MinIO = 'SKIP_MINIO'
             SeaweedFS = 'SKIP_SEAWEEDFS'; Ollama = 'SKIP_OLLAMA'
             GitKraken = 'SKIP_GITKRAKEN'; KeyboardLayout = 'SKIP_KEYBOARD'
         }
@@ -120,9 +119,9 @@ Describe 'Copy-ConfigExamples' {
         $root = New-FakeRepo
         try {
             (Copy-ConfigExamples -RepoRoot $root).Created | Should -Be @($true, $true, $true)
-            Set-Content (Join-Path $root 'wsl' 'wsl.config.psd1') '@{ Valkey = $false }'
+            Set-Content (Join-Path $root 'wsl' 'wsl.config.psd1') '@{ Portainer = $false }'
             (Copy-ConfigExamples -RepoRoot $root).Created | Should -Be @($false, $false, $false)
-            (Import-PowerShellDataFile (Join-Path $root 'wsl' 'wsl.config.psd1')).Valkey | Should -BeFalse
+            (Import-PowerShellDataFile (Join-Path $root 'wsl' 'wsl.config.psd1')).Portainer | Should -BeFalse
         } finally { Remove-Item $root -Recurse -Force }
     }
 }
@@ -170,8 +169,8 @@ Describe 'setup-wizard.ps1' {
         $queue = [System.Collections.Queue]::new()
         $asked = [System.Collections.Generic.List[string]]::new()
         # Windows: Oh My Posh = n, every other optional tool keeps its default.
-        # WSL: NVIDIA = y, PostgreSQL = default (no, so pgAdmin is not asked), Valkey = 0, Portainer/MinIO/SeaweedFS/Ollama = default, GitKraken = n, Keyboard = 1.
-        $answers = @('n') + @('') * ((Get-WindowsOptions).Count - 1) + @('y', '', '0', '', '', '', '', 'n', '1', 'Jane Doe', 'jane@example.com')
+        # WSL: NVIDIA = y, PostgreSQL = default (no, so pgAdmin is not asked), Portainer = 0, MinIO/SeaweedFS/Ollama = default, GitKraken = n, Keyboard = 1.
+        $answers = @('n') + @('') * ((Get-WindowsOptions).Count - 1) + @('y', '', '0', '', '', '', 'n', '1', 'Jane Doe', 'jane@example.com')
         $answers | ForEach-Object { $queue.Enqueue($_) }
         Mock Read-Host { $asked.Add($Prompt); $queue.Dequeue() }
         & (Join-Path $repoRoot 'scripts' 'setup-wizard.ps1') -RepoRoot $script:root *>$null
@@ -179,14 +178,14 @@ Describe 'setup-wizard.ps1' {
         ($asked | Where-Object { $_ -match 'Docker \(native|Python tooling|Node tooling|Chocolatey|Visual Studio Code|7-Zip' }) | Should -BeNullOrEmpty
         $cfg = Import-PowerShellDataFile (Join-Path $script:root 'wsl' 'wsl.config.psd1')
         $cfg.NvidiaContainerToolkit | Should -BeTrue
-        $cfg.Valkey                 | Should -BeFalse
+        $cfg.Portainer              | Should -BeFalse
         $cfg.GitKraken              | Should -BeFalse
         $cfg.KeyboardLayout         | Should -BeTrue
         $win = Import-PowerShellDataFile (Join-Path $script:root 'windows' 'windows.config.psd1')
         $win.Terminal.OhMyPosh | Should -BeFalse
         $win.Terminal.SetPowerShell7AsDefault | Should -BeTrue
         $win.Git.UserName | Should -Be 'Jane Doe'
-        ConvertTo-WslProvisionArgs -Config $cfg | Should -Be '--with-nvidia --skip-valkey --skip-gitkraken'
+        ConvertTo-WslProvisionArgs -Config $cfg | Should -Be '--with-nvidia --skip-portainer --skip-gitkraken'
     }
     It 'never asks about a mandatory tool' {
         $asked = [System.Collections.Generic.List[string]]::new()
@@ -196,7 +195,7 @@ Describe 'setup-wizard.ps1' {
         # The first questions are exactly the optional Windows tools, in catalog order: nothing else is asked.
         $windowsAsked = @($asked | Select-Object -First $options.Count | ForEach-Object { $_ -replace ' \[[Yy]/[Nn]\]$', '' })
         $windowsAsked | Should -Be @($options.Question)
-        foreach ($label in 'Docker (native', 'Python tooling', 'Node tooling') { ($asked | Where-Object { $_ -like "*$label*" }) | Should -BeNullOrEmpty -Because $label }
+        foreach ($label in 'Docker (native', 'Python tooling', 'Node tooling', 'Valkey') { ($asked | Where-Object { $_ -like "*$label*" }) | Should -BeNullOrEmpty -Because $label }
     }
     It 'removes the keys of tools that became mandatory from an existing config, with a .bak' {
         $win = Join-Path $script:root 'windows' 'windows.config.psd1'

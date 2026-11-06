@@ -109,7 +109,7 @@ Any new tool category should be added as a new `modules/steps/Install-<Category>
 
 ### WSL providers
 
-`wsl/providers/docker-compose.yml` runs PostgreSQL, Valkey (the Redis replacement: BSD-licensed and wire-compatible, so redis-py, django-redis and Celery work unchanged), pgAdmin, and Portainer. `setup-wsl.sh` copies this to `~/providers/` inside WSL and registers a systemd service for auto-start. Credentials live in `~/providers/.env` (not committed; see `.env.example`).
+`wsl/providers/docker-compose.yml` runs PostgreSQL, Valkey (the Redis replacement: BSD-licensed and wire-compatible, so redis-py, django-redis and Celery work unchanged), pgAdmin, and Portainer. `setup-wsl.sh` copies this to `~/providers/` inside WSL and registers a systemd service for auto-start. Only Valkey (mandatory) and Portainer start with the machine; PostgreSQL, pgAdmin, MinIO, SeaweedFS and Ollama are opt-in compose profiles with `restart: "no"`, started with `pvup <name>` (`tests/bash/providers.test.sh` guards this). Credentials live in `~/providers/.env` (not committed; see `.env.example`).
 
 ### WSL startup timer
 

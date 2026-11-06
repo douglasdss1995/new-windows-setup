@@ -1,6 +1,6 @@
 # Providers
 
-`setup-wsl.sh` automatically configures shared services at `~/providers/` inside WSL and creates a systemd service to start them automatically.
+`setup-wsl.sh` automatically configures shared services at `~/providers/` inside WSL and creates a systemd service that starts **Valkey and Portainer** with WSL. Every other provider (PostgreSQL, pgAdmin, MinIO, SeaweedFS, Ollama) is opt-in **and** manual: it is a Compose profile with `restart: "no"`, started on demand with `pvup <name>` (for example `pvup postgres`, `pvup pgadmin`, `pvup ollama`).
 
 ## .env setup
 
