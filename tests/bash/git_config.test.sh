@@ -120,6 +120,18 @@ REPO_PATH="" quiet provision_git_config
 assert "symlink replaced"                               [ ! -L "$HOME/.gitconfig" ]
 assert "standalone defaults written locally"            equals "$(git config --file "$HOME/.gitconfig" --get pull.rebase)" "true"
 
+# run_step runs the steps under `set -e`: an unset key (git config --get exits 1)
+# must not abort the step.
+echo "survives set -e with an identity already set and no credential.helper"
+new_machine
+GIT_USERNAME="Ada Lovelace" GIT_EMAIL="ada@example.com"
+quiet provision_git_config
+git config --file "$HOME/.gitconfig" --unset credential.helper
+printf '[user]\n\tname = Old\n\temail = old@example.com\n' > "$HOME/.gitconfig.local"
+( set -e; provision_git_config ) >/dev/null 2>&1
+assert "step exits 0"                                   [ "$?" -eq 0 ]
+assert "credential.helper restored"                     equals "$(git config --file "$HOME/.gitconfig" --get credential.helper)" "${FAKE_GCM// /\\ }"
+
 echo
 echo "$PASS passed, $FAIL failed"
 [ "$FAIL" -eq 0 ]

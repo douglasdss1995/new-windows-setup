@@ -25,7 +25,14 @@ provision_cli_tools() {
   fi
 
   if ! command -v fzf &>/dev/null; then
-    git clone --depth 1 https://github.com/junegunn/fzf.git "$HOME/.fzf"
+    # A previous run (or a half-finished install) can leave ~/.fzf behind without
+    # fzf on PATH: reuse the checkout instead of failing on `git clone`.
+    if [ -d "$HOME/.fzf/.git" ]; then
+      git -C "$HOME/.fzf" pull --ff-only || warn "Could not update ~/.fzf - using the existing checkout"
+    else
+      rm -rf "$HOME/.fzf"
+      git clone --depth 1 https://github.com/junegunn/fzf.git "$HOME/.fzf"
+    fi
     "$HOME/.fzf/install" --all --no-bash --no-fish
   fi
 

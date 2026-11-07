@@ -28,6 +28,16 @@ provision_node() {
   mise use --global npm:@angular/cli
   hash -r
 
+  # pnpm refuses `add -g` (ERR_PNPM_GLOBAL_BIN_DIR_NOT_IN_PATH) when its global
+  # bin dir is not on PATH, which is the case on a first run before .zshrc has
+  # been configured. Newer pnpm uses $PNPM_HOME/bin, older ones $PNPM_HOME.
+  export PNPM_HOME="${PNPM_HOME:-$HOME/.local/share/pnpm}"
+  mkdir -p "$PNPM_HOME/bin"
+  case ":$PATH:" in
+    *":$PNPM_HOME/bin:"*) ;;
+    *) export PATH="$PNPM_HOME/bin:$PNPM_HOME:$PATH" ;;
+  esac
+
   pnpm add -g typescript
   pnpm add -g eslint
   pnpm add -g prettier

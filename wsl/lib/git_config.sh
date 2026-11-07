@@ -42,7 +42,7 @@ _git_config_set_gcm() { # <file>
     warn "git-credential-manager.exe not found under /mnt/c/Program Files/Git - credential helper not configured"
     return 0
   fi
-  current="$(git config --file "$file" --get credential.helper 2>/dev/null)"
+  current="$(git config --file "$file" --get credential.helper 2>/dev/null)" || true
   # credential.helper runs through a shell when its value contains a space, so
   # the space in "Program Files" must be escaped or the shell splits it into
   # separate words and the helper is never found.
@@ -61,8 +61,8 @@ _git_config_desymlink() {
   local cfg="$HOME/.gitconfig" target name email
   [ -L "$cfg" ] || return 0
   target="$(readlink -f "$cfg")"
-  name="$(git config --file "$target" --get user.name 2>/dev/null)"
-  email="$(git config --file "$target" --get user.email 2>/dev/null)"
+  name="$(git config --file "$target" --get user.name 2>/dev/null)" || true
+  email="$(git config --file "$target" --get user.email 2>/dev/null)" || true
   rm "$cfg"
   : > "$cfg"
   [ -n "$name" ]  && git config --file "$cfg" user.name "$name"
@@ -107,8 +107,8 @@ provision_git_config() {
     # Identity from the pre-include design lived in ~/.gitconfig.local.
     if [ -f "$HOME/.gitconfig.local" ]; then
       local old_name old_email
-      old_name="$(git config --file "$HOME/.gitconfig.local" --get user.name 2>/dev/null)"
-      old_email="$(git config --file "$HOME/.gitconfig.local" --get user.email 2>/dev/null)"
+      old_name="$(git config --file "$HOME/.gitconfig.local" --get user.name 2>/dev/null)" || true
+      old_email="$(git config --file "$HOME/.gitconfig.local" --get user.email 2>/dev/null)" || true
       _git_config_set_if_unset "$HOME/.gitconfig" user.name  "$old_name"
       _git_config_set_if_unset "$HOME/.gitconfig" user.email "$old_email"
     fi

@@ -213,6 +213,8 @@ EOF
     "export FZF_DEFAULT_OPTS='--height 40% --layout=reverse --border'"
     "export FZF_DEFAULT_COMMAND='fd --type f --hidden --follow --exclude .git'"
     'eval "$(direnv hook zsh)"'
+    'export PNPM_HOME="$HOME/.local/share/pnpm"'
+    'export PATH="$PNPM_HOME/bin:$PNPM_HOME:$PATH"'
   )
   local line
   for line in "${zsh_lines[@]}"; do
